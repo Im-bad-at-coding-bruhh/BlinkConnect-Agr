@@ -65,17 +65,15 @@ class _AuthScreenState extends State<AuthScreen>
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder:
-              (context) =>
-                  isFarmer
-                      ? DashboardScreen(
-                        isFarmer: isFarmer,
-                        isVerified: isVerified,
-                      )
-                      : MarketplaceScreen(
-                        isFarmer: isFarmer,
-                        isVerified: isVerified,
-                      ),
+          builder: (context) => isFarmer
+              ? DashboardScreen(
+                  isFarmer: isFarmer,
+                  isVerified: isVerified,
+                )
+              : MarketplaceScreen(
+                  isFarmer: isFarmer,
+                  isVerified: isVerified,
+                ),
         ),
         (route) => false,
       );
@@ -96,17 +94,15 @@ class _AuthScreenState extends State<AuthScreen>
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder:
-              (context) =>
-                  isFarmer
-                      ? DashboardScreen(
-                        isFarmer: isFarmer,
-                        isVerified: isVerified,
-                      )
-                      : MarketplaceScreen(
-                        isFarmer: isFarmer,
-                        isVerified: isVerified,
-                      ),
+          builder: (context) => isFarmer
+              ? DashboardScreen(
+                  isFarmer: isFarmer,
+                  isVerified: isVerified,
+                )
+              : MarketplaceScreen(
+                  isFarmer: isFarmer,
+                  isVerified: isVerified,
+                ),
         ),
         (route) => false,
       );
@@ -214,10 +210,9 @@ class _AuthScreenState extends State<AuthScreen>
                                 children: [
                                   // Top logo/branding
                                   Row(
-                                    mainAxisAlignment:
-                                        isSmallScreen
-                                            ? MainAxisAlignment.center
-                                            : MainAxisAlignment.start,
+                                    mainAxisAlignment: isSmallScreen
+                                        ? MainAxisAlignment.center
+                                        : MainAxisAlignment.start,
                                     children: [
                                       Container(
                                         width: 48,
@@ -234,7 +229,7 @@ class _AuthScreenState extends State<AuthScreen>
                                       ),
                                       SizedBox(width: 12),
                                       Text(
-                                        "Farmly",
+                                        "BlinkConnect",
                                         style: GoogleFonts.poppins(
                                           fontSize: 22,
                                           fontWeight: FontWeight.bold,
@@ -254,9 +249,8 @@ class _AuthScreenState extends State<AuthScreen>
                                     style: GoogleFonts.poppins(
                                       fontSize: 32,
                                       fontWeight: FontWeight.bold,
-                                      color:
-                                          Colors
-                                              .white, // Changed to white for dark theme
+                                      color: Colors
+                                          .white, // Changed to white for dark theme
                                     ),
                                   ),
 
@@ -269,9 +263,8 @@ class _AuthScreenState extends State<AuthScreen>
                                         : 'Please fill in the information below',
                                     style: GoogleFonts.poppins(
                                       fontSize: 16,
-                                      color:
-                                          Colors
-                                              .white70, // Changed to white with opacity
+                                      color: Colors
+                                          .white70, // Changed to white with opacity
                                     ),
                                   ),
 
@@ -284,23 +277,22 @@ class _AuthScreenState extends State<AuthScreen>
                                       _buildSocialButton(
                                         icon: FontAwesomeIcons.google,
                                         label: 'Google',
-                                        onTap:
-                                            () => _handleSocialSignIn('google'),
+                                        onTap: () =>
+                                            _handleSocialSignIn('google'),
                                       ),
                                       SizedBox(width: 16),
                                       _buildSocialButton(
                                         icon: FontAwesomeIcons.apple,
                                         label: 'Apple',
-                                        onTap:
-                                            () => _handleSocialSignIn('apple'),
+                                        onTap: () =>
+                                            _handleSocialSignIn('apple'),
                                       ),
                                       SizedBox(width: 16),
                                       _buildSocialButton(
                                         icon: FontAwesomeIcons.xTwitter,
                                         label: 'X',
-                                        onTap:
-                                            () =>
-                                                _handleSocialSignIn('twitter'),
+                                        onTap: () =>
+                                            _handleSocialSignIn('twitter'),
                                       ),
                                     ],
                                   ),
@@ -401,9 +393,8 @@ class _AuthScreenState extends State<AuthScreen>
                                             Text(
                                               'Remember me',
                                               style: GoogleFonts.poppins(
-                                                color:
-                                                    Colors
-                                                        .white70, // Changed color
+                                                color: Colors
+                                                    .white70, // Changed color
                                                 fontSize: 14,
                                               ),
                                             ),
@@ -541,16 +532,15 @@ class _AuthScreenState extends State<AuthScreen>
             icon,
             color: Colors.white54,
           ), // Icon color with opacity
-          suffixIcon:
-              isPassword
-                  ? IconButton(
-                    icon: Icon(
-                      isVisible ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.white54,
-                    ),
-                    onPressed: onVisibilityToggle,
-                  )
-                  : null,
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    isVisible ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white54,
+                  ),
+                  onPressed: onVisibilityToggle,
+                )
+              : null,
         ),
       ),
     );
@@ -602,10 +592,9 @@ class _AuthScreenState extends State<AuthScreen>
 class WavePattern extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.white.withOpacity(0.1)
-          ..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
 
     final path1 = Path();
     path1.moveTo(0, size.height * 0.7);
@@ -748,7 +737,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Registration successful! Welcome to the Farmly',
+          'Registration successful! Welcome to the BlinkConnect',
           style: GoogleFonts.poppins(),
         ),
         backgroundColor: Colors.green,
@@ -757,17 +746,15 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder:
-            (context) =>
-                isFarmer
-                    ? DashboardScreen(
-                      isFarmer: isFarmer,
-                      isVerified: isVerified,
-                    )
-                    : MarketplaceScreen(
-                      isFarmer: isFarmer,
-                      isVerified: isVerified,
-                    ),
+        builder: (context) => isFarmer
+            ? DashboardScreen(
+                isFarmer: isFarmer,
+                isVerified: isVerified,
+              )
+            : MarketplaceScreen(
+                isFarmer: isFarmer,
+                isVerified: isVerified,
+              ),
       ),
       (route) => false,
     );
@@ -875,7 +862,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                               ),
                                               SizedBox(width: 12),
                                               Text(
-                                                "Farmly",
+                                                "BlinkConnect",
                                                 style: GoogleFonts.poppins(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
@@ -886,7 +873,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                           ),
                                           Spacer(),
                                           Text(
-                                            "We connect farmers and buyers directly",
+                                            "Support local agriculture and get access to fresh produce with the BlinkConnect community.",
                                             style: GoogleFonts.poppins(
                                               fontSize: 24,
                                               fontWeight: FontWeight.bold,
@@ -895,7 +882,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                           ),
                                           SizedBox(height: 16),
                                           Text(
-                                            "Support local agriculture and get access to fresh produce with the Farmly community.",
+                                            "Support local agriculture and get access to fresh produce with the BlinkConnect community.",
                                             style: GoogleFonts.poppins(
                                               fontSize: 16,
                                               color: Colors.white.withOpacity(
@@ -946,7 +933,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "Farmly",
+                                          "BlinkConnect",
                                           style: GoogleFonts.poppins(
                                             fontSize: 22,
                                             fontWeight: FontWeight.bold,
@@ -959,7 +946,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                   ],
 
                                   Text(
-                                    'Few more steps!',
+                                    'How will you use BlinkConnect?',
                                     style: GoogleFonts.poppins(
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,
@@ -970,7 +957,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                   SizedBox(height: 12),
 
                                   Text(
-                                    'How will you use Farmly?',
+                                    'How will you use BlinkConnect?',
                                     style: GoogleFonts.poppins(
                                       fontSize: 16,
                                       color: Colors.white70,
@@ -982,61 +969,59 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                   // User type selection cards
                                   isSmallScreen
                                       ? Column(
-                                        children: [
-                                          _buildUserTypeCard(
-                                            title: 'Farmer',
-                                            icon: Icons.agriculture,
-                                            description:
-                                                'I want to sell my produce and connect with buyers',
-                                            isSelected:
-                                                selectedUserType == 'farmer',
-                                            onTap:
-                                                () => _selectUserType('farmer'),
-                                          ),
-                                          SizedBox(height: 16),
-                                          _buildUserTypeCard(
-                                            title: 'Buyer',
-                                            icon: Icons.shopping_cart,
-                                            description:
-                                                'I want to purchase directly from farmers',
-                                            isSelected:
-                                                selectedUserType == 'buyer',
-                                            onTap:
-                                                () => _selectUserType('buyer'),
-                                          ),
-                                        ],
-                                      )
-                                      : Row(
-                                        children: [
-                                          Expanded(
-                                            child: _buildUserTypeCard(
+                                          children: [
+                                            _buildUserTypeCard(
                                               title: 'Farmer',
                                               icon: Icons.agriculture,
                                               description:
                                                   'I want to sell my produce and connect with buyers',
                                               isSelected:
                                                   selectedUserType == 'farmer',
-                                              onTap:
-                                                  () =>
-                                                      _selectUserType('farmer'),
+                                              onTap: () =>
+                                                  _selectUserType('farmer'),
                                             ),
-                                          ),
-                                          SizedBox(width: 20),
-                                          Expanded(
-                                            child: _buildUserTypeCard(
+                                            SizedBox(height: 16),
+                                            _buildUserTypeCard(
                                               title: 'Buyer',
                                               icon: Icons.shopping_cart,
                                               description:
                                                   'I want to purchase directly from farmers',
                                               isSelected:
                                                   selectedUserType == 'buyer',
-                                              onTap:
-                                                  () =>
-                                                      _selectUserType('buyer'),
+                                              onTap: () =>
+                                                  _selectUserType('buyer'),
                                             ),
-                                          ),
-                                        ],
-                                      ),
+                                          ],
+                                        )
+                                      : Row(
+                                          children: [
+                                            Expanded(
+                                              child: _buildUserTypeCard(
+                                                title: 'Farmer',
+                                                icon: Icons.agriculture,
+                                                description:
+                                                    'I want to sell my produce and connect with buyers',
+                                                isSelected: selectedUserType ==
+                                                    'farmer',
+                                                onTap: () =>
+                                                    _selectUserType('farmer'),
+                                              ),
+                                            ),
+                                            SizedBox(width: 20),
+                                            Expanded(
+                                              child: _buildUserTypeCard(
+                                                title: 'Buyer',
+                                                icon: Icons.shopping_cart,
+                                                description:
+                                                    'I want to purchase directly from farmers',
+                                                isSelected:
+                                                    selectedUserType == 'buyer',
+                                                onTap: () =>
+                                                    _selectUserType('buyer'),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
 
                                   SizedBox(height: 24),
 
@@ -1158,16 +1143,14 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color:
-              isSelected
-                  ? Color(0xFF1A1A1A).withOpacity(0.2)
-                  : Color(0xFF2C2C2C), // Dark grey for unselected
+          color: isSelected
+              ? Color(0xFF1A1A1A).withOpacity(0.2)
+              : Color(0xFF2C2C2C), // Dark grey for unselected
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color:
-                isSelected
-                    ? Color(0xFF1A1A1A)
-                    : Color(0xFF3D3D3D), // Slightly lighter grey for borders
+            color: isSelected
+                ? Color(0xFF1A1A1A)
+                : Color(0xFF3D3D3D), // Slightly lighter grey for borders
             width: 2,
           ),
         ),
@@ -1181,10 +1164,9 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? Color(0xFF1A1A1A)
-                            : Color(0xFF2C2C2C), // Dark grey if not selected
+                    color: isSelected
+                        ? Color(0xFF1A1A1A)
+                        : Color(0xFF2C2C2C), // Dark grey if not selected
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: Colors.white, size: 24),
@@ -1195,21 +1177,18 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color:
-                          isSelected
-                              ? Color(0xFF1A1A1A)
-                              : Colors.white54, // Grey if selected
+                      color: isSelected
+                          ? Color(0xFF1A1A1A)
+                          : Colors.white54, // Grey if selected
                       width: 2,
                     ),
-                    color:
-                        isSelected
-                            ? Color(0xFF1A1A1A)
-                            : Colors.transparent, // Fill if selected
+                    color: isSelected
+                        ? Color(0xFF1A1A1A)
+                        : Colors.transparent, // Fill if selected
                   ),
-                  child:
-                      isSelected
-                          ? Icon(Icons.check, color: Colors.white, size: 16)
-                          : null,
+                  child: isSelected
+                      ? Icon(Icons.check, color: Colors.white, size: 16)
+                      : null,
                 ),
               ],
             ),
@@ -1250,21 +1229,18 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color:
-                      isSelected
-                          ? Color(0xFF1A1A1A)
-                          : Colors.white54, // Grey if selected
+                  color: isSelected
+                      ? Color(0xFF1A1A1A)
+                      : Colors.white54, // Grey if selected
                   width: 2,
                 ),
-                color:
-                    isSelected
-                        ? Color(0xFF1A1A1A)
-                        : Colors.transparent, // Fill if selected
+                color: isSelected
+                    ? Color(0xFF1A1A1A)
+                    : Colors.transparent, // Fill if selected
               ),
-              child:
-                  isSelected
-                      ? Icon(Icons.check, color: Colors.white, size: 16)
-                      : null,
+              child: isSelected
+                  ? Icon(Icons.check, color: Colors.white, size: 16)
+                  : null,
             ),
             SizedBox(width: 12),
             Text(

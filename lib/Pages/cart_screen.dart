@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
-import 'package:apps/Pages/buyer_dashboard.dart';
-import 'package:apps/Pages/marketplace_screen.dart';
-import 'package:apps/Pages/community_screen.dart';
-import 'package:apps/Pages/profile_screen.dart';
-import 'package:apps/Services/cart_service.dart' as cart_service;
-import 'package:apps/Pages/dashboard_screen.dart';
+import 'buyer_dashboard.dart';
+import 'marketplace_screen.dart';
+import 'community_screen.dart';
+import 'profile_screen.dart';
+import '/Services/cart_service.dart' as cart_service;
+import 'dashboard_screen.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isFarmer;
@@ -51,19 +51,17 @@ class _CartScreenState extends State<CartScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) =>
-                    widget.isFarmer
-                        ? DashboardScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 0,
-                        )
-                        : BuyerDashboardScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 0,
-                        ),
+            builder: (context) => widget.isFarmer
+                ? DashboardScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 0,
+                  )
+                : BuyerDashboardScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 0,
+                  ),
           ),
         );
         break;
@@ -71,12 +69,11 @@ class _CartScreenState extends State<CartScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => MarketplaceScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 1,
-                ),
+            builder: (context) => MarketplaceScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 1,
+            ),
           ),
         );
         break;
@@ -84,12 +81,11 @@ class _CartScreenState extends State<CartScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => CommunityScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 2,
-                ),
+            builder: (context) => CommunityScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 2,
+            ),
           ),
         );
         break;
@@ -97,12 +93,11 @@ class _CartScreenState extends State<CartScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => ProfileScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 3,
-                ),
+            builder: (context) => ProfileScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 3,
+            ),
           ),
         );
         break;
@@ -131,12 +126,11 @@ class _CartScreenState extends State<CartScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors:
-              _isSmallScreen
-                  ? isDarkMode
-                      ? [const Color(0xFF111122), const Color(0xFF111122)]
-                      : [Colors.white, Colors.white]
-                  : isDarkMode
+          colors: _isSmallScreen
+              ? isDarkMode
+                  ? [const Color(0xFF111122), const Color(0xFF111122)]
+                  : [Colors.white, Colors.white]
+              : isDarkMode
                   ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
                   : [Colors.white, Colors.white],
         ),
@@ -153,15 +147,14 @@ class _CartScreenState extends State<CartScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors:
-                      _isSmallScreen
-                          ? isDarkMode
-                              ? [
-                                const Color(0xFF111122),
-                                const Color(0xFF111122),
-                              ]
-                              : [Colors.white, Colors.white]
-                          : isDarkMode
+                  colors: _isSmallScreen
+                      ? isDarkMode
+                          ? [
+                              const Color(0xFF111122),
+                              const Color(0xFF111122),
+                            ]
+                          : [Colors.white, Colors.white]
+                      : isDarkMode
                           ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
                           : [Colors.white, Colors.white],
                 ),
@@ -214,7 +207,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Farmly.',
+                  'BlinkConnect.',
                   style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -250,20 +243,18 @@ class _CartScreenState extends State<CartScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color:
-                isSelected
-                    ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                    : Colors.transparent,
+            color: isSelected
+                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                : Colors.transparent,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
                 size: 22,
-                color:
-                    isSelected
-                        ? const Color(0xFF6C5DD3)
-                        : isDarkMode
+                color: isSelected
+                    ? const Color(0xFF6C5DD3)
+                    : isDarkMode
                         ? Colors.white70
                         : Colors.black87,
               ),
@@ -273,10 +264,9 @@ class _CartScreenState extends State<CartScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color:
-                      isSelected
-                          ? const Color(0xFF6C5DD3)
-                          : isDarkMode
+                  color: isSelected
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
                           ? Colors.white70
                           : Colors.black87,
                 ),
@@ -311,17 +301,15 @@ class _CartScreenState extends State<CartScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              widget.isFarmer
-                                  ? DashboardScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  )
-                                  : BuyerDashboardScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  ),
+                      builder: (context) => widget.isFarmer
+                          ? DashboardScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                            )
+                          : BuyerDashboardScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                            ),
                     ),
                   );
                 },
@@ -336,11 +324,10 @@ class _CartScreenState extends State<CartScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MarketplaceScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -355,11 +342,10 @@ class _CartScreenState extends State<CartScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommunityScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -374,11 +360,10 @@ class _CartScreenState extends State<CartScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => ProfileScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => ProfileScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -475,10 +460,9 @@ class _CartScreenState extends State<CartScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color:
-                    isDarkMode
-                        ? Colors.black.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.5),
+                color: isDarkMode
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.white.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -510,203 +494,186 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     return Column(
-      children:
-          cartService.items.map((item) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color:
-                    isDarkMode
-                        ? Colors.black.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color:
-                      isDarkMode
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.black.withOpacity(0.05),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Stack(
+      children: cartService.items.map((item) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? Colors.black.withOpacity(0.2)
+                : Colors.white.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Stack(
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        // Product Image
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color:
-                                isDarkMode
-                                    ? Colors.black.withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.image,
-                              size: 40,
-                              color:
-                                  isDarkMode ? Colors.white30 : Colors.black26,
+                    // Product Image
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.image,
+                          size: 40,
+                          color: isDarkMode ? Colors.white30 : Colors.black26,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Product Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black87,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Product Details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 4),
+                          Text(
+                            item.seller,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                item.name,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.seller,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color:
-                                      isDarkMode
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Total: \$${item.totalPrice.toStringAsFixed(2)}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF6C5DD3),
+                                    ),
+                                  ),
+                                  Text(
+                                    '\$${item.pricePerKg.toStringAsFixed(2)}/kg',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: isDarkMode
                                           ? Colors.white70
                                           : Colors.black54,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Total: \$${item.totalPrice.toStringAsFixed(2)}',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF6C5DD3),
-                                        ),
-                                      ),
-                                      Text(
-                                        '\$${item.pricePerKg.toStringAsFixed(2)}/kg',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 12,
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.white70
-                                                  : Colors.black54,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        onPressed: () {
-                                          if (item.quantity > 1) {
-                                            cartService.updateQuantity(
-                                              item.name,
-                                              item.quantity - 1,
-                                            );
-                                          }
-                                        },
-                                        icon: Icon(
-                                          Icons.remove_circle_outline,
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.white70
-                                                  : Colors.black54,
-                                          size: 20,
-                                        ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      if (item.quantity > 1) {
+                                        cartService.updateQuantity(
+                                          item.name,
+                                          item.quantity - 1,
+                                        );
+                                      }
+                                    },
+                                    icon: Icon(
+                                      Icons.remove_circle_outline,
+                                      color: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  Container(
+                                    constraints: BoxConstraints(
+                                      maxWidth: 50,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDarkMode
+                                          ? Colors.black.withOpacity(
+                                              0.3,
+                                            )
+                                          : Colors.white.withOpacity(
+                                              0.3,
+                                            ),
+                                      borderRadius: BorderRadius.circular(
+                                        8,
                                       ),
-                                      Container(
-                                        constraints: BoxConstraints(
-                                          maxWidth: 50,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.black.withOpacity(
-                                                    0.3,
-                                                  )
-                                                  : Colors.white.withOpacity(
-                                                    0.3,
-                                                  ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${item.quantity} kg',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color:
-                                                isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black87,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                        ),
+                                    ),
+                                    child: Text(
+                                      '${item.quantity} kg',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
                                       ),
-                                      IconButton(
-                                        onPressed: () {
-                                          cartService.updateQuantity(
-                                            item.name,
-                                            item.quantity + 1,
-                                          );
-                                        },
-                                        icon: Icon(
-                                          Icons.add_circle_outline,
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.white70
-                                                  : Colors.black54,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ],
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      cartService.updateQuantity(
+                                        item.name,
+                                        item.quantity + 1,
+                                      );
+                                    },
+                                    icon: Icon(
+                                      Icons.add_circle_outline,
+                                      color: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                      size: 20,
+                                    ),
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        onPressed: () {
-                          cartService.removeItem(item.name);
-                        },
-                        icon: Icon(Icons.close, color: Colors.red, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            );
-          }).toList(),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    onPressed: () {
+                      cartService.removeItem(item.name);
+                    },
+                    icon: Icon(Icons.close, color: Colors.red, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -719,16 +686,14 @@ class _CartScreenState extends State<CartScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: Column(

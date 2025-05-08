@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:apps/Pages/marketplace_screen.dart';
-import 'package:apps/Pages/community_screen.dart';
-import 'package:apps/Pages/dashboard_screen.dart';
+import 'marketplace_screen.dart';
+import 'community_screen.dart';
+import 'dashboard_screen.dart';
 import 'theme_provider.dart';
+import 'product_provider.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
   final bool isVerified;
   final int initialIndex;
+  final int initialTabIndex;
 
   const FarmerProfileScreen({
     super.key,
     required this.isFarmer,
     required this.isVerified,
     this.initialIndex = 3,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -33,7 +36,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
   }
 
   @override
@@ -57,12 +64,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => DashboardScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 0,
-                ),
+            builder: (context) => DashboardScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 0,
+            ),
           ),
         );
         break;
@@ -70,12 +76,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => MarketplaceScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 1,
-                ),
+            builder: (context) => MarketplaceScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 1,
+            ),
           ),
         );
         break;
@@ -83,12 +88,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => CommunityScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 2,
-                ),
+            builder: (context) => CommunityScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 2,
+            ),
           ),
         );
         break;
@@ -116,26 +120,145 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
   Widget _buildBody(bool isDarkMode) {
     return Container(
       color: isDarkMode ? Colors.black : Colors.white,
-      child: Column(
+      child: Row(
         children: [
-          // Profile Header
-          _buildHeader(isDarkMode),
+          // Side bar for larger screens
+          if (!_isSmallScreen) _buildSidebar(isDarkMode),
 
-          // Tab Bar
-          _buildTabBar(isDarkMode),
-
-          // Main Content
+          // Main content area
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildProfileTab(isDarkMode),
-                _buildStatisticsTab(isDarkMode),
-                _buildSalesReportTab(isDarkMode),
-              ],
+            child: Container(
+              color: isDarkMode ? Colors.black : Colors.white,
+              child: Column(
+                children: [
+                  // Profile Header
+                  _buildHeader(isDarkMode),
+
+                  // Tab Bar
+                  _buildTabBar(isDarkMode),
+
+                  // Main Content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildProfileTab(isDarkMode),
+                        _buildProductsTab(isDarkMode),
+                        _buildStatisticsTab(isDarkMode),
+                        _buildSalesReportTab(isDarkMode),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar(bool isDarkMode) {
+    return Container(
+      width: 240,
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF0A0A18) : const Color(0xFFCCE0CC),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
+          // Logo
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: const Color.fromARGB(255, 0, 0, 0),
+                  ),
+                  child: const Icon(
+                    Icons.eco_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'BlinkConnect.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          _buildNavItem(0, Icons.dashboard_outlined, 'Dashboard'),
+          _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
+          _buildNavItem(2, Icons.people_rounded, 'Community'),
+          _buildNavItem(3, Icons.person_rounded, 'Profile'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String title) {
+    final bool isSelected = _selectedIndex == index;
+    final bool isDarkMode =
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: isSelected
+                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: isSelected
+                    ? const Color(0xFF6C5DD3)
+                    : isDarkMode
+                        ? Colors.white70
+                        : Colors.black87,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white70
+                          : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -152,10 +275,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
         border: Border(
           bottom: BorderSide(
-            color:
-                isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
           ),
         ),
       ),
@@ -195,6 +317,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         indicatorColor: const Color(0xFF6C5DD3),
         tabs: [
           Tab(icon: Icon(Icons.person_outline), text: 'Profile'),
+          Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Products'),
           Tab(icon: Icon(Icons.analytics_outlined), text: 'Statistics'),
           Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Sales Report'),
         ],
@@ -212,16 +335,14 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color:
-                    isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
               ),
             ),
             child: Column(
@@ -265,10 +386,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color:
-                        widget.isVerified
-                            ? Colors.green.withOpacity(0.2)
-                            : Colors.amber.withOpacity(0.2),
+                    color: widget.isVerified
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.amber.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -336,12 +456,6 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           ),
           _buildSettingItem(
             isDarkMode,
-            Icons.inventory_2_outlined,
-            'Products',
-            'Manage your products',
-          ),
-          _buildSettingItem(
-            isDarkMode,
             Icons.payment_outlined,
             'Payment Methods',
             'Add or update payment methods',
@@ -376,6 +490,166 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
     );
   }
 
+  Widget _buildProductsTab(bool isDarkMode) {
+    final productProvider = Provider.of<ProductProvider>(context);
+    final products = productProvider.products;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return Container(
+                decoration: BoxDecoration(
+                  color:
+                      isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.05),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isDarkMode
+                                  ? Colors.black.withOpacity(0.3)
+                                  : Colors.white.withOpacity(0.3),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12),
+                              ),
+                            ),
+                            child: Center(
+                              child: Image.asset(
+                                product['image'],
+                                height: 120,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product['name'] ?? 'Unnamed Product',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '\$${product['price']?.toStringAsFixed(2) ?? '0.00'}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6C5DD3),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.person,
+                                    size: 16,
+                                    color: isDarkMode
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    product['seller'] ?? 'Unknown Seller',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.star,
+                                    size: 16,
+                                    color: Colors.amber,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    product['rating']?.toString() ?? '0.0',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: IconButton(
+                        onPressed: () {
+                          productProvider.removeProduct(index);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Product removed successfully'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.9),
+                          shape: const CircleBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatisticsTab(bool isDarkMode) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -386,16 +660,14 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color:
-                    isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
               ),
             ),
             child: Column(
@@ -490,16 +762,14 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color:
-                    isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
               ),
             ),
             child: Column(
@@ -602,16 +872,14 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: InkWell(
@@ -702,16 +970,14 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: Row(
@@ -799,16 +1065,14 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: Row(
@@ -877,12 +1141,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => DashboardScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                            initialIndex: 0,
-                          ),
+                      builder: (context) => DashboardScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                        initialIndex: 0,
+                      ),
                     ),
                   );
                 },
@@ -897,12 +1160,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MarketplaceScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                            initialIndex: 1,
-                          ),
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                        initialIndex: 1,
+                      ),
                     ),
                   );
                 },
@@ -917,12 +1179,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommunityScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                            initialIndex: 2,
-                          ),
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                        initialIndex: 2,
+                      ),
                     ),
                   );
                 },
@@ -937,12 +1198,12 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => FarmerProfileScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                            initialIndex: 3,
-                          ),
+                      builder: (context) => FarmerProfileScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                        initialIndex: 3,
+                        initialTabIndex: 0,
+                      ),
                     ),
                   );
                 },

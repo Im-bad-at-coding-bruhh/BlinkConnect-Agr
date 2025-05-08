@@ -1,4 +1,4 @@
-package com.Farmly.apps
+package com.BlinkConnect.apps
 
 import io.flutter.embedding.android.FlutterActivity
 

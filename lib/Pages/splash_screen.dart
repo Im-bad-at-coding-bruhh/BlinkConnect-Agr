@@ -77,8 +77,8 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder:
-                (context, animation, secondaryAnimation) => const AuthScreen(),
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const AuthScreen(),
             transitionsBuilder: (
               context,
               animation,
@@ -182,7 +182,7 @@ class FancyTextWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Farmly',
+      'BlinkConnect',
       style: GoogleFonts.poppins(
         fontSize: 36,
         fontWeight: FontWeight.bold,

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:apps/Pages/marketplace_screen.dart';
-import 'package:apps/Pages/buyer_dashboard.dart';
-import 'package:apps/Pages/profile_screen.dart';
-import 'package:apps/Pages/dashboard_screen.dart';
-import 'package:apps/Pages/farmer_profile_screen.dart';
+import 'marketplace_screen.dart';
+import 'buyer_dashboard.dart';
+import 'profile_screen.dart';
+import 'dashboard_screen.dart';
+import 'farmer_profile_screen.dart';
 import 'theme_provider.dart';
 
 class CommunityScreen extends StatefulWidget {
@@ -68,7 +68,7 @@ class _CommunityScreenState extends State<CommunityScreen>
 
   // Sample data for leaderboard with months
   final Map<String, Map<String, List<Map<String, dynamic>>>>
-  _leaderboardDataByMonth = {
+      _leaderboardDataByMonth = {
     'April': {
       'All': [
         {
@@ -344,17 +344,15 @@ class _CommunityScreenState extends State<CommunityScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) =>
-                    widget.isFarmer
-                        ? DashboardScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                        )
-                        : BuyerDashboardScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                        ),
+            builder: (context) => widget.isFarmer
+                ? DashboardScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  )
+                : BuyerDashboardScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  ),
           ),
         );
         break;
@@ -362,11 +360,10 @@ class _CommunityScreenState extends State<CommunityScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => MarketplaceScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                ),
+            builder: (context) => MarketplaceScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+            ),
           ),
         );
         break;
@@ -377,19 +374,17 @@ class _CommunityScreenState extends State<CommunityScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) =>
-                    widget.isFarmer
-                        ? FarmerProfileScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 3,
-                        )
-                        : ProfileScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 3,
-                        ),
+            builder: (context) => widget.isFarmer
+                ? FarmerProfileScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 3,
+                  )
+                : ProfileScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 3,
+                  ),
           ),
         );
         break;
@@ -412,26 +407,145 @@ class _CommunityScreenState extends State<CommunityScreen>
   Widget _buildBody(bool isDarkMode) {
     return Container(
       color: isDarkMode ? Colors.black : Colors.white,
-      child: Column(
+      child: Row(
         children: [
-          // Community Header
-          _buildHeader(isDarkMode),
+          // Side bar for larger screens
+          if (!_isSmallScreen) _buildSidebar(isDarkMode),
 
-          // Tab Bar
-          _buildTabBar(isDarkMode),
-
-          // Main Content
+          // Main content area
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFeedTab(isDarkMode),
-                _buildLeaderboardTab(isDarkMode),
-                _buildConnectionsTab(isDarkMode),
-              ],
+            child: Container(
+              color: isDarkMode ? Colors.black : Colors.white,
+              child: Column(
+                children: [
+                  // Community Header
+                  _buildHeader(isDarkMode),
+
+                  // Tab Bar
+                  _buildTabBar(isDarkMode),
+
+                  // Main Content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildFeedTab(isDarkMode),
+                        _buildLeaderboardTab(isDarkMode),
+                        _buildConnectionsTab(isDarkMode),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar(bool isDarkMode) {
+    return Container(
+      width: 240,
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF0A0A18) : const Color(0xFFCCE0CC),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
+          // Logo
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: const Color.fromARGB(255, 0, 0, 0),
+                  ),
+                  child: const Icon(
+                    Icons.eco_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'BlinkConnect.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          // Navigation items
+          _buildNavItem(0, Icons.dashboard_outlined, 'Dashboard'),
+          _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
+          _buildNavItem(2, Icons.people_rounded, 'Community'),
+          _buildNavItem(3, Icons.person_rounded, 'Profile'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String title) {
+    final bool isSelected = _selectedIndex == index;
+    final bool isDarkMode =
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: isSelected
+                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: isSelected
+                    ? const Color(0xFF6C5DD3)
+                    : isDarkMode
+                        ? Colors.white70
+                        : Colors.black87,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white70
+                          : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -448,10 +562,9 @@ class _CommunityScreenState extends State<CommunityScreen>
         color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
         border: Border(
           bottom: BorderSide(
-            color:
-                isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
           ),
         ),
       ),
@@ -494,10 +607,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                 height: 40,
                 margin: const EdgeInsets.only(left: 16),
                 decoration: BoxDecoration(
-                  color:
-                      isDarkMode
-                          ? Colors.black.withOpacity(0.3)
-                          : Colors.grey[100],
+                  color: isDarkMode
+                      ? Colors.black.withOpacity(0.3)
+                      : Colors.grey[100],
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: TextField(
@@ -597,26 +709,24 @@ class _CommunityScreenState extends State<CommunityScreen>
         color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
-        boxShadow:
-            isDarkMode
-                ? [
-                  BoxShadow(
-                    color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.05),
-                    blurRadius: 5,
-                    spreadRadius: 0,
-                  ),
-                ]
-                : null,
+        boxShadow: isDarkMode
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  blurRadius: 5,
+                  spreadRadius: 0,
+                ),
+              ]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -719,26 +829,25 @@ class _CommunityScreenState extends State<CommunityScreen>
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children:
-                  member['specialties'].map<Widget>((specialty) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        specialty,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: const Color(0xFF6C5DD3),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+              children: member['specialties'].map<Widget>((specialty) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    specialty,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF6C5DD3),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           // Action buttons
@@ -809,10 +918,9 @@ class _CommunityScreenState extends State<CommunityScreen>
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
@@ -825,13 +933,12 @@ class _CommunityScreenState extends State<CommunityScreen>
             fontSize: 14,
             color: isDarkMode ? Colors.white : Colors.black87,
           ),
-          items:
-              _months.map((String month) {
-                return DropdownMenuItem<String>(
-                  value: month,
-                  child: Text(month),
-                );
-              }).toList(),
+          items: _months.map((String month) {
+            return DropdownMenuItem<String>(
+              value: month,
+              child: Text(month),
+            );
+          }).toList(),
           onChanged: (String? newValue) {
             if (newValue != null) {
               setState(() {
@@ -863,54 +970,48 @@ class _CommunityScreenState extends State<CommunityScreen>
           Container(
             height: 44,
             decoration: BoxDecoration(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
-              children:
-                  _categories.map((category) {
-                    final bool isSelected = _selectedCategory == category;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-                        },
-                        child: Container(
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color:
-                                isSelected
-                                    ? const Color(0xFF6C5DD3)
-                                    : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              category,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight:
-                                    isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                color:
-                                    isSelected
-                                        ? Colors.white
-                                        : isDarkMode
-                                        ? Colors.white70
-                                        : Colors.black87,
-                              ),
-                            ),
+              children: _categories.map((category) {
+                final bool isSelected = _selectedCategory == category;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                    },
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF6C5DD3)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          category,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w400,
+                            color: isSelected
+                                ? Colors.white
+                                : isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black87,
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 24),
@@ -953,38 +1054,34 @@ class _CommunityScreenState extends State<CommunityScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isTopThree
-                  ? getRankColor().withOpacity(0.5)
-                  : isDarkMode
+          color: isTopThree
+              ? getRankColor().withOpacity(0.5)
+              : isDarkMode
                   ? Colors.white.withOpacity(0.1)
                   : Colors.black.withOpacity(0.05),
           width: isTopThree ? 2 : 1,
         ),
-        boxShadow:
-            isDarkMode
-                ? [
-                  BoxShadow(
-                    color:
-                        isTopThree
-                            ? getRankColor().withOpacity(0.1)
-                            : const Color(0xFF6C5DD3).withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.05),
-                    blurRadius: 5,
-                    spreadRadius: 0,
-                  ),
-                ]
-                : null,
+        boxShadow: isDarkMode
+            ? [
+                BoxShadow(
+                  color: isTopThree
+                      ? getRankColor().withOpacity(0.1)
+                      : const Color(0xFF6C5DD3).withOpacity(0.1),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  blurRadius: 5,
+                  spreadRadius: 0,
+                ),
+              ]
+            : null,
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1001,10 +1098,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                       height: 32,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color:
-                            isTopThree
-                                ? getRankColor().withOpacity(0.2)
-                                : isDarkMode
+                        color: isTopThree
+                            ? getRankColor().withOpacity(0.2)
+                            : isDarkMode
                                 ? Colors.white.withOpacity(0.1)
                                 : Colors.black.withOpacity(0.05),
                       ),
@@ -1014,10 +1110,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color:
-                                isTopThree
-                                    ? getRankColor()
-                                    : isDarkMode
+                            color: isTopThree
+                                ? getRankColor()
+                                : isDarkMode
                                     ? Colors.white
                                     : Colors.black87,
                           ),
@@ -1063,10 +1158,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                   ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color:
-                        isVerified
-                            ? Colors.green.withOpacity(0.2)
-                            : Colors.amber.withOpacity(0.2),
+                    color: isVerified
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.amber.withOpacity(0.2),
                   ),
                   child: Text(
                     isVerified ? 'Verified' : 'Pending',
@@ -1154,26 +1248,24 @@ class _CommunityScreenState extends State<CommunityScreen>
         color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
-        boxShadow:
-            isDarkMode
-                ? [
-                  BoxShadow(
-                    color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.05),
-                    blurRadius: 5,
-                    spreadRadius: 0,
-                  ),
-                ]
-                : null,
+        boxShadow: isDarkMode
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  blurRadius: 5,
+                  spreadRadius: 0,
+                ),
+              ]
+            : null,
       ),
       child: Row(
         children: [
@@ -1279,17 +1371,15 @@ class _CommunityScreenState extends State<CommunityScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              widget.isFarmer
-                                  ? DashboardScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  )
-                                  : BuyerDashboardScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  ),
+                      builder: (context) => widget.isFarmer
+                          ? DashboardScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                            )
+                          : BuyerDashboardScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                            ),
                     ),
                   );
                 },
@@ -1304,11 +1394,10 @@ class _CommunityScreenState extends State<CommunityScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MarketplaceScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -1323,11 +1412,10 @@ class _CommunityScreenState extends State<CommunityScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommunityScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -1342,19 +1430,17 @@ class _CommunityScreenState extends State<CommunityScreen>
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              widget.isFarmer
-                                  ? FarmerProfileScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                    initialIndex: 3,
-                                  )
-                                  : ProfileScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                    initialIndex: 3,
-                                  ),
+                      builder: (context) => widget.isFarmer
+                          ? FarmerProfileScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                              initialIndex: 3,
+                            )
+                          : ProfileScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                              initialIndex: 3,
+                            ),
                     ),
                   );
                 },

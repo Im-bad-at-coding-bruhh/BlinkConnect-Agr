@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
-import 'package:apps/Pages/buyer_dashboard.dart';
-import 'package:apps/Pages/community_screen.dart';
-import 'package:apps/Pages/profile_screen.dart';
-import 'package:apps/Pages/dashboard_screen.dart';
-import 'package:apps/Pages/farmer_profile_screen.dart';
+import 'buyer_dashboard.dart';
+import 'community_screen.dart';
+import 'profile_screen.dart';
+import 'dashboard_screen.dart';
+import 'farmer_profile_screen.dart';
 import 'dart:async';
-import 'package:apps/Services/cart_service.dart' as cart_service;
+import '/Services/cart_service.dart' as cart_service;
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -207,19 +207,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) =>
-                    widget.isFarmer
-                        ? DashboardScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 0,
-                        )
-                        : BuyerDashboardScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 0,
-                        ),
+            builder: (context) => widget.isFarmer
+                ? DashboardScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 0,
+                  )
+                : BuyerDashboardScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 0,
+                  ),
           ),
         );
         break;
@@ -230,12 +228,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => CommunityScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 2,
-                ),
+            builder: (context) => CommunityScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 2,
+            ),
           ),
         );
         break;
@@ -243,19 +240,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) =>
-                    widget.isFarmer
-                        ? FarmerProfileScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 3,
-                        )
-                        : ProfileScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 3,
-                        ),
+            builder: (context) => widget.isFarmer
+                ? FarmerProfileScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 3,
+                  )
+                : ProfileScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 3,
+                  ),
           ),
         );
         break;
@@ -332,36 +327,34 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     final bool hasSearchQuery = searchQuery.isNotEmpty;
 
     // Single pass filtering
-    final filteredProducts =
-        _allProducts.where((product) {
-          // Category filter
-          if (_selectedCategory != 'All' &&
-              product['category'] != _selectedCategory) {
-            return false;
-          }
+    final filteredProducts = _allProducts.where((product) {
+      // Category filter
+      if (_selectedCategory != 'All' &&
+          product['category'] != _selectedCategory) {
+        return false;
+      }
 
-          // Price range filter
-          if (product['price'] < _minPrice || product['price'] > _maxPrice) {
-            return false;
-          }
+      // Price range filter
+      if (product['price'] < _minPrice || product['price'] > _maxPrice) {
+        return false;
+      }
 
-          // Region filter
-          if (_selectedRegion != 'All' &&
-              product['region'] != _selectedRegion) {
-            return false;
-          }
+      // Region filter
+      if (_selectedRegion != 'All' && product['region'] != _selectedRegion) {
+        return false;
+      }
 
-          // Search filter (only if there's a search query)
-          if (hasSearchQuery) {
-            final String name = product['name'].toString().toLowerCase();
-            final String seller = product['seller'].toString().toLowerCase();
-            if (!name.contains(searchQuery) && !seller.contains(searchQuery)) {
-              return false;
-            }
-          }
+      // Search filter (only if there's a search query)
+      if (hasSearchQuery) {
+        final String name = product['name'].toString().toLowerCase();
+        final String seller = product['seller'].toString().toLowerCase();
+        if (!name.contains(searchQuery) && !seller.contains(searchQuery)) {
+          return false;
+        }
+      }
 
-          return true;
-        }).toList();
+      return true;
+    }).toList();
 
     // Cache the results
     _cachedFilteredProducts = filteredProducts;
@@ -378,144 +371,139 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                title: const Text('Filter Products'),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Filter Products'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Price Range (\$):',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      const Text(
-                        'Price Range (\$):',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _minPriceController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Min Price',
-                                prefixText: '\$',
-                                border: OutlineInputBorder(),
-                              ),
-                              onChanged: (value) {
-                                final min = double.tryParse(value) ?? 0;
-                                final max =
-                                    double.tryParse(_maxPriceController.text) ??
+                      Expanded(
+                        child: TextField(
+                          controller: _minPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Min Price',
+                            prefixText: '\$',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            final min = double.tryParse(value) ?? 0;
+                            final max =
+                                double.tryParse(_maxPriceController.text) ??
                                     100;
-                                if (min < max) {
-                                  setState(() {
-                                    _minPrice = min;
-                                  });
-                                } else {
-                                  // If min is greater than or equal to max, adjust max
-                                  setState(() {
-                                    _minPrice = min;
-                                    _maxPrice = min + 1;
-                                    _maxPriceController.text =
-                                        _maxPrice.toString();
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: TextField(
-                              controller: _maxPriceController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Max Price',
-                                prefixText: '\$',
-                                border: OutlineInputBorder(),
-                              ),
-                              onChanged: (value) {
-                                final max = double.tryParse(value) ?? 100;
-                                final min =
-                                    double.tryParse(_minPriceController.text) ??
-                                    0;
-                                if (max > min) {
-                                  setState(() {
-                                    _maxPrice = max;
-                                  });
-                                } else {
-                                  // If max is less than or equal to min, adjust min
-                                  setState(() {
-                                    _maxPrice = max;
-                                    _minPrice = max - 1;
-                                    _minPriceController.text =
-                                        _minPrice.toString();
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ],
+                            if (min < max) {
+                              setState(() {
+                                _minPrice = min;
+                              });
+                            } else {
+                              // If min is greater than or equal to max, adjust max
+                              setState(() {
+                                _minPrice = min;
+                                _maxPrice = min + 1;
+                                _maxPriceController.text = _maxPrice.toString();
+                              });
+                            }
+                          },
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Region:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children:
-                            _regions.map((region) {
-                              final isSelected = _selectedRegion == region;
-                              return FilterChip(
-                                label: Text(region),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    _selectedRegion = region;
-                                  });
-                                },
-                              );
-                            }).toList(),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _maxPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Max Price',
+                            prefixText: '\$',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            final max = double.tryParse(value) ?? 100;
+                            final min =
+                                double.tryParse(_minPriceController.text) ?? 0;
+                            if (max > min) {
+                              setState(() {
+                                _maxPrice = max;
+                              });
+                            } else {
+                              // If max is less than or equal to min, adjust min
+                              setState(() {
+                                _maxPrice = max;
+                                _minPrice = max - 1;
+                                _minPriceController.text = _minPrice.toString();
+                              });
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _minPrice = 0;
-                        _maxPrice = 100;
-                        _selectedRegion = 'All';
-                        _minPriceController.text = '0';
-                        _maxPriceController.text = '100';
-                        _cachedFilteredProducts = null; // Clear cache on reset
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Reset'),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Region:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _cachedFilteredProducts = null; // Clear cache on apply
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Apply'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _regions.map((region) {
+                      final isSelected = _selectedRegion == region;
+                      return FilterChip(
+                        label: Text(region),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedRegion = region;
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                 ],
-              );
-            },
-          ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _minPrice = 0;
+                    _maxPrice = 100;
+                    _selectedRegion = 'All';
+                    _minPriceController.text = '0';
+                    _maxPriceController.text = '100';
+                    _cachedFilteredProducts = null; // Clear cache on reset
+                  });
+                  Navigator.pop(context);
+                },
+                child: const Text('Reset'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _cachedFilteredProducts = null; // Clear cache on apply
+                  });
+                  Navigator.pop(context);
+                },
+                child: const Text('Apply'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -593,7 +581,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   height: 32,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFF6C5DD3),
+                    color: const Color.fromARGB(255, 0, 0, 0),
                   ),
                   child: const Icon(
                     Icons.eco_outlined,
@@ -603,7 +591,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Farmly.',
+                  'BlinkConnect.',
                   style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -638,20 +626,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color:
-                isSelected
-                    ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                    : Colors.transparent,
+            color: isSelected
+                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                : Colors.transparent,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
                 size: 22,
-                color:
-                    isSelected
-                        ? const Color(0xFF6C5DD3)
-                        : isDarkMode
+                color: isSelected
+                    ? const Color(0xFF6C5DD3)
+                    : isDarkMode
                         ? Colors.white70
                         : Colors.black87,
               ),
@@ -661,10 +647,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color:
-                      isSelected
-                          ? const Color(0xFF6C5DD3)
-                          : isDarkMode
+                  color: isSelected
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
                           ? Colors.white70
                           : Colors.black87,
                 ),
@@ -691,10 +676,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
             border: Border(
               bottom: BorderSide(
-                color:
-                    isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
                 width: 1,
               ),
             ),
@@ -758,32 +742,29 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         // Search Bar
         Container(
           decoration: BoxDecoration(
-            color:
-                isDarkMode
-                    ? Colors.black.withOpacity(0.2)
-                    : Colors.white.withOpacity(0.7),
+            color: isDarkMode
+                ? Colors.black.withOpacity(0.2)
+                : Colors.white.withOpacity(0.7),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color:
-                  isDarkMode
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.05),
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
             ),
-            boxShadow:
-                isDarkMode
-                    ? [
-                      BoxShadow(
-                        color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                        blurRadius: 10,
-                        spreadRadius: 0,
-                      ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.05),
-                        blurRadius: 5,
-                        spreadRadius: 0,
-                      ),
-                    ]
-                    : null,
+            boxShadow: isDarkMode
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.05),
+                      blurRadius: 5,
+                      spreadRadius: 0,
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             children: [
@@ -871,18 +852,16 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? const Color(0xFF6C5DD3)
-                            : isDarkMode
+                    color: isSelected
+                        ? const Color(0xFF6C5DD3)
+                        : isDarkMode
                             ? Colors.black.withOpacity(0.2)
                             : Colors.white.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color:
-                          isSelected
-                              ? const Color(0xFF6C5DD3)
-                              : isDarkMode
+                      color: isSelected
+                          ? const Color(0xFF6C5DD3)
+                          : isDarkMode
                               ? Colors.white.withOpacity(0.1)
                               : Colors.black.withOpacity(0.05),
                     ),
@@ -894,10 +873,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         fontSize: 13,
                         fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color:
-                            isSelected
-                                ? Colors.white
-                                : isDarkMode
+                        color: isSelected
+                            ? Colors.white
+                            : isDarkMode
                                 ? Colors.white70
                                 : Colors.black87,
                       ),
@@ -940,7 +918,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ],
         ),
         const SizedBox(height: 16),
-
         if (filteredProducts.isEmpty)
           Center(
             child: Column(
@@ -950,10 +927,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color:
-                        isDarkMode
-                            ? Colors.black.withOpacity(0.2)
-                            : Colors.white.withOpacity(0.5),
+                    color: isDarkMode
+                        ? Colors.black.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1017,26 +993,24 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color:
-                      isDarkMode
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.black.withOpacity(0.05),
+                  color: isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05),
                 ),
-                boxShadow:
-                    isDarkMode
-                        ? [
-                          BoxShadow(
-                            color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                            blurRadius: 10,
-                            spreadRadius: 0,
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.05),
-                            blurRadius: 5,
-                            spreadRadius: 0,
-                          ),
-                        ]
-                        : null,
+                boxShadow: isDarkMode
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          blurRadius: 5,
+                          spreadRadius: 0,
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1044,10 +1018,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color:
-                            isDarkMode
-                                ? Colors.black.withOpacity(0.3)
-                                : Colors.white.withOpacity(0.3),
+                        color: isDarkMode
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.white.withOpacity(0.3),
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(12),
                         ),
@@ -1102,10 +1075,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                               product['seller'] ?? 'Unknown Seller',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
-                                color:
-                                    isDarkMode
-                                        ? Colors.white70
-                                        : Colors.black54,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
                               ),
                             ),
                           ],
@@ -1119,10 +1091,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                               product['rating']?.toString() ?? '0.0',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
-                                color:
-                                    isDarkMode
-                                        ? Colors.white70
-                                        : Colors.black54,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
                               ),
                             ),
                           ],
@@ -1188,106 +1159,104 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
     showDialog(
       context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                title: Text(product['name']),
-                content: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Seller: ${product['seller']}'),
-                      Text('Price: \$${product['price']}/kg'),
-                      Text('Rating: ${product['rating']}'),
-                      const SizedBox(height: 8),
-                      const Text('Product Description:'),
-                      Text(
-                        product['description'] ?? 'No description available',
-                      ),
-                      const SizedBox(height: 16),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text(product['name']),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Seller: ${product['seller']}'),
+                  Text('Price: \$${product['price']}/kg'),
+                  Text('Rating: ${product['rating']}'),
+                  const SizedBox(height: 8),
+                  const Text('Product Description:'),
+                  Text(
+                    product['description'] ?? 'No description available',
+                  ),
+                  const SizedBox(height: 16),
 
-                      // Quantity Selection
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('Quantity (kg): '),
-                          SizedBox(
-                            width: 60,
-                            child: TextField(
-                              controller: quantityController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 8,
-                                ),
-                              ),
-                              onChanged: (value) {
-                                if (value.isEmpty) {
-                                  setState(() {
-                                    quantityController.text = '1';
-                                    originalTotalPrice = product['price'];
-                                  });
-                                } else {
-                                  setState(() {
-                                    originalTotalPrice =
-                                        product['price'] * double.parse(value);
-                                  });
-                                }
-                              },
+                  // Quantity Selection
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Quantity (kg): '),
+                      SizedBox(
+                        width: 60,
+                        child: TextField(
+                          controller: quantityController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Total Price Display
-                      Center(
-                        child: Text(
-                          'Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
-                          style: const TextStyle(color: Colors.grey),
+                          onChanged: (value) {
+                            if (value.isEmpty) {
+                              setState(() {
+                                quantityController.text = '1';
+                                originalTotalPrice = product['price'];
+                              });
+                            } else {
+                              setState(() {
+                                originalTotalPrice =
+                                    product['price'] * double.parse(value);
+                              });
+                            }
+                          },
                         ),
                       ),
                     ],
                   ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (quantityController.text.isEmpty) {
-                        quantityController.text = '1';
-                      }
-                      _showNegotiationDialog(
-                        product,
-                        double.parse(quantityController.text),
-                        originalTotalPrice,
-                      );
-                    },
-                    child: const Text('Negotiate'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      final quantity =
-                          int.tryParse(quantityController.text) ?? 1;
-                      _addToCart(product, quantity: quantity);
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Add to Cart'),
+                  const SizedBox(height: 8),
+
+                  // Total Price Display
+                  Center(
+                    child: Text(
+                      'Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
                   ),
                 ],
-              );
-            },
-          ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  if (quantityController.text.isEmpty) {
+                    quantityController.text = '1';
+                  }
+                  _showNegotiationDialog(
+                    product,
+                    double.parse(quantityController.text),
+                    originalTotalPrice,
+                  );
+                },
+                child: const Text('Negotiate'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  final quantity = int.tryParse(quantityController.text) ?? 1;
+                  _addToCart(product, quantity: quantity);
+                  Navigator.pop(context);
+                },
+                child: const Text('Add to Cart'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -1297,145 +1266,190 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     double originalTotalPrice,
   ) {
     final TextEditingController bidPriceController = TextEditingController();
+    final ValueNotifier<double> pricePerKgNotifier = ValueNotifier<double>(0.0);
+    final double minBid = originalTotalPrice * 0.5;
+    final double maxBid = originalTotalPrice;
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Make Your Offer'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Product: ${product['name']}'),
-                Text('Quantity: $quantity kg'),
-                Text(
-                  'Original Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Enter your bid price for the total quantity:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: bidPriceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    prefixText: '\$',
-                    hintText: 'Enter your bid price',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    if (value.isNotEmpty) {
-                      final bidAmount = double.tryParse(value);
-                      if (bidAmount != null && bidAmount > originalTotalPrice) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Bid amount cannot exceed original price',
-                            ),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                        bidPriceController.text = originalTotalPrice.toString();
-                      }
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                Center(
+      builder: (context) => AlertDialog(
+        title: const Text('Make Your Offer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Product: ${product['name']}'),
+            Text('Quantity: $quantity kg'),
+            Text(
+              'Original Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
+            ),
+            Text(
+              'Valid bid range: \$${minBid.toStringAsFixed(2)} - \$${maxBid.toStringAsFixed(2)}',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Enter your bid price for the total quantity:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: bidPriceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                prefixText: '\$',
+                hintText: 'Enter your bid price',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  final bidAmount = double.tryParse(value);
+                  if (bidAmount != null) {
+                    pricePerKgNotifier.value = bidAmount / quantity;
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<double>(
+              valueListenable: pricePerKgNotifier,
+              builder: (context, pricePerKg, _) {
+                return Center(
                   child: Text(
-                    'Price per kg: \$${(double.parse(bidPriceController.text) ?? 0) / quantity}',
+                    'Price per kg: \$${pricePerKg.toStringAsFixed(2)}',
                     style: const TextStyle(color: Colors.grey),
                   ),
-                ),
-              ],
+                );
+              },
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (bidPriceController.text.isNotEmpty) {
-                    final bidAmount = double.parse(bidPriceController.text);
-                    if (bidAmount > originalTotalPrice) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Bid amount cannot exceed original price',
-                          ),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                      return;
-                    }
-                    // Show confirmation dialog
-                    showDialog(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            title: const Text('Confirm Bid'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Product: ${product['name']}'),
-                                Text('Quantity: $quantity kg'),
-                                Text('Your Bid: \$${bidPriceController.text}'),
-                                Text(
-                                  'Price per kg: \$${(double.parse(bidPriceController.text) / quantity).toStringAsFixed(2)}',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'This bid will be sent to the farmer for review. You will be notified when they respond.',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  // TODO: Implement bid submission logic
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Bid sent successfully!'),
-                                    ),
-                                  );
-                                  Navigator.pop(
-                                    context,
-                                  ); // Close confirmation dialog
-                                  Navigator.pop(
-                                    context,
-                                  ); // Close negotiation dialog
-                                  Navigator.pop(
-                                    context,
-                                  ); // Close product details dialog
-                                },
-                                child: const Text('Send Bid'),
-                              ),
-                            ],
-                          ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter your bid price'),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Submit Bid'),
-              ),
-            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              if (bidPriceController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter your bid price'),
+                  ),
+                );
+                return;
+              }
+
+              final bidAmount = double.tryParse(bidPriceController.text);
+              if (bidAmount == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid number'),
+                  ),
+                );
+                return;
+              }
+
+              if (bidAmount < minBid) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Bid must be at least \$${minBid.toStringAsFixed(2)}',
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
+              if (bidAmount > maxBid) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Bid must not exceed \$${maxBid.toStringAsFixed(2)}',
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
+              // Show confirmation dialog
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirm Bid'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Product: ${product['name']}'),
+                      Text('Quantity: $quantity kg'),
+                      Text(
+                        'Your Bid: \$${bidAmount.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Price per kg: \$${(bidAmount / quantity).toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'This bid will be sent to the farmer for review. You will be notified when they respond.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        _submitBid(
+                          product: product,
+                          quantity: quantity,
+                          bidAmount: bidAmount,
+                          originalPrice: originalTotalPrice,
+                        );
+                        Navigator.pop(
+                          context,
+                        ); // Close confirmation dialog
+                        Navigator.pop(
+                          context,
+                        ); // Close negotiation dialog
+                        Navigator.pop(
+                          context,
+                        ); // Close product details dialog
+                      },
+                      child: const Text('Send Bid'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: const Text('Submit Bid'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submitBid({
+    required Map<String, dynamic> product,
+    required double quantity,
+    required double bidAmount,
+    required double originalPrice,
+  }) {
+    // TODO: Implement actual bid submission to backend
+    // For now, we'll just show a success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Bid of \$${bidAmount.toStringAsFixed(2)} sent successfully!',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -1463,17 +1477,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              widget.isFarmer
-                                  ? DashboardScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  )
-                                  : BuyerDashboardScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  ),
+                      builder: (context) => widget.isFarmer
+                          ? DashboardScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                            )
+                          : BuyerDashboardScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                            ),
                     ),
                   );
                 },
@@ -1488,11 +1500,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MarketplaceScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -1507,11 +1518,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommunityScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -1526,19 +1536,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              widget.isFarmer
-                                  ? FarmerProfileScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                    initialIndex: 3,
-                                  )
-                                  : ProfileScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                    initialIndex: 3,
-                                  ),
+                      builder: (context) => widget.isFarmer
+                          ? FarmerProfileScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                              initialIndex: 3,
+                            )
+                          : ProfileScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                              initialIndex: 3,
+                            ),
                     ),
                   );
                 },

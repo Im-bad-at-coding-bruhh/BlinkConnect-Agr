@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:apps/Pages/marketplace_screen.dart';
-import 'package:apps/Pages/cart_screen.dart';
-import 'package:apps/Pages/buyer_dashboard.dart';
-import 'package:apps/Pages/community_screen.dart';
+import 'marketplace_screen.dart';
+import 'cart_screen.dart';
+import 'buyer_dashboard.dart';
+import 'community_screen.dart';
 import 'theme_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -49,12 +49,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => BuyerDashboardScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 0,
-                ),
+            builder: (context) => BuyerDashboardScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 0,
+            ),
           ),
         );
         break;
@@ -62,12 +61,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => MarketplaceScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 1,
-                ),
+            builder: (context) => MarketplaceScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 1,
+            ),
           ),
         );
         break;
@@ -75,12 +73,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => CommunityScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 2,
-                ),
+            builder: (context) => CommunityScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 2,
+            ),
           ),
         );
         break;
@@ -163,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Farmly.',
+                  'BlinkConnect.',
                   style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -198,20 +195,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color:
-                isSelected
-                    ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                    : Colors.transparent,
+            color: isSelected
+                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                : Colors.transparent,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
                 size: 22,
-                color:
-                    isSelected
-                        ? const Color(0xFF6C5DD3)
-                        : isDarkMode
+                color: isSelected
+                    ? const Color(0xFF6C5DD3)
+                    : isDarkMode
                         ? Colors.white70
                         : Colors.black87,
               ),
@@ -221,10 +216,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color:
-                      isSelected
-                          ? const Color(0xFF6C5DD3)
-                          : isDarkMode
+                  color: isSelected
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
                           ? Colors.white70
                           : Colors.black87,
                 ),
@@ -259,11 +253,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => BuyerDashboardScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => BuyerDashboardScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -278,11 +271,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MarketplaceScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -297,11 +289,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommunityScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -316,11 +307,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => ProfileScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => ProfileScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -368,16 +358,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color:
-                    isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
               ),
             ),
             child: Column(
@@ -466,11 +454,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (context) => CartScreen(
-                        isFarmer: widget.isFarmer,
-                        isVerified: widget.isVerified,
-                      ),
+                  builder: (context) => CartScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  ),
                 ),
               );
             },
@@ -539,16 +526,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: InkWell(

@@ -4,10 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'marketplace_screen.dart';
-import 'package:apps/Pages/community_screen.dart';
-import 'package:apps/Pages/profile_screen.dart';
+import 'community_screen.dart';
+import 'profile_screen.dart';
 import 'add_product_form.dart';
-import 'package:apps/Pages/farmer_profile_screen.dart';
+import 'farmer_profile_screen.dart';
+import 'product_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -77,12 +78,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => MarketplaceScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 1,
-                ),
+            builder: (context) => MarketplaceScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 1,
+            ),
           ),
         );
         break;
@@ -90,12 +90,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => CommunityScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 2,
-                ),
+            builder: (context) => CommunityScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 2,
+            ),
           ),
         );
         break;
@@ -103,19 +102,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) =>
-                    widget.isFarmer
-                        ? FarmerProfileScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 3,
-                        )
-                        : ProfileScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                          initialIndex: 3,
-                        ),
+            builder: (context) => widget.isFarmer
+                ? FarmerProfileScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 3,
+                  )
+                : ProfileScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                    initialIndex: 3,
+                  ),
           ),
         );
         break;
@@ -173,10 +170,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color:
-                                isDarkMode
-                                    ? Colors.black.withOpacity(0.2)
-                                    : Colors.grey[100],
+                            color: isDarkMode
+                                ? Colors.black.withOpacity(0.2)
+                                : Colors.grey[100],
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -187,10 +183,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 style: GoogleFonts.poppins(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -206,10 +201,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 product['description'],
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
                                 ),
                               ),
                             ],
@@ -267,10 +261,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color:
-              isDarkMode
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.5),
+          color: isDarkMode
+              ? Colors.black.withOpacity(0.2)
+              : Colors.white.withOpacity(0.5),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -305,10 +298,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.4)
-                : Colors.white.withOpacity(0.8),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.4)
+            : Colors.white.withOpacity(0.8),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
@@ -320,59 +312,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:
-            _months.map((month) {
-              final isSelected = _selectedMonth == month;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedMonth = month;
-                    _showSortDropdown = false;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                            : Colors.transparent,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Icon(
-                            Icons.check,
-                            size: 14,
-                            color: const Color(0xFF6C5DD3),
-                          ),
-                        ),
-                      Text(
-                        month,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.normal,
-                          color:
-                              isSelected
-                                  ? const Color(0xFF6C5DD3)
-                                  : isDarkMode
-                                  ? Colors.white
-                                  : Colors.black87,
-                        ),
+        children: _months.map((month) {
+          final isSelected = _selectedMonth == month;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedMonth = month;
+                _showSortDropdown = false;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 8,
+                horizontal: 4,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isSelected)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Icon(
+                        Icons.check,
+                        size: 14,
+                        color: const Color(0xFF6C5DD3),
                       ),
-                    ],
+                    ),
+                  Text(
+                    month,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected
+                          ? const Color(0xFF6C5DD3)
+                          : isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -387,14 +376,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.grey[100],
       body: _buildBody(isDarkMode),
       bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDarkMode) : null,
-      floatingActionButton:
-          _isSmallScreen
-              ? FloatingActionButton(
-                onPressed: _showAddProductDialog,
-                backgroundColor: const Color(0xFF6C5DD3),
-                child: const Icon(Icons.add, color: Colors.white),
-              )
-              : null,
+      floatingActionButton: _isSmallScreen
+          ? FloatingActionButton(
+              onPressed: _showAddProductDialog,
+              backgroundColor: const Color(0xFF6C5DD3),
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
@@ -426,10 +414,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors:
-              isDarkMode
-                  ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                  : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
+          colors: isDarkMode
+              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+              : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
         ),
       ),
       child: Row(
@@ -444,10 +431,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors:
-                      isDarkMode
-                          ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                          : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
+                  colors: isDarkMode
+                      ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+                      : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
                 ),
               ),
               child: Column(
@@ -489,7 +475,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   height: 32,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFF6C5DD3),
+                    color: const Color.fromARGB(255, 0, 0, 0),
                   ),
                   child: const Icon(
                     Icons.eco_outlined,
@@ -499,7 +485,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Farmly.',
+                  'BlinkConnect.',
                   style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -546,20 +532,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color:
-                isSelected
-                    ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                    : Colors.transparent,
+            color: isSelected
+                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                : Colors.transparent,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
                 size: 22,
-                color:
-                    isSelected
-                        ? const Color(0xFF6C5DD3)
-                        : isDarkMode
+                color: isSelected
+                    ? const Color(0xFF6C5DD3)
+                    : isDarkMode
                         ? Colors.white70
                         : Colors.black87,
               ),
@@ -569,10 +553,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color:
-                      isSelected
-                          ? const Color(0xFF6C5DD3)
-                          : isDarkMode
+                  color: isSelected
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
                           ? Colors.white70
                           : Colors.black87,
                 ),
@@ -613,11 +596,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MarketplaceScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -633,11 +615,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommunityScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -652,19 +633,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              widget.isFarmer
-                                  ? FarmerProfileScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                    initialIndex: 3,
-                                  )
-                                  : ProfileScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                    initialIndex: 3,
-                                  ),
+                      builder: (context) => widget.isFarmer
+                          ? FarmerProfileScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                              initialIndex: 3,
+                            )
+                          : ProfileScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                              initialIndex: 3,
+                            ),
                     ),
                   );
                 },
@@ -691,10 +670,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onPressed: () => setState(() => _selectedIndex = index),
       icon: Icon(
         icon,
-        color:
-            isSelected
-                ? const Color(0xFF4169E1)
-                : isDarkMode
+        color: isSelected
+            ? const Color(0xFF4169E1)
+            : isDarkMode
                 ? Colors.white54
                 : Colors.grey[400],
         size: 24,
@@ -790,11 +768,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (context) => ProfileScreen(
-                        isFarmer: true,
-                        isVerified: widget.isVerified,
-                      ),
+                  builder: (context) => ProfileScreen(
+                    isFarmer: true,
+                    isVerified: widget.isVerified,
+                  ),
                 ),
               );
             },
@@ -842,10 +819,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: widget.isVerified ? Colors.green : Colors.red,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color:
-                                isDarkMode
-                                    ? const Color(0xFF1A1A2E)
-                                    : const Color(0xFFE8F5E9),
+                            color: isDarkMode
+                                ? const Color(0xFF1A1A2E)
+                                : const Color(0xFFE8F5E9),
                             width: 2,
                           ),
                         ),
@@ -924,16 +900,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
-          color:
-              isDarkMode
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.5),
+          color: isDarkMode
+              ? Colors.black.withOpacity(0.2)
+              : Colors.white.withOpacity(0.5),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color:
-                isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
           ),
         ),
         child: Column(
@@ -1103,11 +1077,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FarmerProfileScreen(
+                      isFarmer: widget.isFarmer,
+                      isVerified: widget.isVerified,
+                      initialIndex: 3,
+                      initialTabIndex: 2, // Sales Report tab
+                    ),
+                  ),
+                );
+              },
               child: Text(
                 'See All',
                 style: GoogleFonts.poppins(
-                  color: const Color(0xFF4169E1),
+                  color: const Color(0xFF6C5DD3),
                   fontSize: 12,
                 ),
               ),
@@ -1127,16 +1113,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.grey[900] : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow:
-            isDarkMode
-                ? []
-                : [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+        boxShadow: isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -1197,32 +1182,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildMobileWishlist(bool isDarkMode) {
-    final products = [
-      {
-        'title': 'Fresh Tomatoes',
-        'price': '\$4.99/kg',
-        'icon': Icons.local_mall,
-        'color': const Color(0xFF4169E1),
-      },
-      {
-        'title': 'Organic Potatoes',
-        'price': '\$2.99/kg',
-        'icon': Icons.shopping_basket,
-        'color': const Color(0xFF4CAF50),
-      },
-      {
-        'title': 'Fresh Carrots',
-        'price': '\$1.99/kg',
-        'icon': Icons.shopping_bag,
-        'color': const Color(0xFFFFB74D),
-      },
-      {
-        'title': 'Green Beans',
-        'price': '\$3.99/kg',
-        'icon': Icons.store,
-        'color': const Color(0xFFFF5252),
-      },
-    ];
+    final productProvider = Provider.of<ProductProvider>(context);
+    final products = productProvider.products;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1240,11 +1201,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FarmerProfileScreen(
+                      isFarmer: widget.isFarmer,
+                      isVerified: widget.isVerified,
+                      initialIndex: 3,
+                      initialTabIndex: 1, // Products tab
+                    ),
+                  ),
+                );
+              },
               child: Text(
                 'See All',
                 style: GoogleFonts.poppins(
-                  color: const Color(0xFF4169E1),
+                  color: const Color(0xFF6C5DD3),
                   fontSize: 12,
                 ),
               ),
@@ -1255,10 +1228,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children:
-                products
-                    .map((product) => _buildProductItem(product, isDarkMode))
-                    .toList(),
+            children: products
+                .map((product) => _buildProductItem(product, isDarkMode))
+                .toList(),
           ),
         ),
       ],
@@ -1267,32 +1239,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildProductItem(Map<String, dynamic> product, bool isDarkMode) {
     return Container(
+      width: 200,
       margin: const EdgeInsets.only(right: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            height: 200,
             decoration: BoxDecoration(
-              color: product['color'].withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
+              ),
             ),
-            child: Icon(product['icon'], color: product['color'], size: 32),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            product['title'],
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-          ),
-          Text(
-            product['price'],
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: isDarkMode ? Colors.white60 : Colors.grey[600],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.white.withOpacity(0.3),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        product['image'],
+                        height: 120,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product['name'] ?? 'Unnamed Product',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '\$${product['price']?.toStringAsFixed(2) ?? '0.00'}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6C5DD3),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 16,
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            product['seller'] ?? 'Unknown Seller',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.star, size: 16, color: Colors.amber),
+                          const SizedBox(width: 4),
+                          Text(
+                            product['rating']?.toString() ?? '0.0',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1492,16 +1536,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color:
-                    isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
               ),
             ),
             child: Row(
@@ -1557,10 +1599,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                            isPaid
-                                ? Colors.green.withOpacity(0.2)
-                                : isPending
+                        color: isPaid
+                            ? Colors.green.withOpacity(0.2)
+                            : isPending
                                 ? Colors.orange.withOpacity(0.2)
                                 : Colors.red.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -1570,10 +1611,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color:
-                              isPaid
-                                  ? Colors.green
-                                  : isPending
+                          color: isPaid
+                              ? Colors.green
+                              : isPending
                                   ? Colors.orange
                                   : Colors.red,
                         ),
@@ -1736,16 +1776,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: Column(
@@ -1820,10 +1858,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Divider
           Container(
             height: 1,
-            color:
-                isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
           ),
 
           // Table rows
@@ -1831,14 +1868,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: invoices.length,
-            separatorBuilder:
-                (context, index) => Container(
-                  height: 1,
-                  color:
-                      isDarkMode
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.black.withOpacity(0.03),
-                ),
+            separatorBuilder: (context, index) => Container(
+              height: 1,
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.03),
+            ),
             itemBuilder: (context, index) {
               final invoice = invoices[index];
               final bool isPaid = invoice['status'] == 'Paid';
@@ -1916,10 +1951,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           horizontal: 16,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              isPaid
-                                  ? Colors.green.withOpacity(0.2)
-                                  : isPending
+                          color: isPaid
+                              ? Colors.green.withOpacity(0.2)
+                              : isPending
                                   ? Colors.orange.withOpacity(0.2)
                                   : Colors.red.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
@@ -1930,10 +1964,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color:
-                                  isPaid
-                                      ? Colors.green
-                                      : isPending
+                              color: isPaid
+                                  ? Colors.green
+                                  : isPending
                                       ? Colors.orange
                                       : Colors.red,
                             ),

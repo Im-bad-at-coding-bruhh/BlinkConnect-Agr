@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:apps/Pages/marketplace_screen.dart';
-import 'package:apps/Pages/community_screen.dart';
-import 'package:apps/Pages/profile_screen.dart';
+import 'marketplace_screen.dart';
+import 'community_screen.dart';
+import 'profile_screen.dart';
 import 'theme_provider.dart';
 import 'dart:async';
-import 'package:apps/Services/cart_service.dart' as cart_service;
+import '/Services/cart_service.dart' as cart_service;
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -56,12 +56,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => MarketplaceScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 1,
-                ),
+            builder: (context) => MarketplaceScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 1,
+            ),
           ),
         );
         break;
@@ -69,12 +68,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => CommunityScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 2,
-                ),
+            builder: (context) => CommunityScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 2,
+            ),
           ),
         );
         break;
@@ -82,12 +80,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => ProfileScreen(
-                  isFarmer: widget.isFarmer,
-                  isVerified: widget.isVerified,
-                  initialIndex: 3,
-                ),
+            builder: (context) => ProfileScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 3,
+            ),
           ),
         );
         break;
@@ -115,12 +112,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors:
-              _isSmallScreen
-                  ? isDarkMode
-                      ? [const Color(0xFF111122), const Color(0xFF111122)]
-                      : [Colors.white, Colors.white]
-                  : isDarkMode
+          colors: _isSmallScreen
+              ? isDarkMode
+                  ? [const Color(0xFF111122), const Color(0xFF111122)]
+                  : [Colors.white, Colors.white]
+              : isDarkMode
                   ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
                   : [Colors.white, Colors.white],
         ),
@@ -137,15 +133,14 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors:
-                      _isSmallScreen
-                          ? isDarkMode
-                              ? [
-                                const Color(0xFF111122),
-                                const Color(0xFF111122),
-                              ]
-                              : [Colors.white, Colors.white]
-                          : isDarkMode
+                  colors: _isSmallScreen
+                      ? isDarkMode
+                          ? [
+                              const Color(0xFF111122),
+                              const Color(0xFF111122),
+                            ]
+                          : [Colors.white, Colors.white]
+                      : isDarkMode
                           ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
                           : [Colors.white, Colors.white],
                 ),
@@ -231,20 +226,18 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color:
-                isSelected
-                    ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                    : Colors.transparent,
+            color: isSelected
+                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                : Colors.transparent,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
                 size: 22,
-                color:
-                    isSelected
-                        ? const Color(0xFF6C5DD3)
-                        : isDarkMode
+                color: isSelected
+                    ? const Color(0xFF6C5DD3)
+                    : isDarkMode
                         ? Colors.white70
                         : Colors.black87,
               ),
@@ -254,10 +247,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color:
-                      isSelected
-                          ? const Color(0xFF6C5DD3)
-                          : isDarkMode
+                  color: isSelected
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
                           ? Colors.white70
                           : Colors.black87,
                 ),
@@ -292,12 +284,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => BuyerDashboardScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                            initialIndex: 0,
-                          ),
+                      builder: (context) => BuyerDashboardScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                        initialIndex: 0,
+                      ),
                     ),
                   );
                 },
@@ -312,11 +303,10 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MarketplaceScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -331,11 +321,10 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommunityScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -350,11 +339,10 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => ProfileScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
+                      builder: (context) => ProfileScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
                     ),
                   );
                 },
@@ -386,10 +374,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
             border: Border(
               bottom: BorderSide(
-                color:
-                    isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
                 width: 1,
               ),
             ),
@@ -507,10 +494,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                     isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color:
-                      isDarkMode
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.black.withOpacity(0.05),
+                  color: isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05),
                 ),
               ),
               child: Column(
@@ -520,10 +506,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Container(
                     height: 100,
                     decoration: BoxDecoration(
-                      color:
-                          isDarkMode
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.white.withOpacity(0.3),
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.white.withOpacity(0.3),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(12),
                       ),
@@ -580,10 +565,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                                 crop['seller'],
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -600,10 +584,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                               crop['rating'].toString(),
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
-                                color:
-                                    isDarkMode
-                                        ? Colors.white70
-                                        : Colors.black54,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
                               ),
                             ),
                           ],
@@ -712,42 +695,41 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   void _showProductDetails(Map<String, dynamic> product) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(product['name']),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Seller: ${product['seller']}'),
-                  Text('Price: \$${product['price']}'),
-                  Text('Rating: ${product['rating']}'),
-                  const SizedBox(height: 8),
-                  const Text('Product Description:'),
-                  Text(product['description'] ?? 'No description available'),
-                  const SizedBox(height: 8),
-                  const Text('Farmer Information:'),
-                  Text(
-                    product['farmerInfo'] ?? 'No farmer information available',
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  _addToCart(product);
-                  Navigator.pop(context);
-                },
-                child: const Text('Add to Cart'),
+      builder: (context) => AlertDialog(
+        title: Text(product['name']),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Seller: ${product['seller']}'),
+              Text('Price: \$${product['price']}'),
+              Text('Rating: ${product['rating']}'),
+              const SizedBox(height: 8),
+              const Text('Product Description:'),
+              Text(product['description'] ?? 'No description available'),
+              const SizedBox(height: 8),
+              const Text('Farmer Information:'),
+              Text(
+                product['farmerInfo'] ?? 'No farmer information available',
               ),
             ],
           ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _addToCart(product);
+              Navigator.pop(context);
+            },
+            child: const Text('Add to Cart'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -855,16 +837,14 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.black.withOpacity(0.2)
-                : Colors.white.withOpacity(0.5),
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: Row(
@@ -909,11 +889,10 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (context) => MarketplaceScreen(
-                              isFarmer: widget.isFarmer,
-                              isVerified: widget.isVerified,
-                            ),
+                        builder: (context) => MarketplaceScreen(
+                          isFarmer: widget.isFarmer,
+                          isVerified: widget.isVerified,
+                        ),
                       ),
                     );
                   },
