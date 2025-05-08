@@ -1,6 +1,6 @@
 workflows:
 ios-release-no-shorebird:
-home: IOS Release
+name: iOS Release
 environment:
 flutter: stable
 xcode: latest
