@@ -708,7 +708,8 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   void _showProductDetails(Map<String, dynamic> product) {
-    final TextEditingController quantityController = TextEditingController(text: '1');
+    final TextEditingController quantityController =
+        TextEditingController(text: '1');
     double originalTotalPrice = product['price'] * 1; // Default quantity of 1
 
     showDialog(
@@ -730,7 +731,8 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Text(product['description'] ?? 'No description available'),
                   const SizedBox(height: 8),
                   const Text('Farmer Information:'),
-                  Text(product['farmerInfo'] ?? 'No farmer information available'),
+                  Text(product['farmerInfo'] ??
+                      'No farmer information available'),
                   const SizedBox(height: 16),
 
                   // Quantity Selection
@@ -759,7 +761,8 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                               });
                             } else {
                               setState(() {
-                                originalTotalPrice = product['price'] * double.parse(value);
+                                originalTotalPrice =
+                                    product['price'] * double.parse(value);
                               });
                             }
                           },
@@ -804,7 +807,8 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${product['name']} (${quantity}kg) added to cart'),
+                        content: Text(
+                            '${product['name']} (${quantity}kg) added to cart'),
                         duration: const Duration(seconds: 2),
                       ),
                     );
