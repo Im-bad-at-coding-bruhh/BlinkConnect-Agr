@@ -279,21 +279,21 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   void _addToCart(Map<String, dynamic> product, {int quantity = 1}) {
-    final cartService = Provider.of<cart_service.CartService>(
-      context,
-      listen: false,
-    );
-
     try {
-      cartService.addItem(
-        cart_service.CartItem(
-          name: product['name'],
-          pricePerKg: product['price'],
-          image: product['image'],
-          seller: product['seller'],
-          quantity: quantity,
-        ),
+      final cartService = Provider.of<cart_service.CartService>(
+        context,
+        listen: false,
       );
+
+      final cartItem = cart_service.CartItem(
+        name: product['name'],
+        pricePerKg: product['price'],
+        image: product['image'],
+        seller: product['seller'],
+        quantity: quantity,
+      );
+
+      cartService.addItem(cartItem);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -302,6 +302,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         ),
       );
     } catch (e) {
+      debugPrint('Error adding to cart: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to add item to cart'),

@@ -53,24 +53,6 @@ class CartScreen extends StatelessWidget {
     bool isDarkMode,
     cart_service.CartService cartService,
   ) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCartItems(context, isDarkMode, cartService),
-          const SizedBox(height: 24),
-          _buildCheckoutSection(context, isDarkMode, cartService),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCartItems(
-    BuildContext context,
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
     if (cartService.items.isEmpty) {
       return Center(
         child: Column(
@@ -113,6 +95,24 @@ class CartScreen extends StatelessWidget {
       );
     }
 
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCartItems(context, isDarkMode, cartService),
+          const SizedBox(height: 24),
+          _buildCheckoutSection(context, isDarkMode, cartService),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCartItems(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -134,133 +134,119 @@ class CartScreen extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Stack(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    // Product Image
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withOpacity(0.3)
-                            : Colors.white.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          item.image,
-                          height: 60,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.image,
-                              size: 40,
-                              color: isDarkMode ? Colors.white30 : Colors.black26,
-                            );
-                          },
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    item.image,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 80,
+                        height: 80,
+                        color: isDarkMode ? Colors.white10 : Colors.black12,
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          color: isDarkMode ? Colors.white30 : Colors.black26,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Product Details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Seller: ${item.seller}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            item.name,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item.seller,
+                            '\$${item.pricePerKg.toStringAsFixed(2)}/kg',
                             style: GoogleFonts.poppins(
                               fontSize: 14,
-                              color: isDarkMode ? Colors.white70 : Colors.black54,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF6C5DD3),
                             ),
                           ),
-                          const SizedBox(height: 8),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                '\$${item.pricePerKg.toStringAsFixed(2)}/kg',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6C5DD3),
+                              IconButton(
+                                onPressed: () {
+                                  if (item.quantity > 1) {
+                                    cartService.updateQuantity(
+                                      item.name,
+                                      item.quantity - 1,
+                                    );
+                                  }
+                                },
+                                icon: Icon(
+                                  Icons.remove_circle_outline,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                  size: 20,
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      if (item.quantity > 1) {
-                                        cartService.updateQuantity(
-                                          item.name,
-                                          item.quantity - 1,
-                                        );
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.remove_circle_outline,
-                                      color: isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${item.quantity}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () {
-                                      cartService.updateQuantity(
-                                        item.name,
-                                        item.quantity + 1,
-                                      );
-                                    },
-                                    icon: Icon(
-                                      Icons.add_circle_outline,
-                                      color: isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                      size: 20,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                '${item.quantity}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  cartService.updateQuantity(
+                                    item.name,
+                                    item.quantity + 1,
+                                  );
+                                },
+                                icon: Icon(
+                                  Icons.add_circle_outline,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                  size: 20,
+                                ),
                               ),
                             ],
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: IconButton(
-                    onPressed: () => cartService.removeItem(item.name),
-                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    ],
                   ),
+                ),
+                IconButton(
+                  onPressed: () => cartService.removeItem(item.name),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
@@ -275,10 +261,8 @@ class CartScreen extends StatelessWidget {
     bool isDarkMode,
     cart_service.CartService cartService,
   ) {
-    if (cartService.items.isEmpty) return const SizedBox.shrink();
-
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: isDarkMode
             ? Colors.black.withOpacity(0.2)
@@ -291,22 +275,32 @@ class CartScreen extends StatelessWidget {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            'Order Summary',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Subtotal',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: 14,
                   color: isDarkMode ? Colors.white70 : Colors.black54,
                 ),
               ),
               Text(
                 '\$${cartService.totalPrice.toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                   color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
@@ -319,15 +313,15 @@ class CartScreen extends StatelessWidget {
               Text(
                 'Shipping',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: 14,
                   color: isDarkMode ? Colors.white70 : Colors.black54,
                 ),
               ),
               Text(
-                '\$5.00',
+                'Free',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                   color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
@@ -342,15 +336,15 @@ class CartScreen extends StatelessWidget {
               Text(
                 'Total',
                 style: GoogleFonts.poppins(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
               Text(
-                '\$${(cartService.totalPrice + 5.00).toStringAsFixed(2)}',
+                '\$${cartService.totalPrice.toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF6C5DD3),
                 ),
@@ -362,11 +356,13 @@ class CartScreen extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                cartService.clearCart();
+                // TODO: Implement checkout
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Order placed successfully!')),
+                  const SnackBar(
+                    content: Text('Checkout functionality coming soon!'),
+                    duration: Duration(seconds: 2),
+                  ),
                 );
-                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6C5DD3),

@@ -42,12 +42,12 @@ class CartItem {
 }
 
 class CartService extends ChangeNotifier {
-  final List<CartItem> _items = [];
+  final Map<String, CartItem> _items = {};
   bool _isLoading = false;
 
-  List<CartItem> get items => List.unmodifiable(_items);
+  List<CartItem> get items => _items.values.toList();
   bool get isLoading => _isLoading;
-  double get totalPrice => _items.fold(0.0, (sum, item) => sum + (item.pricePerKg * item.quantity));
+  double get totalPrice => _items.values.fold(0.0, (sum, item) => sum + item.totalPrice);
   int get itemCount => _items.length;
 
   void addItem(CartItem newItem) {
@@ -55,16 +55,15 @@ class CartService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final existingItemIndex = _items.indexWhere(
-        (item) => item.name == newItem.name,
-      );
-
-      if (existingItemIndex >= 0) {
+      if (_items.containsKey(newItem.name)) {
         // Update quantity of existing item
-        _items[existingItemIndex].quantity += newItem.quantity;
+        final existingItem = _items[newItem.name]!;
+        _items[newItem.name] = existingItem.copyWith(
+          quantity: existingItem.quantity + newItem.quantity,
+        );
       } else {
         // Add new item
-        _items.add(newItem);
+        _items[newItem.name] = newItem;
       }
 
       debugPrint('Item added to cart: ${newItem.name}');
@@ -82,7 +81,7 @@ class CartService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      _items.removeWhere((item) => item.name == itemName);
+      _items.remove(itemName);
       debugPrint('Item removed from cart: $itemName');
     } catch (e) {
       debugPrint('Error removing item from cart: $e');
@@ -102,10 +101,9 @@ class CartService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final itemIndex = _items.indexWhere((item) => item.name == itemName);
-      if (itemIndex >= 0) {
-        _items[itemIndex].quantity = newQuantity;
-        debugPrint('Updated quantity for ${_items[itemIndex].name}: $newQuantity');
+      if (_items.containsKey(itemName)) {
+        _items[itemName] = _items[itemName]!.copyWith(quantity: newQuantity);
+        debugPrint('Updated quantity for $itemName: $newQuantity');
       }
     } catch (e) {
       debugPrint('Error updating quantity: $e');
