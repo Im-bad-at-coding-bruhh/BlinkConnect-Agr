@@ -10,6 +10,7 @@ import 'dashboard_screen.dart';
 import 'farmer_profile_screen.dart';
 import 'dart:async';
 import '/Services/cart_service.dart' as cart_service;
+import 'cart_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -285,9 +286,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         listen: false,
       );
 
+      if (quantity <= 0) {
+        throw ArgumentError('Quantity must be greater than 0');
+      }
+
+      if (product['price'] <= 0) {
+        throw ArgumentError('Price must be greater than 0');
+      }
+
       final cartItem = cart_service.CartItem(
         name: product['name'],
-        pricePerKg: product['price'],
+        pricePerKg: product['price'].toDouble(),
         image: product['image'],
         seller: product['seller'],
         quantity: quantity,
@@ -299,14 +308,28 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         SnackBar(
           content: Text('${product['name']} (${quantity}kg) added to cart'),
           duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'View Cart',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CartScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       );
     } catch (e) {
       debugPrint('Error adding to cart: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to add item to cart'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text('Failed to add item to cart: ${e.toString()}'),
+          duration: const Duration(seconds: 2),
         ),
       );
     }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
-import '/Services/cart_service.dart' as cart_service;
+import '/Services/cart_service.dart';
 
 class CartScreen extends StatelessWidget {
   final bool isFarmer;
@@ -19,7 +19,7 @@ class CartScreen extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
-    return Consumer<cart_service.CartService>(
+    return Consumer<CartService>(
       builder: (context, cartService, child) {
         return Scaffold(
           backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
@@ -51,7 +51,7 @@ class CartScreen extends StatelessWidget {
   Widget _buildMainContent(
     BuildContext context,
     bool isDarkMode,
-    cart_service.CartService cartService,
+    CartService cartService,
   ) {
     if (cartService.items.isEmpty) {
       return Center(
@@ -111,7 +111,7 @@ class CartScreen extends StatelessWidget {
   Widget _buildCartItems(
     BuildContext context,
     bool isDarkMode,
-    cart_service.CartService cartService,
+    CartService cartService,
   ) {
     return ListView.builder(
       shrinkWrap: true,
@@ -259,7 +259,7 @@ class CartScreen extends StatelessWidget {
   Widget _buildCheckoutSection(
     BuildContext context,
     bool isDarkMode,
-    cart_service.CartService cartService,
+    CartService cartService,
   ) {
     return Container(
       padding: const EdgeInsets.all(24),
