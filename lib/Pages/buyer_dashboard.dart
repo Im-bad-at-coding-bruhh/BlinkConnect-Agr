@@ -675,21 +675,81 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   void _addToCart(Map<String, dynamic> product) {
-    final cartService = Provider.of<cart_service.CartService>(
-      context,
-      listen: false,
-    );
-    cartService.addItem(
-      cart_service.CartItem(
-        name: product['name'],
-        pricePerKg: product['price'],
-        image: product['image'],
-        seller: product['seller'],
+    final TextEditingController quantityController = TextEditingController(text: '1');
+    final double originalTotalPrice = product['price'];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add to Cart'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${product['name']}'),
+            Text('Price: \$${product['price']}/kg'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: quantityController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Quantity (kg)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Total: \$${(originalTotalPrice * (double.tryParse(quantityController.text) ?? 1)).toStringAsFixed(2)}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF6C5DD3),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final quantity = int.tryParse(quantityController.text) ?? 1;
+              if (quantity > 0) {
+                final cartService = Provider.of<cart_service.CartService>(
+                  context,
+                  listen: false,
+                );
+                cartService.addItem(
+                  cart_service.CartItem(
+                    name: product['name'],
+                    pricePerKg: product['price'],
+                    image: product['image'],
+                    seller: product['seller'],
+                    quantity: quantity,
+                  ),
+                );
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${product['name']} (${quantity}kg) added to cart'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid quantity'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: const Text('Add to Cart'),
+          ),
+        ],
       ),
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('${product['name']} added to cart')));
   }
 
   void _showProductDetails(Map<String, dynamic> product) {
