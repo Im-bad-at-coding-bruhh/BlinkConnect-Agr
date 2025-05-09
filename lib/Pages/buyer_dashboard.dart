@@ -6,7 +6,7 @@ import 'community_screen.dart';
 import 'profile_screen.dart';
 import 'theme_provider.dart';
 import 'dart:async';
-import '/Services/cart_service.dart' as cart_service;
+import 'package:farmly/Services/cart_service.dart' as cart_service;
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
