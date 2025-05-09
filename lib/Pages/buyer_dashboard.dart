@@ -675,81 +675,36 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   void _addToCart(Map<String, dynamic> product) {
-    final TextEditingController quantityController = TextEditingController(text: '1');
-    final double originalTotalPrice = product['price'];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Add to Cart'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${product['name']}'),
-            Text('Price: \$${product['price']}/kg'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: quantityController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Quantity (kg)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Total: \$${(originalTotalPrice * (double.tryParse(quantityController.text) ?? 1)).toStringAsFixed(2)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF6C5DD3),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final quantity = int.tryParse(quantityController.text) ?? 1;
-              if (quantity > 0) {
-                final cartService = Provider.of<cart_service.CartService>(
-                  context,
-                  listen: false,
-                );
-                cartService.addItem(
-                  cart_service.CartItem(
-                    name: product['name'],
-                    pricePerKg: product['price'],
-                    image: product['image'],
-                    seller: product['seller'],
-                    quantity: quantity,
-                  ),
-                );
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${product['name']} (${quantity}kg) added to cart'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a valid quantity'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            child: const Text('Add to Cart'),
-          ),
-        ],
-      ),
+    final cartService = Provider.of<cart_service.CartService>(
+      context,
+      listen: false,
     );
+
+    try {
+      cartService.addItem(
+        cart_service.CartItem(
+          name: product['name'],
+          pricePerKg: product['price'],
+          image: product['image'],
+          seller: product['seller'],
+          quantity: 1,
+        ),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product['name']} (1kg) added to cart'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to add item to cart'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _showProductDetails(Map<String, dynamic> product) {
@@ -763,7 +718,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Seller: ${product['seller']}'),
-              Text('Price: \$${product['price']}/kg'),
+              Text('Price: \$${product['price']}'),
               Text('Rating: ${product['rating']}'),
               const SizedBox(height: 8),
               const Text('Product Description:'),
@@ -783,8 +738,8 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
               _addToCart(product);
+              Navigator.pop(context);
             },
             child: const Text('Add to Cart'),
           ),
