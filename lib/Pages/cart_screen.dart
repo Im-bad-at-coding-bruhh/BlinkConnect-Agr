@@ -2,14 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
-import 'buyer_dashboard.dart';
-import 'marketplace_screen.dart';
-import 'community_screen.dart';
-import 'profile_screen.dart';
 import '/Services/cart_service.dart' as cart_service;
-import 'dashboard_screen.dart';
 
-class CartScreen extends StatefulWidget {
+class CartScreen extends StatelessWidget {
   final bool isFarmer;
   final bool isVerified;
 
@@ -20,11 +15,6 @@ class CartScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<CartScreen> createState() => _CartScreenState();
-}
-
-class _CartScreenState extends State<CartScreen> {
-  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
@@ -33,77 +23,54 @@ class _CartScreenState extends State<CartScreen> {
       builder: (context, cartService, child) {
         return Scaffold(
           backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
-          body: _buildMainContent(isDarkMode, cartService),
+          appBar: AppBar(
+            backgroundColor: isDarkMode ? Colors.black : Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'Shopping Cart',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+          body: _buildMainContent(context, isDarkMode, cartService),
         );
       },
     );
   }
 
-  Widget _buildMainContent(bool isDarkMode, cart_service.CartService cartService) {
+  Widget _buildMainContent(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cart Header
-          _buildCartHeader(isDarkMode),
+          _buildCartItems(context, isDarkMode, cartService),
           const SizedBox(height: 24),
-
-          // Cart Items
-          _buildCartItems(isDarkMode, cartService),
-          const SizedBox(height: 24),
-
-          // Checkout Section
-          _buildCheckoutSection(isDarkMode, cartService),
+          _buildCheckoutSection(context, isDarkMode, cartService),
         ],
       ),
     );
   }
 
-  Widget _buildCartHeader(bool isDarkMode) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.shopping_cart_rounded,
-              size: 28,
-              color: const Color(0xFF6C5DD3),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Your Cart',
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        if (Provider.of<cart_service.CartService>(context).items.isNotEmpty)
-          TextButton.icon(
-            onPressed: () {
-              Provider.of<cart_service.CartService>(
-                context,
-                listen: false,
-              ).clearCart();
-            },
-            icon: Icon(Icons.delete_sweep_outlined, color: Colors.red),
-            label: Text(
-              'Clear Cart',
-              style: GoogleFonts.poppins(
-                color: Colors.red,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildCartItems(bool isDarkMode, cart_service.CartService cartService) {
+  Widget _buildCartItems(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     if (cartService.items.isEmpty) {
       return Center(
         child: Column(
@@ -289,12 +256,10 @@ class _CartScreenState extends State<CartScreen> {
                   top: 0,
                   right: 0,
                   child: IconButton(
-                    onPressed: () {
-                      cartService.removeItem(item.name);
-                    },
-                    icon: Icon(Icons.close, color: Colors.red, size: 20),
+                    onPressed: () => cartService.removeItem(item.name),
+                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
                     padding: EdgeInsets.zero,
-                    constraints: BoxConstraints(),
+                    constraints: const BoxConstraints(),
                   ),
                 ),
               ],
@@ -305,7 +270,11 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCheckoutSection(bool isDarkMode, cart_service.CartService cartService) {
+  Widget _buildCheckoutSection(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     if (cartService.items.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -393,11 +362,11 @@ class _CartScreenState extends State<CartScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                // Handle checkout
                 cartService.clearCart();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Order placed successfully!')),
                 );
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6C5DD3),
