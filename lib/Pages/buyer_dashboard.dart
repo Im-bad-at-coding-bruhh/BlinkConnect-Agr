@@ -7,6 +7,7 @@ import 'profile_screen.dart';
 import 'theme_provider.dart';
 import 'dart:async';
 import '/Services/cart_service.dart' as cart_service;
+import 'cart_screen.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -84,6 +85,18 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
               isFarmer: widget.isFarmer,
               isVerified: widget.isVerified,
               initialIndex: 3,
+            ),
+          ),
+        );
+        break;
+      case 4: // Cart
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CartScreen(
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+              initialIndex: 4,
             ),
           ),
         );
@@ -207,6 +220,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
           _buildNavItem(2, Icons.people_rounded, 'Community'),
           _buildNavItem(3, Icons.person_rounded, 'Profile'),
+          _buildNavItem(4, Icons.shopping_cart_rounded, 'Cart'),
         ],
       ),
     );
@@ -306,6 +320,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       builder: (context) => MarketplaceScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
+                        initialIndex: 1,
                       ),
                     ),
                   );
@@ -324,6 +339,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       builder: (context) => CommunityScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
+                        initialIndex: 2,
                       ),
                     ),
                   );
@@ -342,6 +358,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       builder: (context) => ProfileScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
+                        initialIndex: 3,
                       ),
                     ),
                   );
@@ -350,6 +367,54 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Icons.person_outline,
                   color: isDarkMode ? Colors.white54 : Colors.grey[400],
                   size: 24,
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CartScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                        initialIndex: 4,
+                      ),
+                    ),
+                  );
+                },
+                icon: Stack(
+                  children: [
+                    Icon(
+                      Icons.shopping_cart_outlined,
+                      color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                      size: 24,
+                    ),
+                    if (Provider.of<cart_service.CartService>(context).items.isNotEmpty)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6C5DD3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '${Provider.of<cart_service.CartService>(context).items.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
