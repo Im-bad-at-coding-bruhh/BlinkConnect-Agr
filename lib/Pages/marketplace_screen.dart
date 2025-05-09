@@ -10,7 +10,6 @@ import 'dashboard_screen.dart';
 import 'farmer_profile_screen.dart';
 import 'dart:async';
 import '/Services/cart_service.dart' as cart_service;
-import 'cart_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -281,20 +280,31 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   void _addToCart(Map<String, dynamic> product, {int quantity = 1}) {
     try {
+      debugPrint('Adding to cart: ${product['name']} with quantity $quantity');
       final cartService = Provider.of<cart_service.CartService>(
         context,
         listen: false,
       );
 
+      if (quantity <= 0) {
+        throw ArgumentError('Quantity must be greater than 0');
+      }
+
+      if (product['price'] <= 0) {
+        throw ArgumentError('Price must be greater than 0');
+      }
+
       final cartItem = cart_service.CartItem(
         name: product['name'],
-        pricePerKg: product['price'],
+        pricePerKg: product['price'].toDouble(),
         image: product['image'],
         seller: product['seller'],
         quantity: quantity,
       );
 
+      debugPrint('Created cart item: ${cartItem.name}');
       cartService.addItem(cartItem);
+      debugPrint('Item added to cart successfully');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -316,12 +326,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ),
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error adding to cart: $e');
+      debugPrint('Stack trace: $stackTrace');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to add item to cart'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text('Failed to add item to cart: ${e.toString()}'),
+          duration: const Duration(seconds: 2),
         ),
       );
     }

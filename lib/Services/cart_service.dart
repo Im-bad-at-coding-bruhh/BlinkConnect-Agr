@@ -39,6 +39,11 @@ class CartItem {
       quantity: quantity ?? this.quantity,
     );
   }
+
+  @override
+  String toString() {
+    return 'CartItem(name: $name, pricePerKg: $pricePerKg, quantity: $quantity)';
+  }
 }
 
 class CartService extends ChangeNotifier {
@@ -47,11 +52,12 @@ class CartService extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   List<CartItem> get items => _items.values.toList();
-  double get totalPrice => _items.values.fold(0, (sum, item) => sum + item.totalPrice);
+  double get totalPrice => _items.values.fold(0.0, (sum, item) => sum + item.totalPrice);
   int get itemCount => _items.length;
 
   void addItem(CartItem item) {
     try {
+      debugPrint('Adding item to cart: ${item.toString()}');
       _isLoading = true;
       notifyListeners();
 
@@ -61,14 +67,15 @@ class CartService extends ChangeNotifier {
         _items[item.name] = existingItem.copyWith(
           quantity: existingItem.quantity + item.quantity,
         );
+        debugPrint('Updated existing item quantity: ${_items[item.name]}');
       } else {
         // Add new item
         _items[item.name] = item;
+        debugPrint('Added new item to cart');
       }
-
-      debugPrint('Added item to cart: ${item.name}');
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error adding item to cart: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     } finally {
       _isLoading = false;
@@ -78,13 +85,19 @@ class CartService extends ChangeNotifier {
 
   void removeItem(String name) {
     try {
+      debugPrint('Removing item from cart: $name');
       _isLoading = true;
       notifyListeners();
 
+      if (!_items.containsKey(name)) {
+        throw ArgumentError('Item not found in cart: $name');
+      }
+
       _items.remove(name);
-      debugPrint('Removed item from cart: $name');
-    } catch (e) {
+      debugPrint('Item removed successfully');
+    } catch (e, stackTrace) {
       debugPrint('Error removing item from cart: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     } finally {
       _isLoading = false;
@@ -94,20 +107,26 @@ class CartService extends ChangeNotifier {
 
   void updateQuantity(String name, int quantity) {
     try {
+      debugPrint('Updating quantity for $name to $quantity');
       _isLoading = true;
       notifyListeners();
 
-      if (_items.containsKey(name)) {
-        if (quantity <= 0) {
-          removeItem(name);
-        } else {
-          final item = _items[name]!;
-          _items[name] = item.copyWith(quantity: quantity);
-        }
-        debugPrint('Updated quantity for $name: $quantity');
+      if (!_items.containsKey(name)) {
+        throw ArgumentError('Item not found in cart: $name');
       }
-    } catch (e) {
+
+      if (quantity <= 0) {
+        removeItem(name);
+        debugPrint('Removed item due to zero quantity');
+        return;
+      }
+
+      final item = _items[name]!;
+      _items[name] = item.copyWith(quantity: quantity);
+      debugPrint('Updated quantity successfully: ${_items[name]}');
+    } catch (e, stackTrace) {
       debugPrint('Error updating quantity: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     } finally {
       _isLoading = false;
@@ -117,13 +136,15 @@ class CartService extends ChangeNotifier {
 
   void clearCart() {
     try {
+      debugPrint('Clearing cart');
       _isLoading = true;
       notifyListeners();
 
       _items.clear();
-      debugPrint('Cart cleared');
-    } catch (e) {
+      debugPrint('Cart cleared successfully');
+    } catch (e, stackTrace) {
       debugPrint('Error clearing cart: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     } finally {
       _isLoading = false;
