@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CartItem {
+  final String id;
   final String name;
   final double pricePerKg;
   final String image;
@@ -8,66 +9,63 @@ class CartItem {
   int quantity;
 
   CartItem({
+    required this.id,
     required this.name,
     required this.pricePerKg,
     required this.image,
     required this.seller,
     this.quantity = 1,
-  }) {
-    if (quantity < 1) {
-      throw ArgumentError('Quantity must be at least 1');
-    }
-    if (pricePerKg <= 0) {
-      throw ArgumentError('Price per kg must be greater than 0');
-    }
-  }
+  });
 
   double get totalPrice => pricePerKg * quantity;
 
-  CartItem copyWith({
-    String? name,
-    double? pricePerKg,
-    String? image,
-    String? seller,
-    int? quantity,
-  }) {
-    return CartItem(
-      name: name ?? this.name,
-      pricePerKg: pricePerKg ?? this.pricePerKg,
-      image: image ?? this.image,
-      seller: seller ?? this.seller,
-      quantity: quantity ?? this.quantity,
-    );
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'pricePerKg': pricePerKg,
+        'image': image,
+        'seller': seller,
+        'quantity': quantity,
+      };
+
+  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        pricePerKg: json['pricePerKg'] as double,
+        image: json['image'] as String,
+        seller: json['seller'] as String,
+        quantity: json['quantity'] as int,
+      );
 }
 
 class CartService extends ChangeNotifier {
-  final List<CartItem> _items = [];
+  final Map<String, CartItem> _items = {};
   bool _isLoading = false;
 
-  List<CartItem> get items => List.unmodifiable(_items);
+  // Getters
+  List<CartItem> get items => _items.values.toList();
   bool get isLoading => _isLoading;
-  double get totalPrice => _items.fold(0.0, (sum, item) => sum + (item.pricePerKg * item.quantity));
   int get itemCount => _items.length;
+  double get subtotal => _items.values.fold(0.0, (sum, item) => sum + item.totalPrice);
+  double get shipping => itemCount > 0 ? 5.0 : 0.0;
+  double get total => subtotal + shipping;
 
-  void addItem(CartItem newItem) {
+  // Add item to cart
+  Future<void> addItem(CartItem item) async {
     try {
       _isLoading = true;
       notifyListeners();
 
-      final existingItemIndex = _items.indexWhere(
-        (item) => item.name == newItem.name,
-      );
-
-      if (existingItemIndex >= 0) {
-        // Update quantity of existing item
-        _items[existingItemIndex].quantity += newItem.quantity;
+      if (_items.containsKey(item.id)) {
+        // Update existing item
+        final existingItem = _items[item.id]!;
+        existingItem.quantity += item.quantity;
       } else {
         // Add new item
-        _items.add(newItem);
+        _items[item.id] = item;
       }
 
-      debugPrint('Item added to cart: ${newItem.name}');
+      debugPrint('Added item to cart: ${item.name}');
     } catch (e) {
       debugPrint('Error adding item to cart: $e');
       rethrow;
@@ -77,13 +75,15 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  void removeItem(String itemName) {
+  // Remove item from cart
+  Future<void> removeItem(String itemId) async {
     try {
       _isLoading = true;
       notifyListeners();
 
-      _items.removeWhere((item) => item.name == itemName);
-      debugPrint('Item removed from cart: $itemName');
+      if (_items.remove(itemId) != null) {
+        debugPrint('Removed item from cart: $itemId');
+      }
     } catch (e) {
       debugPrint('Error removing item from cart: $e');
       rethrow;
@@ -93,19 +93,20 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  void updateQuantity(String itemName, int newQuantity) {
+  // Update item quantity
+  Future<void> updateQuantity(String itemId, int quantity) async {
     try {
-      if (newQuantity < 1) {
+      if (quantity < 1) {
         throw ArgumentError('Quantity must be at least 1');
       }
 
       _isLoading = true;
       notifyListeners();
 
-      final itemIndex = _items.indexWhere((item) => item.name == itemName);
-      if (itemIndex >= 0) {
-        _items[itemIndex].quantity = newQuantity;
-        debugPrint('Updated quantity for ${_items[itemIndex].name}: $newQuantity');
+      final item = _items[itemId];
+      if (item != null) {
+        item.quantity = quantity;
+        debugPrint('Updated quantity for ${item.name}: $quantity');
       }
     } catch (e) {
       debugPrint('Error updating quantity: $e');
@@ -116,7 +117,8 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  void clearCart() {
+  // Clear cart
+  Future<void> clearCart() async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -131,4 +133,10 @@ class CartService extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Check if item exists in cart
+  bool hasItem(String itemId) => _items.containsKey(itemId);
+
+  // Get item quantity
+  int getItemQuantity(String itemId) => _items[itemId]?.quantity ?? 0;
 }

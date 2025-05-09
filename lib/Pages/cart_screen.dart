@@ -9,7 +9,7 @@ import 'profile_screen.dart';
 import '/Services/cart_service.dart' as cart_service;
 import 'dashboard_screen.dart';
 
-class CartScreen extends StatefulWidget {
+class CartScreen extends StatelessWidget {
   final bool isFarmer;
   final bool isVerified;
 
@@ -20,11 +20,6 @@ class CartScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<CartScreen> createState() => _CartScreenState();
-}
-
-class _CartScreenState extends State<CartScreen> {
-  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
@@ -33,34 +28,37 @@ class _CartScreenState extends State<CartScreen> {
       builder: (context, cartService, child) {
         return Scaffold(
           backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
-          body: _buildMainContent(isDarkMode, cartService),
+          body: _buildMainContent(context, isDarkMode, cartService),
         );
       },
     );
   }
 
-  Widget _buildMainContent(bool isDarkMode, cart_service.CartService cartService) {
+  Widget _buildMainContent(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cart Header
-          _buildCartHeader(isDarkMode),
+          _buildCartHeader(context, isDarkMode, cartService),
           const SizedBox(height: 24),
-
-          // Cart Items
-          _buildCartItems(isDarkMode, cartService),
+          _buildCartItems(context, isDarkMode, cartService),
           const SizedBox(height: 24),
-
-          // Checkout Section
-          _buildCheckoutSection(isDarkMode, cartService),
+          _buildCheckoutSection(context, isDarkMode, cartService),
         ],
       ),
     );
   }
 
-  Widget _buildCartHeader(bool isDarkMode) {
+  Widget _buildCartHeader(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -82,15 +80,10 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ],
         ),
-        if (Provider.of<cart_service.CartService>(context).items.isNotEmpty)
+        if (cartService.items.isNotEmpty)
           TextButton.icon(
-            onPressed: () {
-              Provider.of<cart_service.CartService>(
-                context,
-                listen: false,
-              ).clearCart();
-            },
-            icon: Icon(Icons.delete_sweep_outlined, color: Colors.red),
+            onPressed: () => cartService.clearCart(),
+            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
             label: Text(
               'Clear Cart',
               style: GoogleFonts.poppins(
@@ -103,7 +96,11 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCartItems(bool isDarkMode, cart_service.CartService cartService) {
+  Widget _buildCartItems(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     if (cartService.items.isEmpty) {
       return Center(
         child: Column(
@@ -238,7 +235,7 @@ class _CartScreenState extends State<CartScreen> {
                                     onPressed: () {
                                       if (item.quantity > 1) {
                                         cartService.updateQuantity(
-                                          item.name,
+                                          item.id,
                                           item.quantity - 1,
                                         );
                                       }
@@ -264,7 +261,7 @@ class _CartScreenState extends State<CartScreen> {
                                   IconButton(
                                     onPressed: () {
                                       cartService.updateQuantity(
-                                        item.name,
+                                        item.id,
                                         item.quantity + 1,
                                       );
                                     },
@@ -289,12 +286,10 @@ class _CartScreenState extends State<CartScreen> {
                   top: 0,
                   right: 0,
                   child: IconButton(
-                    onPressed: () {
-                      cartService.removeItem(item.name);
-                    },
-                    icon: Icon(Icons.close, color: Colors.red, size: 20),
+                    onPressed: () => cartService.removeItem(item.id),
+                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
                     padding: EdgeInsets.zero,
-                    constraints: BoxConstraints(),
+                    constraints: const BoxConstraints(),
                   ),
                 ),
               ],
@@ -305,7 +300,11 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCheckoutSection(bool isDarkMode, cart_service.CartService cartService) {
+  Widget _buildCheckoutSection(
+    BuildContext context,
+    bool isDarkMode,
+    cart_service.CartService cartService,
+  ) {
     if (cartService.items.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -334,7 +333,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               Text(
-                '\$${cartService.totalPrice.toStringAsFixed(2)}',
+                '\$${cartService.subtotal.toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -355,7 +354,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               Text(
-                '\$5.00',
+                '\$${cartService.shipping.toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -379,7 +378,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               Text(
-                '\$${(cartService.totalPrice + 5.00).toStringAsFixed(2)}',
+                '\$${cartService.total.toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -393,7 +392,6 @@ class _CartScreenState extends State<CartScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                // Handle checkout
                 cartService.clearCart();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Order placed successfully!')),
