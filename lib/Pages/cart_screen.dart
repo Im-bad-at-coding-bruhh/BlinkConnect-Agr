@@ -101,6 +101,12 @@ class _CartScreenState extends State<CartScreen> {
           ),
         );
         break;
+      case 4: // Cart
+        // Stay on cart screen
+        setState(() {
+          _selectedIndex = 4;
+        });
+        break;
     }
     setState(() {
       _selectedIndex = index;
@@ -111,62 +117,21 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
+    final cartService = Provider.of<cart_service.CartService>(context);
 
-    return Consumer<cart_service.CartService>(
-      builder: (context, cartService, child) {
-        return Scaffold(
-          backgroundColor: isDarkMode ? const Color(0xFF111122) : Colors.white,
-          body: _buildBody(isDarkMode, cartService),
-          bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDarkMode) : null,
-        );
-      },
-    );
-  }
-
-  Widget _buildBody(bool isDarkMode, cart_service.CartService cartService) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: _isSmallScreen
-              ? isDarkMode
-                  ? [const Color(0xFF111122), const Color(0xFF111122)]
-                  : [Colors.white, Colors.white]
-              : isDarkMode
-                  ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                  : [Colors.white, Colors.white],
-        ),
-      ),
-      child: Row(
+    return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
+      body: Row(
         children: [
-          // Side bar for larger screens
           if (!_isSmallScreen) _buildSidebar(isDarkMode),
-
-          // Main content area
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: _isSmallScreen
-                      ? isDarkMode
-                          ? [
-                              const Color(0xFF111122),
-                              const Color(0xFF111122),
-                            ]
-                          : [Colors.white, Colors.white]
-                      : isDarkMode
-                          ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                          : [Colors.white, Colors.white],
+            child: Column(
+              children: [
+                Expanded(
+                  child: _buildMainContent(isDarkMode, cartService),
                 ),
-              ),
-              child: Column(
-                children: [
-                  Expanded(child: _buildMainContent(isDarkMode, cartService)),
-                ],
-              ),
+                if (_isSmallScreen) _buildBottomBar(isDarkMode),
+              ],
             ),
           ),
         ],
@@ -539,11 +504,19 @@ class _CartScreenState extends State<CartScreen> {
                             : Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Center(
-                        child: Icon(
-                          Icons.image,
-                          size: 40,
-                          color: isDarkMode ? Colors.white30 : Colors.black26,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          item.image,
+                          height: 60,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.image,
+                              size: 40,
+                              color: isDarkMode ? Colors.white30 : Colors.black26,
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -566,35 +539,20 @@ class _CartScreenState extends State<CartScreen> {
                             item.seller,
                             style: GoogleFonts.poppins(
                               fontSize: 14,
-                              color:
-                                  isDarkMode ? Colors.white70 : Colors.black54,
+                              color: isDarkMode ? Colors.white70 : Colors.black54,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Total: \$${item.totalPrice.toStringAsFixed(2)}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF6C5DD3),
-                                    ),
-                                  ),
-                                  Text(
-                                    '\$${item.pricePerKg.toStringAsFixed(2)}/kg',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                '\$${item.pricePerKg.toStringAsFixed(2)}/kg',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6C5DD3),
+                                ),
                               ),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -616,36 +574,14 @@ class _CartScreenState extends State<CartScreen> {
                                       size: 20,
                                     ),
                                   ),
-                                  Container(
-                                    constraints: BoxConstraints(
-                                      maxWidth: 50,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
+                                  Text(
+                                    '${item.quantity}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
                                       color: isDarkMode
-                                          ? Colors.black.withOpacity(
-                                              0.3,
-                                            )
-                                          : Colors.white.withOpacity(
-                                              0.3,
-                                            ),
-                                      borderRadius: BorderRadius.circular(
-                                        8,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '${item.quantity} kg',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: isDarkMode
-                                            ? Colors.white
-                                            : Colors.black87,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
+                                          ? Colors.white
+                                          : Colors.black87,
                                     ),
                                   ),
                                   IconButton(
