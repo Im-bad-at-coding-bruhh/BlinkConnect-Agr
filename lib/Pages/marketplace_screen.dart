@@ -10,6 +10,7 @@ import 'dashboard_screen.dart';
 import 'farmer_profile_screen.dart';
 import 'dart:async';
 import '/Services/cart_service.dart' as cart_service;
+import 'cart_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -299,6 +300,20 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         SnackBar(
           content: Text('${product['name']} (${quantity}kg) added to cart'),
           duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'View Cart',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CartScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       );
     } catch (e) {

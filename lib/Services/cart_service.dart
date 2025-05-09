@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 class CartItem {
   final String name;
@@ -45,28 +45,28 @@ class CartService extends ChangeNotifier {
   final Map<String, CartItem> _items = {};
   bool _isLoading = false;
 
-  List<CartItem> get items => _items.values.toList();
   bool get isLoading => _isLoading;
-  double get totalPrice => _items.values.fold(0.0, (sum, item) => sum + item.totalPrice);
+  List<CartItem> get items => _items.values.toList();
+  double get totalPrice => _items.values.fold(0, (sum, item) => sum + item.totalPrice);
   int get itemCount => _items.length;
 
-  void addItem(CartItem newItem) {
+  void addItem(CartItem item) {
     try {
       _isLoading = true;
       notifyListeners();
 
-      if (_items.containsKey(newItem.name)) {
-        // Update quantity of existing item
-        final existingItem = _items[newItem.name]!;
-        _items[newItem.name] = existingItem.copyWith(
-          quantity: existingItem.quantity + newItem.quantity,
+      if (_items.containsKey(item.name)) {
+        // Update quantity if item exists
+        final existingItem = _items[item.name]!;
+        _items[item.name] = existingItem.copyWith(
+          quantity: existingItem.quantity + item.quantity,
         );
       } else {
         // Add new item
-        _items[newItem.name] = newItem;
+        _items[item.name] = item;
       }
 
-      debugPrint('Item added to cart: ${newItem.name}');
+      debugPrint('Added item to cart: ${item.name}');
     } catch (e) {
       debugPrint('Error adding item to cart: $e');
       rethrow;
@@ -76,13 +76,13 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  void removeItem(String itemName) {
+  void removeItem(String name) {
     try {
       _isLoading = true;
       notifyListeners();
 
-      _items.remove(itemName);
-      debugPrint('Item removed from cart: $itemName');
+      _items.remove(name);
+      debugPrint('Removed item from cart: $name');
     } catch (e) {
       debugPrint('Error removing item from cart: $e');
       rethrow;
@@ -92,18 +92,19 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  void updateQuantity(String itemName, int newQuantity) {
+  void updateQuantity(String name, int quantity) {
     try {
-      if (newQuantity < 1) {
-        throw ArgumentError('Quantity must be at least 1');
-      }
-
       _isLoading = true;
       notifyListeners();
 
-      if (_items.containsKey(itemName)) {
-        _items[itemName] = _items[itemName]!.copyWith(quantity: newQuantity);
-        debugPrint('Updated quantity for $itemName: $newQuantity');
+      if (_items.containsKey(name)) {
+        if (quantity <= 0) {
+          removeItem(name);
+        } else {
+          final item = _items[name]!;
+          _items[name] = item.copyWith(quantity: quantity);
+        }
+        debugPrint('Updated quantity for $name: $quantity');
       }
     } catch (e) {
       debugPrint('Error updating quantity: $e');
