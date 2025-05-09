@@ -279,35 +279,35 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     });
   }
 
-  void _addToCart(Map<String, dynamic> product, {int quantity = 1}) {
+  void _addToCart(Product product) {
     try {
-      final cartService = Provider.of<cart_service.CartService>(
-        context,
-        listen: false,
-      );
-
-      if (quantity <= 0) {
+      debugPrint('Adding product to cart: ${product.name}');
+      
+      // Validate quantity and price
+      if (product.quantity <= 0) {
         throw ArgumentError('Quantity must be greater than 0');
       }
-
-      if (product['price'] <= 0) {
+      if (product.price <= 0) {
         throw ArgumentError('Price must be greater than 0');
       }
 
-      final cartItem = cart_service.CartItem(
-        name: product['name'],
-        pricePerKg: product['price'].toDouble(),
-        image: product['image'],
-        seller: product['seller'],
-        quantity: quantity,
+      // Create cart item
+      final cartItem = CartItem(
+        name: product.name,
+        pricePerKg: product.price.toDouble(),
+        image: product.image,
+        seller: product.seller,
+        quantity: product.quantity,
       );
 
+      // Add to cart
+      final cartService = Provider.of<CartService>(context, listen: false);
       cartService.addItem(cartItem);
 
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${product['name']} (${quantity}kg) added to cart'),
-          duration: const Duration(seconds: 2),
+          content: Text('${product.name} added to cart'),
           action: SnackBarAction(
             label: 'View Cart',
             onPressed: () {
@@ -324,12 +324,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ),
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error adding to cart: $e');
+      debugPrint('Stack trace: $stackTrace');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to add item to cart: ${e.toString()}'),
-          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -1272,7 +1273,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ElevatedButton(
                 onPressed: () {
                   final quantity = int.tryParse(quantityController.text) ?? 1;
-                  _addToCart(product, quantity: quantity);
+                  _addToCart(Product(
+                    name: product['name'],
+                    price: product['price'],
+                    image: product['image'],
+                    seller: product['seller'],
+                    quantity: quantity,
+                  ));
                   Navigator.pop(context);
                 },
                 child: const Text('Add to Cart'),

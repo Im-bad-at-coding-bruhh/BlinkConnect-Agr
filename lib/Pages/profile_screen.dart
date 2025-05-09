@@ -573,4 +573,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  Widget _buildSettingItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: iconColor ?? (isDarkMode ? Colors.white70 : Colors.black54),
+      ),
+      title: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 16,
+          color: isDarkMode ? Colors.white : Colors.black87,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: isDarkMode ? Colors.white30 : Colors.black26,
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildSettingsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildSettingItem(
+            icon: Icons.shopping_cart_outlined,
+            title: 'Shopping Cart',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CartScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  ),
+                ),
+              );
+            },
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            icon: Icons.settings_outlined,
+            title: 'Settings',
+            onTap: () {
+              // TODO: Navigate to settings screen
+            },
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            icon: Icons.help_outline,
+            title: 'Help & Support',
+            onTap: () {
+              // TODO: Navigate to help & support screen
+            },
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            icon: Icons.logout,
+            title: 'Logout',
+            iconColor: Colors.red,
+            onTap: () {
+              // TODO: Implement logout
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      color: Colors.grey[300],
+    );
+  }
 }
