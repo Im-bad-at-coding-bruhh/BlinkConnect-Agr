@@ -9,7 +9,7 @@ import 'profile_screen.dart';
 import '/Services/cart_service.dart' as cart_service;
 import 'dashboard_screen.dart';
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   final bool isFarmer;
   final bool isVerified;
 
@@ -20,6 +20,11 @@ class CartScreen extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
@@ -28,37 +33,34 @@ class CartScreen extends StatelessWidget {
       builder: (context, cartService, child) {
         return Scaffold(
           backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
-          body: _buildMainContent(context, isDarkMode, cartService),
+          body: _buildMainContent(isDarkMode, cartService),
         );
       },
     );
   }
 
-  Widget _buildMainContent(
-    BuildContext context,
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
+  Widget _buildMainContent(bool isDarkMode, cart_service.CartService cartService) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCartHeader(context, isDarkMode, cartService),
+          // Cart Header
+          _buildCartHeader(isDarkMode),
           const SizedBox(height: 24),
-          _buildCartItems(context, isDarkMode, cartService),
+
+          // Cart Items
+          _buildCartItems(isDarkMode, cartService),
           const SizedBox(height: 24),
-          _buildCheckoutSection(context, isDarkMode, cartService),
+
+          // Checkout Section
+          _buildCheckoutSection(isDarkMode, cartService),
         ],
       ),
     );
   }
 
-  Widget _buildCartHeader(
-    BuildContext context,
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
+  Widget _buildCartHeader(bool isDarkMode) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -80,10 +82,15 @@ class CartScreen extends StatelessWidget {
             ),
           ],
         ),
-        if (cartService.items.isNotEmpty)
+        if (Provider.of<cart_service.CartService>(context).items.isNotEmpty)
           TextButton.icon(
-            onPressed: () => cartService.clearCart(),
-            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
+            onPressed: () {
+              Provider.of<cart_service.CartService>(
+                context,
+                listen: false,
+              ).clearCart();
+            },
+            icon: Icon(Icons.delete_sweep_outlined, color: Colors.red),
             label: Text(
               'Clear Cart',
               style: GoogleFonts.poppins(
@@ -96,11 +103,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItems(
-    BuildContext context,
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
+  Widget _buildCartItems(bool isDarkMode, cart_service.CartService cartService) {
     if (cartService.items.isEmpty) {
       return Center(
         child: Column(
@@ -235,7 +238,7 @@ class CartScreen extends StatelessWidget {
                                     onPressed: () {
                                       if (item.quantity > 1) {
                                         cartService.updateQuantity(
-                                          item.id,
+                                          item.name,
                                           item.quantity - 1,
                                         );
                                       }
@@ -261,7 +264,7 @@ class CartScreen extends StatelessWidget {
                                   IconButton(
                                     onPressed: () {
                                       cartService.updateQuantity(
-                                        item.id,
+                                        item.name,
                                         item.quantity + 1,
                                       );
                                     },
@@ -286,10 +289,12 @@ class CartScreen extends StatelessWidget {
                   top: 0,
                   right: 0,
                   child: IconButton(
-                    onPressed: () => cartService.removeItem(item.id),
-                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                    onPressed: () {
+                      cartService.removeItem(item.name);
+                    },
+                    icon: Icon(Icons.close, color: Colors.red, size: 20),
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    constraints: BoxConstraints(),
                   ),
                 ),
               ],
@@ -300,11 +305,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCheckoutSection(
-    BuildContext context,
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
+  Widget _buildCheckoutSection(bool isDarkMode, cart_service.CartService cartService) {
     if (cartService.items.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -333,7 +334,7 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                '\$${cartService.subtotal.toStringAsFixed(2)}',
+                '\$${cartService.totalPrice.toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -354,7 +355,7 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                '\$${cartService.shipping.toStringAsFixed(2)}',
+                '\$5.00',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -378,7 +379,7 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                '\$${cartService.total.toStringAsFixed(2)}',
+                '\$${(cartService.totalPrice + 5.00).toStringAsFixed(2)}',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -392,6 +393,7 @@ class CartScreen extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
+                // Handle checkout
                 cartService.clearCart();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Order placed successfully!')),
