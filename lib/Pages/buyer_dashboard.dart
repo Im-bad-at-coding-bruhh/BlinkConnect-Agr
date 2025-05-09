@@ -7,7 +7,6 @@ import 'profile_screen.dart';
 import 'theme_provider.dart';
 import 'dart:async';
 import '/Services/cart_service.dart' as cart_service;
-import 'cart_screen.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -85,18 +84,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
               isFarmer: widget.isFarmer,
               isVerified: widget.isVerified,
               initialIndex: 3,
-            ),
-          ),
-        );
-        break;
-      case 4: // Cart
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CartScreen(
-              isFarmer: widget.isFarmer,
-              isVerified: widget.isVerified,
-              initialIndex: 4,
             ),
           ),
         );
@@ -220,7 +207,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
           _buildNavItem(2, Icons.people_rounded, 'Community'),
           _buildNavItem(3, Icons.person_rounded, 'Profile'),
-          _buildNavItem(4, Icons.shopping_cart_rounded, 'Cart'),
         ],
       ),
     );
@@ -276,7 +262,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   Widget _buildBottomBar(bool isDarkMode) {
-    final cartService = Provider.of<cart_service.CartService>(context);
     return Container(
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.grey[900] : Colors.white,
@@ -295,92 +280,77 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               IconButton(
-                onPressed: () => _onItemTapped(0),
-                icon: Icon(
-                  Icons.dashboard_outlined,
-                  color: _selectedIndex == 0
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              IconButton(
-                onPressed: () => _onItemTapped(1),
-                icon: Icon(
-                  Icons.shopping_basket_outlined,
-                  color: _selectedIndex == 1
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              IconButton(
-                onPressed: () => _onItemTapped(2),
-                icon: Icon(
-                  Icons.people_outline,
-                  color: _selectedIndex == 2
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              IconButton(
-                onPressed: () => _onItemTapped(3),
-                icon: Icon(
-                  Icons.person_outline,
-                  color: _selectedIndex == 3
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              Stack(
-                children: [
-                  IconButton(
-                    onPressed: () => _onItemTapped(4),
-                    icon: Icon(
-                      Icons.shopping_cart_outlined,
-                      color: _selectedIndex == 4
-                          ? const Color(0xFF6C5DD3)
-                          : isDarkMode
-                              ? Colors.white54
-                              : Colors.grey[400],
-                      size: 24,
-                    ),
-                  ),
-                  if (cartService.items.isNotEmpty)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${cartService.items.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BuyerDashboardScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                        initialIndex: 0,
                       ),
                     ),
-                ],
+                  );
+                },
+                icon: Icon(
+                  Icons.dashboard_outlined,
+                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  size: 24,
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MarketplaceScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  Icons.shopping_basket_outlined,
+                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  size: 24,
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CommunityScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  Icons.people_outline,
+                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  size: 24,
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfileScreen(
+                        isFarmer: widget.isFarmer,
+                        isVerified: widget.isVerified,
+                      ),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  Icons.person_outline,
+                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  size: 24,
+                ),
               ),
             ],
           ),

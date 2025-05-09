@@ -524,11 +524,19 @@ class _CartScreenState extends State<CartScreen> {
                             : Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
                           item.image,
                           height: 60,
                           fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 40,
+                              color: isDarkMode ? Colors.white30 : Colors.black26,
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -551,8 +559,7 @@ class _CartScreenState extends State<CartScreen> {
                             item.seller,
                             style: GoogleFonts.poppins(
                               fontSize: 14,
-                              color:
-                                  isDarkMode ? Colors.white70 : Colors.black54,
+                              color: isDarkMode ? Colors.white70 : Colors.black54,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -602,7 +609,7 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                   ),
                                   Container(
-                                    constraints: BoxConstraints(
+                                    constraints: const BoxConstraints(
                                       maxWidth: 50,
                                     ),
                                     padding: const EdgeInsets.symmetric(
@@ -611,15 +618,9 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isDarkMode
-                                          ? Colors.black.withOpacity(
-                                              0.3,
-                                            )
-                                          : Colors.white.withOpacity(
-                                              0.3,
-                                            ),
-                                      borderRadius: BorderRadius.circular(
-                                        8,
-                                      ),
+                                          ? Colors.black.withOpacity(0.3)
+                                          : Colors.white.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
                                       '${item.quantity} kg',
@@ -664,9 +665,9 @@ class _CartScreenState extends State<CartScreen> {
                     onPressed: () {
                       cartService.removeItem(item.name);
                     },
-                    icon: Icon(Icons.close, color: Colors.red, size: 20),
+                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
                     padding: EdgeInsets.zero,
-                    constraints: BoxConstraints(),
+                    constraints: const BoxConstraints(),
                   ),
                 ),
               ],
