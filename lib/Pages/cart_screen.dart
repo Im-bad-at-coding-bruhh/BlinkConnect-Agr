@@ -525,10 +525,10 @@ class _CartScreenState extends State<CartScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
-                        child: Icon(
-                          Icons.image,
-                          size: 40,
-                          color: isDarkMode ? Colors.white30 : Colors.black26,
+                        child: Image.asset(
+                          item.image,
+                          height: 60,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
