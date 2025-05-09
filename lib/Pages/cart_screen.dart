@@ -111,12 +111,15 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final cartService = Provider.of<cart_service.CartService>(context);
 
-    return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF111122) : Colors.white,
-      body: _buildBody(isDarkMode, cartService),
-      bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDarkMode) : null,
+    return Consumer<cart_service.CartService>(
+      builder: (context, cartService, child) {
+        return Scaffold(
+          backgroundColor: isDarkMode ? const Color(0xFF111122) : Colors.white,
+          body: _buildBody(isDarkMode, cartService),
+          bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDarkMode) : null,
+        );
+      },
     );
   }
 
@@ -223,7 +226,7 @@ class _CartScreenState extends State<CartScreen> {
           _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
           _buildNavItem(2, Icons.people_rounded, 'Community'),
           _buildNavItem(3, Icons.person_rounded, 'Profile'),
-          const Spacer(),
+          _buildNavItem(4, Icons.shopping_cart_rounded, 'Cart'),
         ],
       ),
     );
@@ -279,6 +282,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildBottomBar(bool isDarkMode) {
+    final cartService = Provider.of<cart_service.CartService>(context);
     return Container(
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.grey[900] : Colors.white,
@@ -297,81 +301,92 @@ class _CartScreenState extends State<CartScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               IconButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => widget.isFarmer
-                          ? DashboardScreen(
-                              isFarmer: widget.isFarmer,
-                              isVerified: widget.isVerified,
-                            )
-                          : BuyerDashboardScreen(
-                              isFarmer: widget.isFarmer,
-                              isVerified: widget.isVerified,
-                            ),
-                    ),
-                  );
-                },
+                onPressed: () => _onItemTapped(0),
                 icon: Icon(
                   Icons.dashboard_outlined,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  color: _selectedIndex == 0
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
               ),
               IconButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MarketplaceScreen(
-                        isFarmer: widget.isFarmer,
-                        isVerified: widget.isVerified,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _onItemTapped(1),
                 icon: Icon(
                   Icons.shopping_basket_outlined,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  color: _selectedIndex == 1
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
               ),
               IconButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CommunityScreen(
-                        isFarmer: widget.isFarmer,
-                        isVerified: widget.isVerified,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _onItemTapped(2),
                 icon: Icon(
-                  Icons.people_outlined,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  Icons.people_outline,
+                  color: _selectedIndex == 2
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
               ),
               IconButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfileScreen(
-                        isFarmer: widget.isFarmer,
-                        isVerified: widget.isVerified,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _onItemTapped(3),
                 icon: Icon(
                   Icons.person_outline,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  color: _selectedIndex == 3
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
+              ),
+              Stack(
+                children: [
+                  IconButton(
+                    onPressed: () => _onItemTapped(4),
+                    icon: Icon(
+                      Icons.shopping_cart_outlined,
+                      color: _selectedIndex == 4
+                          ? const Color(0xFF6C5DD3)
+                          : isDarkMode
+                              ? Colors.white54
+                              : Colors.grey[400],
+                      size: 24,
+                    ),
+                  ),
+                  if (cartService.items.isNotEmpty)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${cartService.items.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
@@ -524,19 +539,11 @@ class _CartScreenState extends State<CartScreen> {
                             : Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          item.image,
-                          height: 60,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.image_not_supported_outlined,
-                              size: 40,
-                              color: isDarkMode ? Colors.white30 : Colors.black26,
-                            );
-                          },
+                      child: Center(
+                        child: Icon(
+                          Icons.image,
+                          size: 40,
+                          color: isDarkMode ? Colors.white30 : Colors.black26,
                         ),
                       ),
                     ),
@@ -559,7 +566,8 @@ class _CartScreenState extends State<CartScreen> {
                             item.seller,
                             style: GoogleFonts.poppins(
                               fontSize: 14,
-                              color: isDarkMode ? Colors.white70 : Colors.black54,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -609,7 +617,7 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                   ),
                                   Container(
-                                    constraints: const BoxConstraints(
+                                    constraints: BoxConstraints(
                                       maxWidth: 50,
                                     ),
                                     padding: const EdgeInsets.symmetric(
@@ -618,9 +626,15 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isDarkMode
-                                          ? Colors.black.withOpacity(0.3)
-                                          : Colors.white.withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(8),
+                                          ? Colors.black.withOpacity(
+                                              0.3,
+                                            )
+                                          : Colors.white.withOpacity(
+                                              0.3,
+                                            ),
+                                      borderRadius: BorderRadius.circular(
+                                        8,
+                                      ),
                                     ),
                                     child: Text(
                                       '${item.quantity} kg',
@@ -665,9 +679,9 @@ class _CartScreenState extends State<CartScreen> {
                     onPressed: () {
                       cartService.removeItem(item.name);
                     },
-                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                    icon: Icon(Icons.close, color: Colors.red, size: 20),
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    constraints: BoxConstraints(),
                   ),
                 ),
               ],
