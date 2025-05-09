@@ -117,25 +117,28 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final cartService = Provider.of<cart_service.CartService>(context);
 
-    return Scaffold(
-      backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
-      body: Row(
-        children: [
-          if (!_isSmallScreen) _buildSidebar(isDarkMode),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: _buildMainContent(isDarkMode, cartService),
+    return Consumer<cart_service.CartService>(
+      builder: (context, cartService, child) {
+        return Scaffold(
+          backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
+          body: Row(
+            children: [
+              if (!_isSmallScreen) _buildSidebar(isDarkMode),
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: _buildMainContent(isDarkMode, cartService),
+                    ),
+                    if (_isSmallScreen) _buildBottomBar(isDarkMode),
+                  ],
                 ),
-                if (_isSmallScreen) _buildBottomBar(isDarkMode),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -473,8 +476,12 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
 
-    return Column(
-      children: cartService.items.map((item) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cartService.items.length,
+      itemBuilder: (context, index) {
+        final item = cartService.items[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
@@ -624,7 +631,7 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ),
         );
-      }).toList(),
+      },
     );
   }
 
