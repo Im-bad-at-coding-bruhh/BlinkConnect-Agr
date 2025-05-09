@@ -7,7 +7,6 @@ import 'profile_screen.dart';
 import 'theme_provider.dart';
 import 'dart:async';
 import '/Services/cart_service.dart' as cart_service;
-import 'cart_screen.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -85,18 +84,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
               isFarmer: widget.isFarmer,
               isVerified: widget.isVerified,
               initialIndex: 3,
-            ),
-          ),
-        );
-        break;
-      case 4: // Cart
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CartScreen(
-              isFarmer: widget.isFarmer,
-              isVerified: widget.isVerified,
-              initialIndex: 4,
             ),
           ),
         );
@@ -220,7 +207,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
           _buildNavItem(2, Icons.people_rounded, 'Community'),
           _buildNavItem(3, Icons.person_rounded, 'Profile'),
-          _buildNavItem(4, Icons.shopping_cart_rounded, 'Cart'),
         ],
       ),
     );
@@ -320,7 +306,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       builder: (context) => MarketplaceScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
-                        initialIndex: 1,
                       ),
                     ),
                   );
@@ -339,7 +324,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       builder: (context) => CommunityScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
-                        initialIndex: 2,
                       ),
                     ),
                   );
@@ -358,7 +342,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       builder: (context) => ProfileScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
-                        initialIndex: 3,
                       ),
                     ),
                   );
@@ -367,54 +350,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Icons.person_outline,
                   color: isDarkMode ? Colors.white54 : Colors.grey[400],
                   size: 24,
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CartScreen(
-                        isFarmer: widget.isFarmer,
-                        isVerified: widget.isVerified,
-                        initialIndex: 4,
-                      ),
-                    ),
-                  );
-                },
-                icon: Stack(
-                  children: [
-                    Icon(
-                      Icons.shopping_cart_outlined,
-                      color: isDarkMode ? Colors.white54 : Colors.grey[400],
-                      size: 24,
-                    ),
-                    if (Provider.of<cart_service.CartService>(context).items.isNotEmpty)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6C5DD3),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            '${Provider.of<cart_service.CartService>(context).items.length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
                 ),
               ),
             ],
@@ -849,21 +784,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Close'),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  if (quantityController.text.isEmpty) {
-                    quantityController.text = '1';
-                  }
-                  _showNegotiationDialog(
-                    product,
-                    double.parse(quantityController.text),
-                    originalTotalPrice,
-                  );
-                },
-                child: const Text('Negotiate'),
-              ),
-              const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
                   final quantity = int.tryParse(quantityController.text) ?? 1;
@@ -902,193 +822,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             ],
           );
         },
-      ),
-    );
-  }
-
-  void _showNegotiationDialog(
-    Map<String, dynamic> product,
-    double quantity,
-    double originalTotalPrice,
-  ) {
-    final TextEditingController bidPriceController = TextEditingController();
-    final ValueNotifier<double> pricePerKgNotifier = ValueNotifier<double>(0.0);
-    final double minBid = originalTotalPrice * 0.5;
-    final double maxBid = originalTotalPrice;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Make Your Offer'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Product: ${product['name']}'),
-            Text('Quantity: $quantity kg'),
-            Text(
-              'Original Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
-            ),
-            Text(
-              'Valid bid range: \$${minBid.toStringAsFixed(2)} - \$${maxBid.toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Enter your bid price for the total quantity:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: bidPriceController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                prefixText: '\$',
-                hintText: 'Enter your bid price',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  final bidAmount = double.tryParse(value);
-                  if (bidAmount != null) {
-                    pricePerKgNotifier.value = bidAmount / quantity;
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-            ValueListenableBuilder<double>(
-              valueListenable: pricePerKgNotifier,
-              builder: (context, pricePerKg, _) {
-                return Center(
-                  child: Text(
-                    'Price per kg: \$${pricePerKg.toStringAsFixed(2)}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (bidPriceController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter your bid price'),
-                  ),
-                );
-                return;
-              }
-
-              final bidAmount = double.tryParse(bidPriceController.text);
-              if (bidAmount == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a valid number'),
-                  ),
-                );
-                return;
-              }
-
-              if (bidAmount < minBid) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Bid must be at least \$${minBid.toStringAsFixed(2)}',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              if (bidAmount > maxBid) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Bid must not exceed \$${maxBid.toStringAsFixed(2)}',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              // Show confirmation dialog
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Confirm Bid'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Product: ${product['name']}'),
-                      Text('Quantity: $quantity kg'),
-                      Text(
-                        'Your Bid: \$${bidAmount.toStringAsFixed(2)}',
-                      ),
-                      Text(
-                        'Price per kg: \$${(bidAmount / quantity).toStringAsFixed(2)}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'This bid will be sent to the farmer for review. You will be notified when they respond.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        _submitBid(
-                          product: product,
-                          quantity: quantity,
-                          bidAmount: bidAmount,
-                          originalPrice: originalTotalPrice,
-                        );
-                        Navigator.pop(context); // Close confirmation dialog
-                        Navigator.pop(context); // Close negotiation dialog
-                        Navigator.pop(context); // Close product details dialog
-                      },
-                      child: const Text('Send Bid'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: const Text('Submit Bid'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _submitBid({
-    required Map<String, dynamic> product,
-    required double quantity,
-    required double bidAmount,
-    required double originalPrice,
-  }) {
-    // TODO: Implement actual bid submission to backend
-    // For now, we'll just show a success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Bid of \$${bidAmount.toStringAsFixed(2)} sent successfully!',
-        ),
-        duration: const Duration(seconds: 2),
       ),
     );
   }
