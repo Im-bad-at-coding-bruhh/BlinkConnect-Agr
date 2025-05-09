@@ -763,7 +763,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Seller: ${product['seller']}'),
-              Text('Price: \$${product['price']}'),
+              Text('Price: \$${product['price']}/kg'),
               Text('Rating: ${product['rating']}'),
               const SizedBox(height: 8),
               const Text('Product Description:'),
@@ -783,8 +783,8 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              _addToCart(product);
               Navigator.pop(context);
+              _addToCart(product);
             },
             child: const Text('Add to Cart'),
           ),
