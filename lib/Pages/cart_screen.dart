@@ -12,13 +12,11 @@ import 'dashboard_screen.dart';
 class CartScreen extends StatefulWidget {
   final bool isFarmer;
   final bool isVerified;
-  final int initialIndex;
 
   const CartScreen({
     Key? key,
     required this.isFarmer,
     required this.isVerified,
-    this.initialIndex = 3, // Default to 3 for Cart
   }) : super(key: key);
 
   @override
@@ -26,93 +24,6 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  late int _selectedIndex;
-  late Size _screenSize;
-  bool _isSmallScreen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIndex = widget.initialIndex;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _screenSize = MediaQuery.of(context).size;
-    _isSmallScreen = _screenSize.width < 600;
-  }
-
-  void _onItemTapped(int index) {
-    if (index == _selectedIndex) return;
-
-    switch (index) {
-      case 0: // Dashboard
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => widget.isFarmer
-                ? DashboardScreen(
-                    isFarmer: widget.isFarmer,
-                    isVerified: widget.isVerified,
-                    initialIndex: 0,
-                  )
-                : BuyerDashboardScreen(
-                    isFarmer: widget.isFarmer,
-                    isVerified: widget.isVerified,
-                    initialIndex: 0,
-                  ),
-          ),
-        );
-        break;
-      case 1: // Marketplace
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MarketplaceScreen(
-              isFarmer: widget.isFarmer,
-              isVerified: widget.isVerified,
-              initialIndex: 1,
-            ),
-          ),
-        );
-        break;
-      case 2: // Community
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CommunityScreen(
-              isFarmer: widget.isFarmer,
-              isVerified: widget.isVerified,
-              initialIndex: 2,
-            ),
-          ),
-        );
-        break;
-      case 3: // Profile
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProfileScreen(
-              isFarmer: widget.isFarmer,
-              isVerified: widget.isVerified,
-              initialIndex: 3,
-            ),
-          ),
-        );
-        break;
-      case 4: // Cart
-        // Stay on cart screen
-        setState(() {
-          _selectedIndex = 4;
-        });
-        break;
-    }
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -122,251 +33,13 @@ class _CartScreenState extends State<CartScreen> {
       builder: (context, cartService, child) {
         return Scaffold(
           backgroundColor: isDarkMode ? Colors.black : Colors.grey[100],
-          body: Row(
-            children: [
-              if (!_isSmallScreen) _buildSidebar(isDarkMode),
-              Expanded(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: _buildMainContent(isDarkMode, cartService),
-                    ),
-                    if (_isSmallScreen) _buildBottomBar(isDarkMode),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          body: _buildMainContent(isDarkMode, cartService),
         );
       },
     );
   }
 
-  Widget _buildSidebar(bool isDarkMode) {
-    return Container(
-      width: 240,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0A0A18) : const Color(0xFFCCE0CC),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          // Logo
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFF6C5DD3),
-                  ),
-                  child: const Icon(
-                    Icons.eco_outlined,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'BlinkConnect.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 30),
-          // Navigation items
-          _buildNavItem(0, Icons.dashboard_outlined, 'Dashboard'),
-          _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
-          _buildNavItem(2, Icons.people_rounded, 'Community'),
-          _buildNavItem(3, Icons.person_rounded, 'Profile'),
-          _buildNavItem(4, Icons.shopping_cart_rounded, 'Cart'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String title) {
-    final bool isSelected = _selectedIndex == index;
-    final bool isDarkMode =
-        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
-        onTap: () => _onItemTapped(index),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isSelected
-                ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                : Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isSelected
-                    ? const Color(0xFF6C5DD3)
-                    : isDarkMode
-                        ? Colors.white70
-                        : Colors.black87,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white70
-                          : Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar(bool isDarkMode) {
-    final cartService = Provider.of<cart_service.CartService>(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(
-                onPressed: () => _onItemTapped(0),
-                icon: Icon(
-                  Icons.dashboard_outlined,
-                  color: _selectedIndex == 0
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              IconButton(
-                onPressed: () => _onItemTapped(1),
-                icon: Icon(
-                  Icons.shopping_basket_outlined,
-                  color: _selectedIndex == 1
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              IconButton(
-                onPressed: () => _onItemTapped(2),
-                icon: Icon(
-                  Icons.people_outline,
-                  color: _selectedIndex == 2
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              IconButton(
-                onPressed: () => _onItemTapped(3),
-                icon: Icon(
-                  Icons.person_outline,
-                  color: _selectedIndex == 3
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white54
-                          : Colors.grey[400],
-                  size: 24,
-                ),
-              ),
-              Stack(
-                children: [
-                  IconButton(
-                    onPressed: () => _onItemTapped(4),
-                    icon: Icon(
-                      Icons.shopping_cart_outlined,
-                      color: _selectedIndex == 4
-                          ? const Color(0xFF6C5DD3)
-                          : isDarkMode
-                              ? Colors.white54
-                              : Colors.grey[400],
-                      size: 24,
-                    ),
-                  ),
-                  if (cartService.items.isNotEmpty)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${cartService.items.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainContent(
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
+  Widget _buildMainContent(bool isDarkMode, cart_service.CartService cartService) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -430,10 +103,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCartItems(
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
+  Widget _buildCartItems(bool isDarkMode, cart_service.CartService cartService) {
     if (cartService.items.isEmpty) {
       return Center(
         child: Column(
@@ -635,10 +305,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCheckoutSection(
-    bool isDarkMode,
-    cart_service.CartService cartService,
-  ) {
+  Widget _buildCheckoutSection(bool isDarkMode, cart_service.CartService cartService) {
     if (cartService.items.isEmpty) return const SizedBox.shrink();
 
     return Container(
