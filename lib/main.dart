@@ -1,78 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:device_preview/device_preview.dart';
 import 'package:provider/provider.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
-// import 'firebase_options.dart';
 import 'Pages/theme_provider.dart';
 import 'Services/cart_service.dart';
 import 'Pages/product_provider.dart';
 import 'Pages/splash_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // try {
-  //   // Initialize Firebase
-  //   await Firebase.initializeApp(
-  //     options: DefaultFirebaseOptions.currentPlatform,
-  //   );
-
-  //   // Connect to emulators only in debug mode
-  //   assert(() {
-  //     FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
-  //     FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-  //     FirebaseStorage.instance.useStorageEmulator('localhost', 9199);
-  //     return true;
-  //   }());
-
-  runApp(
-    DevicePreview(
-      enabled: true,
-      builder: (context) => MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (context) => ThemeProvider()),
-          ChangeNotifierProvider(create: (context) => CartService()),
-          ChangeNotifierProvider(create: (context) => ProductProvider()),
-        ],
-        child: const MyApp(),
-      ),
-    ),
-  );
-  // } catch (e) {
-  //   print('Failed to initialize Firebase: $e');
-  //   // Show error UI or handle the error appropriately
-  //   runApp(
-  //     MaterialApp(
-  //       home: Scaffold(
-  //         body: Center(
-  //           child: Text('Failed to initialize app: $e'),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
+void main() {
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        return MaterialApp(
-          locale: DevicePreview.locale(context),
-          builder: DevicePreview.appBuilder,
-          theme: themeProvider.isDarkMode
-              ? themeProvider.darkTheme
-              : ThemeData.light(),
-          debugShowCheckedModeBanner: false,
-          home: const SplashScreen(), // Using the existing SplashScreen
-        );
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => CartService()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'BlinkConnect',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF594FD1),
+                brightness: Brightness.light,
+              ),
+              useMaterial3: true,
+            ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF594FD1),
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+            ),
+            themeMode:
+                themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: const SplashScreen(),
+          );
+        },
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'community_screen.dart';
 import 'dashboard_screen.dart';
 import 'theme_provider.dart';
 import 'product_provider.dart';
+import '../Services/cart_service.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -37,7 +38,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
     super.initState();
     _selectedIndex = widget.initialIndex;
     _tabController = TabController(
-      length: 4,
+      length: 5,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
@@ -146,6 +147,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                         _buildProductsTab(isDarkMode),
                         _buildStatisticsTab(isDarkMode),
                         _buildSalesReportTab(isDarkMode),
+                        _buildCartTab(isDarkMode),
                       ],
                     ),
                   ),
@@ -290,6 +292,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Products'),
           Tab(icon: Icon(Icons.analytics_outlined), text: 'Statistics'),
           Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Sales Report'),
+          Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'Cart'),
         ],
       ),
     );
@@ -802,6 +805,318 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
             '\$520',
             'Completed',
             Colors.green,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCartTab(bool isDarkMode) {
+    final cartService = Provider.of<CartService>(context);
+    final items = cartService.items;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Cart Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Shopping Cart',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+              if (items.isNotEmpty)
+                TextButton.icon(
+                  onPressed: () {
+                    cartService.clearCart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Cart cleared successfully'),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  label: Text(
+                    'Clear Cart',
+                    style: GoogleFonts.poppins(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          if (items.isEmpty)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 64,
+                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your cart is empty',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Column(
+              children: [
+                // Cart Items
+                ...items.map((item) => _buildCartItem(isDarkMode, item)),
+                const SizedBox(height: 24),
+
+                // Cart Summary
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? Colors.black.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDarkMode
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black.withOpacity(0.05),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total Items:',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          Text(
+                            '${cartService.itemCount}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total Amount:',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            '\$${cartService.totalPrice.toStringAsFixed(2)}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6C5DD3),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // TODO: Implement checkout functionality
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text('Checkout functionality coming soon!'),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6C5DD3),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Proceed to Checkout',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCartItem(bool isDarkMode, CartItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Product Image
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.white.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Image.asset(
+              item.image,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                debugPrint('Error loading image: $error');
+                return Icon(
+                  Icons.image_not_supported_outlined,
+                  color: isDarkMode ? Colors.white38 : Colors.black38,
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Product Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Seller: ${item.seller}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${item.pricePerKg.toStringAsFixed(2)}/kg',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF6C5DD3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Quantity Controls
+          Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      if (item.quantity > 1) {
+                        Provider.of<CartService>(context, listen: false)
+                            .updateQuantity(item.name, item.quantity - 1);
+                      }
+                    },
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  Text(
+                    '${item.quantity}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Provider.of<CartService>(context, listen: false)
+                          .updateQuantity(item.name, item.quantity + 1);
+                    },
+                    icon: Icon(
+                      Icons.add_circle_outline,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '\$${item.totalPrice.toStringAsFixed(2)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF6C5DD3),
+                ),
+              ),
+            ],
+          ),
+          // Remove Button
+          IconButton(
+            onPressed: () {
+              Provider.of<CartService>(context, listen: false)
+                  .removeItem(item.name);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Item removed from cart'),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.red,
+            ),
           ),
         ],
       ),

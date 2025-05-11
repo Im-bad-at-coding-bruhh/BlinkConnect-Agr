@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dashboard_screen.dart';
-import 'marketplace_screen.dart';
+import 'buyer_dashboard.dart';
 
 // Custom painter for wave pattern on the left side
 class WavePattern extends CustomPainter {
@@ -122,7 +122,7 @@ class _AuthScreenState extends State<AuthScreen>
                   isFarmer: isFarmer,
                   isVerified: isVerified,
                 )
-              : MarketplaceScreen(
+              : BuyerDashboardScreen(
                   isFarmer: isFarmer,
                   isVerified: isVerified,
                 ),
@@ -151,7 +151,7 @@ class _AuthScreenState extends State<AuthScreen>
                   isFarmer: isFarmer,
                   isVerified: isVerified,
                 )
-              : MarketplaceScreen(
+              : BuyerDashboardScreen(
                   isFarmer: isFarmer,
                   isVerified: isVerified,
                 ),
@@ -689,20 +689,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
     });
   }
 
-  void _completeRegistration() {
-    if (selectedUserType == 'farmer' && selectedDocs.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please select at least 2 documents to verify your farming status',
-            style: GoogleFonts.poppins(),
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
+  void _handleUserTypeSelection(String? selectedUserType) {
     if (selectedUserType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -736,7 +723,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                 isFarmer: isFarmer,
                 isVerified: isVerified,
               )
-            : MarketplaceScreen(
+            : BuyerDashboardScreen(
                 isFarmer: isFarmer,
                 isVerified: isVerified,
               ),
@@ -1145,7 +1132,8 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                     width: double.infinity,
                                     height: 48,
                                     child: ElevatedButton(
-                                      onPressed: _completeRegistration,
+                                      onPressed: () => _handleUserTypeSelection(
+                                          selectedUserType),
                                       style: ElevatedButton.styleFrom(
                                         foregroundColor: Colors.white,
                                         backgroundColor: Color(0xFF594FD1),
