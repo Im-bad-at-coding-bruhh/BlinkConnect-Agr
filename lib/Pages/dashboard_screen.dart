@@ -465,37 +465,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         children: [
           const SizedBox(height: 40),
-          // Logo
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: const Color.fromARGB(255, 0, 0, 0),
-                  ),
-                  child: const Icon(
-                    Icons.eco_outlined,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'BlinkConnect.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 30),
           // Navigation items
           _buildNavItem(0, Icons.dashboard_outlined, 'Dashboard'),
           _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),

@@ -9,106 +9,41 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _logoMoveAnimation;
-  late Animation<double> _textOpacityAnimation;
-  late Animation<double> _logoScaleAnimation;
-  bool _showText = false;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(seconds: 2),
       vsync: this,
     );
 
-    // Logo movement animation with better curve
-    _logoMoveAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeOutBack),
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
       ),
     );
 
-    // Add a subtle scale animation for the logo
-    _logoScaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.3, curve: Curves.elasticOut),
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
 
-    // Text opacity animation with improved timing and smoother emergence
-    _textOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(
-          0.3, // Start earlier to overlap with logo animation
-          0.7,
-          curve: Curves.easeInOutCubic, // Smoother curve
-        ),
-      ),
-    );
+    _controller.forward();
 
-    _controller.addListener(() {
-      if (_controller.value >= 0.3 && !_showText) {
-        // Match the start of text animation
-        setState(() {
-          _showText = true;
-        });
-      }
-    });
-
-    // Setup the transition after the first frame is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _controller.forward();
-      _setupTransition();
-    });
-  }
-
-  void _setupTransition() {
-    // Total display time: animation duration + extra stay time
-    Future.delayed(const Duration(milliseconds: 2200), () {
-      // Reduced stay time
-      // Check if the widget is still mounted before navigating
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const AuthScreen(),
-            transitionsBuilder: (
-              context,
-              animation,
-              secondaryAnimation,
-              child,
-            ) {
-              // Use a combination of fade and slide for a smoother transition
-              const begin = Offset(0.0, 0.2); // More subtle slide
-              const end = Offset.zero;
-              const curve = Curves.easeOutCubic; // Better curve
-
-              var tween = Tween(
-                begin: begin,
-                end: end,
-              ).chain(CurveTween(curve: curve));
-              var offsetAnimation = animation.drive(tween);
-              var fadeAnimation = Tween<double>(
-                begin: 0.0,
-                end: 1.0,
-              ).animate(CurvedAnimation(parent: animation, curve: curve));
-
-              return FadeTransition(
-                opacity: fadeAnimation,
-                child: SlideTransition(position: offsetAnimation, child: child),
-              );
-            },
-            transitionDuration: const Duration(milliseconds: 700),
-          ),
-        );
-      }
+    // Navigate to sign in screen after animation
+    Future.delayed(const Duration(seconds: 3), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SignInSignUpScreen()),
+      );
     });
   }
 
@@ -120,56 +55,35 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: isDarkMode ? const Color(0xFF0A0A18) : const Color(0xFFCCE0CC),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 80,
-              child: AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Transform.scale(
-                        scale: _logoScaleAnimation.value,
-                        child: Transform.translate(
-                          offset: Offset(
-                            _logoMoveAnimation.value > 0.999
-                                ? 0
-                                : -_logoMoveAnimation.value * 60,
-                            0,
-                          ),
-                          child: const LogoWidget(),
-                        ),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      'Welcome',
+                      style: GoogleFonts.poppins(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
                       ),
-                      if (_showText)
-                        Transform.translate(
-                          offset: Offset(
-                            _textOpacityAnimation.value > 0.999
-                                ? 0
-                                : (1 - _textOpacityAnimation.value) *
-                                    20, // Slide in from right
-                            0,
-                          ),
-                          child: Opacity(
-                            opacity: _textOpacityAnimation.value,
-                            child: const Padding(
-                              padding: EdgeInsets.only(left: 12.0),
-                              child: FancyTextWidget(),
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 80),
-          ],
+            );
+          },
         ),
       ),
     );
