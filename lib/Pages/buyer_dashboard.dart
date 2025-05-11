@@ -791,7 +791,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 onPressed: () {
                   final quantity = int.tryParse(quantityController.text) ?? 1;
                   if (quantity > 0) {
-                    final cartService = Provider.of<cart_service.CartService>(
+                    final cartService = Provider.of<CartService>(
                       context,
                       listen: false,
                     );
