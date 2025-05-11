@@ -9,7 +9,7 @@ import 'profile_screen.dart';
 import 'dashboard_screen.dart';
 import 'farmer_profile_screen.dart';
 import 'dart:async';
-import '/Services/cart_service.dart' as cart_service;
+import '/Services/cart_service.dart';
 import 'cart_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
@@ -279,13 +279,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     });
   }
 
-  void _addToCart(Map<String, dynamic> product, {int quantity = 1}) {
+  void _addToCart(Map<String, dynamic> product, int quantity) {
     try {
-      final cartService = Provider.of<cart_service.CartService>(
-        context,
-        listen: false,
-      );
-
       if (quantity <= 0) {
         throw ArgumentError('Quantity must be greater than 0');
       }
@@ -294,7 +289,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         throw ArgumentError('Price must be greater than 0');
       }
 
-      final cartItem = cart_service.CartItem(
+      final cartService = Provider.of<CartService>(context, listen: false);
+      
+      final cartItem = CartItem(
         name: product['name'],
         pricePerKg: product['price'].toDouble(),
         image: product['image'],
@@ -1272,7 +1269,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ElevatedButton(
                 onPressed: () {
                   final quantity = int.tryParse(quantityController.text) ?? 1;
-                  _addToCart(product, quantity: quantity);
+                  _addToCart(product, quantity);
                   Navigator.pop(context);
                 },
                 child: const Text('Add to Cart'),
