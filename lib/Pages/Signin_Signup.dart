@@ -4,6 +4,58 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dashboard_screen.dart';
 import 'marketplace_screen.dart';
 
+// Custom painter for wave pattern on the left side
+class WavePattern extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+
+    final path1 = Path();
+    path1.moveTo(0, size.height * 0.7);
+    path1.quadraticBezierTo(
+      size.width * 0.25,
+      size.height * 0.55,
+      size.width * 0.5,
+      size.height * 0.75,
+    );
+    path1.quadraticBezierTo(
+      size.width * 0.75,
+      size.height * 0.95,
+      size.width,
+      size.height * 0.8,
+    );
+    path1.lineTo(size.width, size.height);
+    path1.lineTo(0, size.height);
+    path1.close();
+
+    final path2 = Path();
+    path2.moveTo(0, size.height * 0.3);
+    path2.quadraticBezierTo(
+      size.width * 0.25,
+      size.height * 0.45,
+      size.width * 0.5,
+      size.height * 0.25,
+    );
+    path2.quadraticBezierTo(
+      size.width * 0.75,
+      size.height * 0.05,
+      size.width,
+      size.height * 0.2,
+    );
+    path2.lineTo(size.width, 0);
+    path2.lineTo(0, 0);
+    path2.close();
+
+    canvas.drawPath(path1, paint);
+    canvas.drawPath(path2, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -115,47 +167,6 @@ class _AuthScreenState extends State<AuthScreen>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF0A0A18) : const Color(0xFFCCE0CC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 40),
-                Text(
-                  'Welcome Back',
-                  style: GoogleFonts.poppins(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                // Rest of the sign in form
-                // ... existing code ...
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -166,16 +177,16 @@ class _AuthScreenState extends State<AuthScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Color(0xFF2C2C2C), // Dark grey for input fields
+        color: const Color(0xFF2C2C2C),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Color(0xFF3D3D3D),
-        ), // Slightly lighter grey for borders
+          color: const Color(0xFF3D3D3D),
+        ),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && !isVisible,
-        style: GoogleFonts.poppins(color: Colors.white), // Text color to white
+        style: GoogleFonts.poppins(color: Colors.white),
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
             vertical: 16,
@@ -185,11 +196,11 @@ class _AuthScreenState extends State<AuthScreen>
           hintText: label,
           hintStyle: GoogleFonts.poppins(
             color: Colors.white38,
-          ), // Hint text with opacity
+          ),
           prefixIcon: Icon(
             icon,
             color: Colors.white54,
-          ), // Icon color with opacity
+          ),
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
@@ -217,9 +228,9 @@ class _AuthScreenState extends State<AuthScreen>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Color(0xFF3D3D3D), // Slightly lighter grey for borders
+              color: const Color(0xFF3D3D3D),
             ),
-            color: Color(0xFF2C2C2C), // Dark grey background
+            color: const Color(0xFF2C2C2C),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -227,13 +238,13 @@ class _AuthScreenState extends State<AuthScreen>
               FaIcon(
                 icon,
                 size: 18,
-                color: Colors.white70, // Icon color with opacity
+                color: Colors.white70,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: GoogleFonts.poppins(
-                  color: Colors.white70, // Text color with opacity
+                  color: Colors.white70,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -244,61 +255,377 @@ class _AuthScreenState extends State<AuthScreen>
       ),
     );
   }
-}
 
-// Custom painter for wave pattern on the left side
-class WavePattern extends CustomPainter {
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.fill;
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 900;
 
-    final path1 = Path();
-    path1.moveTo(0, size.height * 0.7);
-    path1.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.55,
-      size.width * 0.5,
-      size.height * 0.75,
-    );
-    path1.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.95,
-      size.width,
-      size.height * 0.8,
-    );
-    path1.lineTo(size.width, size.height);
-    path1.lineTo(0, size.height);
-    path1.close();
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background gradient for desktop
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.black, Colors.black],
+              ),
+            ),
+          ),
 
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.3);
-    path2.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.45,
-      size.width * 0.5,
-      size.height * 0.25,
-    );
-    path2.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.05,
-      size.width,
-      size.height * 0.2,
-    );
-    path2.lineTo(size.width, 0);
-    path2.lineTo(0, 0);
-    path2.close();
+          // Content
+          Center(
+            child: AnimatedBuilder(
+              animation: _fadeAnimation,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _fadeAnimation.value,
+                  child: Container(
+                    width: isSmallScreen ? size.width * 0.9 : 880,
+                    height: isSmallScreen ? null : 580,
+                    constraints: BoxConstraints(
+                      maxWidth: 1200,
+                      maxHeight: isSmallScreen ? size.height * 0.9 : 580,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF1A1A1A), // Dark grey for container
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Left side - Purple gradient with wave pattern (only visible on desktop)
+                        if (!isSmallScreen)
+                          Expanded(
+                            flex: 4,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  bottomLeft: Radius.circular(16),
+                                ),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topRight,
+                                  end: Alignment.bottomLeft,
+                                  colors: [
+                                    Color(0xFF2C2C2C), // Dark grey
+                                    Color(0xFF1A1A1A), // Darker grey
+                                  ],
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  bottomLeft: Radius.circular(16),
+                                ),
+                                child: CustomPaint(
+                                  painter: WavePattern(),
+                                  size: Size.infinite,
+                                ),
+                              ),
+                            ),
+                          ),
 
-    canvas.drawPath(path1, paint);
-    canvas.drawPath(path2, paint);
+                        // Right side - Auth form
+                        Expanded(
+                          flex: isSmallScreen ? 10 : 6,
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isSmallScreen ? 24 : 48,
+                                vertical: 40,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Top logo/branding
+                                  Row(
+                                    mainAxisAlignment: isSmallScreen
+                                        ? MainAxisAlignment.center
+                                        : MainAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF594FD1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.eco_outlined,
+                                          color: Colors.white,
+                                          size: 28,
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        "BlinkConnect",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF594FD1),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 40),
+
+                                  // Welcome text
+                                  Text(
+                                    isSignIn
+                                        ? 'Welcome back'
+                                        : 'Create account',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+
+                                  SizedBox(height: 8),
+
+                                  // Sign in description
+                                  Text(
+                                    isSignIn
+                                        ? 'Please enter your details to sign in'
+                                        : 'Please fill in the information below',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+
+                                  SizedBox(height: 32),
+
+                                  // Social sign in buttons
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _buildSocialButton(
+                                        icon: FontAwesomeIcons.google,
+                                        label: 'Google',
+                                        onTap: () =>
+                                            _handleSocialSignIn('google'),
+                                      ),
+                                      SizedBox(width: 16),
+                                      _buildSocialButton(
+                                        icon: FontAwesomeIcons.apple,
+                                        label: 'Apple',
+                                        onTap: () =>
+                                            _handleSocialSignIn('apple'),
+                                      ),
+                                      SizedBox(width: 16),
+                                      _buildSocialButton(
+                                        icon: FontAwesomeIcons.xTwitter,
+                                        label: 'X',
+                                        onTap: () =>
+                                            _handleSocialSignIn('twitter'),
+                                      ),
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 24),
+
+                                  // OR divider
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Divider(color: Colors.white24),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        child: Text(
+                                          'OR',
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white54,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Divider(color: Colors.white24),
+                                      ),
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 24),
+
+                                  // Email field
+                                  _buildTextField(
+                                    label: 'Email Address',
+                                    controller: _emailController,
+                                    icon: Icons.email_outlined,
+                                  ),
+
+                                  SizedBox(height: 16),
+
+                                  // Password field
+                                  _buildTextField(
+                                    label: 'Password',
+                                    controller: _passwordController,
+                                    icon: Icons.lock_outline,
+                                    isPassword: true,
+                                    isVisible: _passwordVisible,
+                                    onVisibilityToggle: () {
+                                      setState(() {
+                                        _passwordVisible = !_passwordVisible;
+                                      });
+                                    },
+                                  ),
+
+                                  // Additional fields for sign up
+                                  if (!isSignIn) ...[
+                                    SizedBox(height: 16),
+                                    _buildTextField(
+                                      label: 'Username',
+                                      controller: _usernameController,
+                                      icon: Icons.person_outline,
+                                    ),
+                                  ],
+
+                                  SizedBox(height: 20),
+
+                                  // Remember me & Forgot password row
+                                  if (isSignIn)
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // Remember me checkbox
+                                        Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: Checkbox(
+                                                value: _rememberMe,
+                                                onChanged: (value) {
+                                                  setState(() {
+                                                    _rememberMe = value!;
+                                                  });
+                                                },
+                                                activeColor: Color(0xFF594FD1),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Remember me',
+                                              style: GoogleFonts.poppins(
+                                                color: Colors.white70,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        // Forgot password
+                                        TextButton(
+                                          onPressed: () {
+                                            // Handle forgot password
+                                          },
+                                          child: Text(
+                                            'Forgot password?',
+                                            style: GoogleFonts.poppins(
+                                              color: Color(0xFF8C9EFF),
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                  SizedBox(height: 32),
+
+                                  // Sign in button
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 48,
+                                    child: ElevatedButton(
+                                      onPressed: _handleSignIn,
+                                      style: ElevatedButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        backgroundColor: Color(0xFF594FD1),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      child: Text(
+                                        isSignIn ? 'Sign in' : 'Sign up',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  SizedBox(height: 24),
+
+                                  // Sign up link
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        isSignIn
+                                            ? "Don't have an account? "
+                                            : "Already have an account? ",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white70,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: toggleAuthMode,
+                                        child: Text(
+                                          isSignIn ? "Sign up" : "Sign in",
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF8C9EFF),
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// UserTypeSelectionScreen is kept as is but updated with new color scheme
 class UserTypeSelectionScreen extends StatefulWidget {
   const UserTypeSelectionScreen({super.key});
 
@@ -418,6 +745,118 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
     );
   }
 
+  Widget _buildUserTypeCard({
+    required String title,
+    required IconData icon,
+    required String description,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Color(0xFF1A1A1A).withOpacity(0.2)
+              : Color(0xFF2C2C2C),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Color(0xFF1A1A1A) : Color(0xFF3D3D3D),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Color(0xFF1A1A1A) : Color(0xFF2C2C2C),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 24),
+                ),
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? Color(0xFF1A1A1A) : Colors.white54,
+                      width: 2,
+                    ),
+                    color: isSelected ? Color(0xFF1A1A1A) : Colors.transparent,
+                  ),
+                  child: isSelected
+                      ? Icon(Icons.check, color: Colors.white, size: 16)
+                      : null,
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              description,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentCheckbox(String document) {
+    final isSelected = selectedDocs.contains(document);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: InkWell(
+        onTap: () => _toggleDocSelection(document),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: isSelected ? Color(0xFF1A1A1A) : Colors.white54,
+                  width: 2,
+                ),
+                color: isSelected ? Color(0xFF1A1A1A) : Colors.transparent,
+              ),
+              child: isSelected
+                  ? Icon(Icons.check, color: Colors.white, size: 16)
+                  : null,
+            ),
+            SizedBox(width: 12),
+            Text(
+              document,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -428,7 +867,6 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background gradient for desktop
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -438,8 +876,6 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
               ),
             ),
           ),
-
-          // Content
           Center(
             child: AnimatedBuilder(
               animation: _cardAnimation,
@@ -453,7 +889,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                       maxHeight: isSmallScreen ? size.height * 0.9 : 620,
                     ),
                     decoration: BoxDecoration(
-                      color: Color(0xFF1A1A1A), // Dark grey for container
+                      color: Color(0xFF1A1A1A),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -465,7 +901,6 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                     ),
                     child: Row(
                       children: [
-                        // Left side - Image/Gradient (only visible on desktop)
                         if (!isSmallScreen)
                           Expanded(
                             flex: 4,
@@ -479,8 +914,8 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                   begin: Alignment.topRight,
                                   end: Alignment.bottomLeft,
                                   colors: [
-                                    Color(0xFF2C2C2C), // Dark grey
-                                    Color(0xFF1A1A1A), // Darker grey
+                                    Color(0xFF2C2C2C),
+                                    Color(0xFF1A1A1A),
                                   ],
                                 ),
                               ),
@@ -557,8 +992,6 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                               ),
                             ),
                           ),
-
-                        // Right side - Selection form
                         Expanded(
                           flex: isSmallScreen ? 10 : 6,
                           child: SingleChildScrollView(
@@ -571,7 +1004,6 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (isSmallScreen) ...[
-                                    // Top logo for small screens
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -602,7 +1034,6 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                     ),
                                     SizedBox(height: 32),
                                   ],
-
                                   Text(
                                     'How will you use BlinkConnect?',
                                     style: GoogleFonts.poppins(
@@ -611,9 +1042,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                       color: Colors.white,
                                     ),
                                   ),
-
                                   SizedBox(height: 12),
-
                                   Text(
                                     'How will you use BlinkConnect?',
                                     style: GoogleFonts.poppins(
@@ -621,10 +1050,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                       color: Colors.white70,
                                     ),
                                   ),
-
                                   SizedBox(height: 32),
-
-                                  // User type selection cards
                                   isSmallScreen
                                       ? Column(
                                           children: [
@@ -680,10 +1106,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                             ),
                                           ],
                                         ),
-
                                   SizedBox(height: 24),
-
-                                  // Farmer verification documents section
                                   if (showFarmerDocs) ...[
                                     Text(
                                       'Verify your farmer status',
@@ -717,10 +1140,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                       ),
                                     ),
                                   ],
-
                                   SizedBox(height: 40),
-
-                                  // Continue button
                                   SizedBox(
                                     width: double.infinity,
                                     height: 48,
@@ -730,9 +1150,8 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                         foregroundColor: Colors.white,
                                         backgroundColor: Color(0xFF594FD1),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                         elevation: 0,
                                       ),
@@ -745,10 +1164,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
                                       ),
                                     ),
                                   ),
-
                                   SizedBox(height: 24),
-
-                                  // Back button
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -785,131 +1201,6 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildUserTypeCard({
-    required String title,
-    required IconData icon,
-    required String description,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Color(0xFF1A1A1A).withOpacity(0.2)
-              : Color(0xFF2C2C2C), // Dark grey for unselected
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? Color(0xFF1A1A1A)
-                : Color(0xFF3D3D3D), // Slightly lighter grey for borders
-            width: 2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icon and radio button row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? Color(0xFF1A1A1A)
-                        : Color(0xFF2C2C2C), // Dark grey if not selected
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 24),
-                ),
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected
-                          ? Color(0xFF1A1A1A)
-                          : Colors.white54, // Grey if selected
-                      width: 2,
-                    ),
-                    color: isSelected
-                        ? Color(0xFF1A1A1A)
-                        : Colors.transparent, // Fill if selected
-                  ),
-                  child: isSelected
-                      ? Icon(Icons.check, color: Colors.white, size: 16)
-                      : null,
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white, // Changed to white
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              description,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.white70, // Changed to white with opacity
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDocumentCheckbox(String document) {
-    final isSelected = selectedDocs.contains(document);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
-        onTap: () => _toggleDocSelection(document),
-        child: Row(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: isSelected
-                      ? Color(0xFF1A1A1A)
-                      : Colors.white54, // Grey if selected
-                  width: 2,
-                ),
-                color: isSelected
-                    ? Color(0xFF1A1A1A)
-                    : Colors.transparent, // Fill if selected
-              ),
-              child: isSelected
-                  ? Icon(Icons.check, color: Colors.white, size: 16)
-                  : null,
-            ),
-            SizedBox(width: 12),
-            Text(
-              document,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.white, // Changed to white
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

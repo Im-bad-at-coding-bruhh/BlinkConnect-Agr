@@ -290,7 +290,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       }
 
       final cartService = Provider.of<CartService>(context, listen: false);
-      
+
       final cartItem = CartItem(
         name: product['name'],
         pricePerKg: product['price'].toDouble(),

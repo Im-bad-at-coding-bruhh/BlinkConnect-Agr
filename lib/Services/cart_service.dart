@@ -39,6 +39,19 @@ class CartItem {
       quantity: quantity ?? this.quantity,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is CartItem &&
+        other.name == name &&
+        other.pricePerKg == pricePerKg &&
+        other.image == image &&
+        other.seller == seller;
+  }
+
+  @override
+  int get hashCode => Object.hash(name, pricePerKg, image, seller);
 }
 
 class CartService extends ChangeNotifier {
@@ -47,7 +60,8 @@ class CartService extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   List<CartItem> get items => _items.values.toList();
-  double get totalPrice => _items.values.fold(0, (sum, item) => sum + item.totalPrice);
+  double get totalPrice =>
+      _items.values.fold(0, (sum, item) => sum + item.totalPrice);
   int get itemCount => _items.length;
 
   void addItem(CartItem item) {
@@ -61,12 +75,13 @@ class CartService extends ChangeNotifier {
         _items[item.name] = existingItem.copyWith(
           quantity: existingItem.quantity + item.quantity,
         );
+        debugPrint(
+            'Updated quantity for ${item.name}: ${existingItem.quantity + item.quantity}');
       } else {
         // Add new item
         _items[item.name] = item;
+        debugPrint('Added new item to cart: ${item.name}');
       }
-
-      debugPrint('Added item to cart: ${item.name}');
     } catch (e) {
       debugPrint('Error adding item to cart: $e');
       rethrow;
@@ -81,8 +96,12 @@ class CartService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      _items.remove(name);
-      debugPrint('Removed item from cart: $name');
+      if (_items.containsKey(name)) {
+        _items.remove(name);
+        debugPrint('Removed item from cart: $name');
+      } else {
+        debugPrint('Item not found in cart: $name');
+      }
     } catch (e) {
       debugPrint('Error removing item from cart: $e');
       rethrow;
@@ -103,8 +122,10 @@ class CartService extends ChangeNotifier {
         } else {
           final item = _items[name]!;
           _items[name] = item.copyWith(quantity: quantity);
+          debugPrint('Updated quantity for $name: $quantity');
         }
-        debugPrint('Updated quantity for $name: $quantity');
+      } else {
+        debugPrint('Item not found in cart: $name');
       }
     } catch (e) {
       debugPrint('Error updating quantity: $e');

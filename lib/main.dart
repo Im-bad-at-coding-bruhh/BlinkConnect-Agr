@@ -6,10 +6,10 @@ import 'package:provider/provider.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:firebase_storage/firebase_storage.dart';
 // import 'firebase_options.dart';
-import 'pages/theme_provider.dart';
-import 'services/cart_service.dart';
-import 'pages/product_provider.dart';
-import 'pages/splash_screen.dart';
+import 'Pages/theme_provider.dart';
+import 'Services/cart_service.dart';
+import 'Pages/product_provider.dart';
+import 'Pages/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,7 @@ void main() async {
         providers: [
           ChangeNotifierProvider(create: (context) => ThemeProvider()),
           ChangeNotifierProvider(create: (context) => CartService()),
-          ChangeNotifierProvider(create: (_) => ProductProvider()),
+          ChangeNotifierProvider(create: (context) => ProductProvider()),
         ],
         child: const MyApp(),
       ),

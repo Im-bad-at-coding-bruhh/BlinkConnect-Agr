@@ -7,6 +7,7 @@ import 'profile_screen.dart';
 import 'theme_provider.dart';
 import 'dart:async';
 import '/Services/cart_service.dart';
+import '/Pages/cart_screen.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -644,16 +645,16 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   void _addToCart(Map<String, dynamic> product) {
-    final cartService = Provider.of<CartService>(
-      context,
-      listen: false,
-    );
-
     try {
+      final cartService = Provider.of<CartService>(
+        context,
+        listen: false,
+      );
+
       cartService.addItem(
         CartItem(
           name: product['name'],
-          pricePerKg: product['price'],
+          pricePerKg: product['price'].toDouble(),
           image: product['image'],
           seller: product['seller'],
           quantity: 1,
@@ -664,9 +665,24 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
         SnackBar(
           content: Text('${product['name']} (1kg) added to cart'),
           duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'View Cart',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CartScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       );
     } catch (e) {
+      debugPrint('Error adding to cart: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to add item to cart'),
@@ -697,11 +713,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   Text('Rating: ${product['rating']}'),
                   const SizedBox(height: 8),
                   const Text('Product Description:'),
-                  Text(product['description'] ?? 'No description available'),
-                  const SizedBox(height: 8),
-                  const Text('Farmer Information:'),
-                  Text(product['farmerInfo'] ??
-                      'No farmer information available'),
+                  Text(
+                    product['description'] ?? 'No description available',
+                  ),
                   const SizedBox(height: 16),
 
                   // Quantity Selection
@@ -760,27 +774,51 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 onPressed: () {
                   final quantity = int.tryParse(quantityController.text) ?? 1;
                   if (quantity > 0) {
-                    final cartService = Provider.of<CartService>(
-                      context,
-                      listen: false,
-                    );
-                    cartService.addItem(
-                      CartItem(
-                        name: product['name'],
-                        pricePerKg: product['price'],
-                        image: product['image'],
-                        seller: product['seller'],
-                        quantity: quantity,
-                      ),
-                    );
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            '${product['name']} (${quantity}kg) added to cart'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    try {
+                      final cartService = Provider.of<CartService>(
+                        context,
+                        listen: false,
+                      );
+                      cartService.addItem(
+                        CartItem(
+                          name: product['name'],
+                          pricePerKg: product['price'].toDouble(),
+                          image: product['image'],
+                          seller: product['seller'],
+                          quantity: quantity,
+                        ),
+                      );
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              '${product['name']} (${quantity}kg) added to cart'),
+                          duration: const Duration(seconds: 2),
+                          action: SnackBarAction(
+                            label: 'View Cart',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CartScreen(
+                                    isFarmer: widget.isFarmer,
+                                    isVerified: widget.isVerified,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      debugPrint('Error adding to cart: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to add item to cart'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
