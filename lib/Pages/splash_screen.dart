@@ -12,7 +12,8 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+  late Animation<Offset> _blinkAnimation;
+  late Animation<Offset> _connectAnimation;
 
   @override
   void initState() {
@@ -29,7 +30,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _blinkAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.0),
+      end: const Offset(-0.5, 0.0),
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _connectAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.0),
+      end: const Offset(0.5, 0.0),
+    ).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
@@ -65,22 +79,32 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           builder: (context, child) {
             return FadeTransition(
               opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 20),
-                    Text(
-                      'Welcome',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SlideTransition(
+                    position: _blinkAnimation,
+                    child: Text(
+                      'Blink',
                       style: GoogleFonts.poppins(
-                        fontSize: 32,
+                        fontSize: 36,
                         fontWeight: FontWeight.bold,
                         color: isDarkMode ? Colors.white : Colors.black87,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  SlideTransition(
+                    position: _connectAnimation,
+                    child: Text(
+                      'Connect',
+                      style: GoogleFonts.poppins(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           },
