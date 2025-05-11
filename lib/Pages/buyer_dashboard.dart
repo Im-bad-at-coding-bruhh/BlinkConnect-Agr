@@ -6,7 +6,7 @@ import 'community_screen.dart';
 import 'profile_screen.dart';
 import 'theme_provider.dart';
 import 'dart:async';
-import 'package:farmly/Services/cart_service.dart' as cart_service;
+import '/Services/cart_service.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -675,14 +675,14 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   void _addToCart(Map<String, dynamic> product) {
-    final cartService = Provider.of<cart_service.CartService>(
+    final cartService = Provider.of<CartService>(
       context,
       listen: false,
     );
 
     try {
       cartService.addItem(
-        cart_service.CartItem(
+        CartItem(
           name: product['name'],
           pricePerKg: product['price'],
           image: product['image'],
@@ -796,7 +796,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       listen: false,
                     );
                     cartService.addItem(
-                      cart_service.CartItem(
+                      CartItem(
                         name: product['name'],
                         pricePerKg: product['price'],
                         image: product['image'],
