@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "486950115709",
+    "project_id": "blinkconnect-agri",
+    "storage_bucket": "blinkconnect-agri.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:486950115709:android:9020be0f26c32fca619414",
+        "android_client_info": {
+          "package_name": "com.BlinkConnect.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjU2RkJm6mJiIMuwJtfWqt7NK0kUA62Ak"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
