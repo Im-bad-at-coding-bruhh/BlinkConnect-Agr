@@ -1,6 +1,6 @@
 # apps
 
-Farmly V1
+ BlinkConnect V1
 
 ## Getting Started
 
