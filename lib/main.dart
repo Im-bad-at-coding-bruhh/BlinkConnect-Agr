@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'firebase_options.dart';
+import 'package:device_preview/device_preview.dart';
 import 'Pages/theme_provider.dart';
 import 'Services/cart_service.dart';
 import 'Pages/product_provider.dart';
@@ -12,11 +8,13 @@ import 'Pages/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  runApp(
+    DevicePreview(
+      enabled: true,
+      tools: const [...DevicePreview.defaultTools],
+      builder: (context) => const MyApp(),
+    ),
   );
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -35,6 +33,9 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'BlinkConnect',
             debugShowCheckedModeBanner: false,
+            useInheritedMediaQuery: true,
+            locale: DevicePreview.locale(context),
+            builder: DevicePreview.appBuilder,
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
                 seedColor: const Color(0xFF594FD1),

@@ -47,11 +47,16 @@ endfunction()
 
 # Flutter library and tool build rules.
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
-add_subdirectory(${FLUTTER_MANAGED_DIR})
+add_subdirectory(${FLUTTER_MANAGED_DIR} "${CMAKE_BINARY_DIR}/flutter_build")
 
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
+# Firebase configuration
+set(FIREBASE_CPP_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/firebase_cpp_sdk")
+if(EXISTS "${FIREBASE_CPP_SDK_DIR}")
+  add_subdirectory(${FIREBASE_CPP_SDK_DIR})
+endif()
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.

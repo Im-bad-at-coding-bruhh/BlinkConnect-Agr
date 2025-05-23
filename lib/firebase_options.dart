@@ -42,39 +42,39 @@
 //   }
 
 //   static const FirebaseOptions web = FirebaseOptions(
-//     apiKey: 'YOUR-API-KEY',
-//     appId: 'YOUR-APP-ID',
-//     messagingSenderId: 'YOUR-SENDER-ID',
-//     projectId: 'YOUR-PROJECT-ID',
-//     authDomain: 'YOUR-AUTH-DOMAIN',
-//     storageBucket: 'YOUR-STORAGE-BUCKET',
+//     apiKey: 'AIzaSyBt6qDhbT5_V8RViKYGidi5vYDlb8hMKUY',
+//     appId: '1:486950115709:web:278984b807b35870619414',
+//     messagingSenderId: '486950115709',
+//     projectId: 'blinkconnect-agri',
+//     authDomain: 'blinkconnect-agri.firebaseapp.com',
+//     storageBucket: 'blinkconnect-agri.firebasestorage.app',
+//     measurementId: 'G-SZZLMQH9Z8',
 //   );
 
 //   static const FirebaseOptions android = FirebaseOptions(
-//     apiKey: 'YOUR-API-KEY',
-//     appId: 'YOUR-APP-ID',
-//     messagingSenderId: 'YOUR-SENDER-ID',
-//     projectId: 'YOUR-PROJECT-ID',
-//     storageBucket: 'YOUR-STORAGE-BUCKET',
+//     apiKey: 'AIzaSyBt6qDhbT5_V8RViKYGidi5vYDlb8hMKUY',
+//     appId: '1:486950115709:android:YOUR_ANDROID_APP_ID',
+//     messagingSenderId: '486950115709',
+//     projectId: 'blinkconnect-agri',
+//     storageBucket: 'blinkconnect-agri.firebasestorage.app',
 //   );
 
 //   static const FirebaseOptions ios = FirebaseOptions(
-//     apiKey: 'YOUR-API-KEY',
-//     appId: 'YOUR-APP-ID',
-//     messagingSenderId: 'YOUR-SENDER-ID',
-//     projectId: 'YOUR-PROJECT-ID',
-//     storageBucket: 'YOUR-STORAGE-BUCKET',
-//     iosClientId: 'YOUR-IOS-CLIENT-ID',
-//     iosBundleId: 'YOUR-IOS-BUNDLE-ID',
+//     apiKey: 'AIzaSyBt6qDhbT5_V8RViKYGidi5vYDlb8hMKUY',
+//     appId: '1:486950115709:ios:YOUR_IOS_APP_ID',
+//     messagingSenderId: '486950115709',
+//     projectId: 'blinkconnect-agri',
+//     storageBucket: 'blinkconnect-agri.firebasestorage.app',
+//     iosClientId: 'YOUR_IOS_CLIENT_ID',
+//     iosBundleId: 'com.BlinkConnect.apps',
 //   );
 
 //   static const FirebaseOptions macos = FirebaseOptions(
-//     apiKey: 'YOUR-API-KEY',
-//     appId: 'YOUR-APP-ID',
-//     messagingSenderId: 'YOUR-SENDER-ID',
-//     projectId: 'YOUR-PROJECT-ID',
-//     storageBucket: 'YOUR-STORAGE-BUCKET',
-//     iosClientId: 'YOUR-IOS-CLIENT-ID',
-//     iosBundleId: 'YOUR-IOS-BUNDLE-ID',
+//     apiKey: 'AIzaSyBt6qDhbT5_V8RViKYGidi5vYDlb8hMKUY',
+//     appId: '1:486950115709:macos:YOUR_MACOS_APP_ID',
+//     messagingSenderId: '486950115709',
+//     projectId: 'blinkconnect-agri',
+//     storageBucket: 'blinkconnect-agri.firebasestorage.app',
+//     iosBundleId: 'com.BlinkConnect.apps',
 //   );
 // }

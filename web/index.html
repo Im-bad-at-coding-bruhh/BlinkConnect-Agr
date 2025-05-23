@@ -32,25 +32,34 @@
   <title>BlinkConnect</title>
   <link rel="manifest" href="manifest.json">
 
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    const serviceWorkerVersion = null;
-  </script>
-  <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer></script>
 </head>
 <body>
   <script>
-    window.addEventListener('load', function(ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
+    window.addEventListener('load', function() {
+      var loading = document.createElement('div');
+      loading.textContent = "Loading BlinkConnect...";
+      loading.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: 'Montserrat', sans-serif;
+        font-size: 24px;
+        color: #333;
+      `;
+      document.body.appendChild(loading);
+
+      _flutter.loader.load({
+        onEntrypointLoaded: async function(engineInitializer) {
+          try {
+            const appRunner = await engineInitializer.initializeEngine();
+            await appRunner.runApp();
+            loading.remove();
+          } catch (error) {
+            loading.textContent = "Error loading app: " + error;
+            console.error("Failed to initialize Flutter:", error);
+          }
         }
       });
     });

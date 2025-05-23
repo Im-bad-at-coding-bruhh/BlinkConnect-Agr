@@ -1,4 +1,4 @@
-name: farmly
+name: blinkconnect
 description: A new Flutter project.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.3 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -31,23 +31,19 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  google_fonts: ^5.1.0  # For custom fonts
+  google_fonts: ^6.1.0
   fl_chart: ^0.63.0     # For charts
   flutter_svg: ^2.0.17
   font_awesome_flutter: ^10.5.0  # For social media icons
-  shared_preferences:
+  shared_preferences: ^2.2.2
   provider: ^6.1.1
-  gradient_borders:
-  animated_text_kit:
+  gradient_borders: ^1.0.0
+  animated_text_kit: ^4.2.2
   image_picker: ^1.0.5
   device_preview: ^1.2.0
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_storage: ^11.5.6
   cached_network_image: ^3.3.0
   uuid: ^4.2.2
-  intl: ^0.19.0
+  intl: 0.20.2
   path_provider: ^2.1.2
   path: ^1.8.3
 
@@ -84,21 +80,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-      - assets/profile_pic/image.jpg
-      - assets/profile_pic/default_pp.png
-      - assets/images/apple.png
-      - assets/images/banana.png
-      - assets/images/strawberry.png
-      - assets/images/watermelon.png
-      - assets/images/carrot.png
-      - assets/images/potato.png
-      - assets/images/onion.png
-      - assets/images/tomato.png
-      - assets/images/wheat.png
-      - assets/images/blueberry.png
-      - assets/images/peach.png
-      - assets/images/broccoli.png
-      - assets/images/corn.png
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -127,3 +109,20 @@ fonts:
 
   # For details regarding fonts from package dependencies,
 #   see https://flutter.dev/to/font-from-package
+
+# dependency_overrides:
+#   firebase_storage: ^12.3.7
+#   cloud_firestore: ^5.6.0
+#   firebase_auth: ^4.9.0
+#   firebase_core: ^2.24.2
+#   js: ^0.6.7
+#   firebase_auth_web: ^5.8.13
+#   firebase_core_web: ^2.22.0
+#   firebase_storage_web: ^3.10.12
+#   cloud_firestore_web: ^3.10.12
+#   firebase_core_web: ^2.9.0
+#   firebase_auth_web: ^5.8.13
+#   firebase_storage_web: ^3.10.12
+#   cloud_firestore_web: ^3.10.12
+  
+

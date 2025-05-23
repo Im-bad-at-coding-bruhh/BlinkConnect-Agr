@@ -6,6 +6,7 @@ import 'cart_screen.dart';
 import 'buyer_dashboard.dart';
 import 'community_screen.dart';
 import 'theme_provider.dart';
+import '../Services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -27,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late int _selectedIndex;
   late Size _screenSize;
   bool _isSmallScreen = false;
+  // final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -442,6 +444,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icons.security_outlined,
             'Security',
             'Change password and security settings',
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(
+                    'Security Settings',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.person_outline),
+                        title: const Text('Change Username'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showChangeUsernameDialog(context, isDarkMode);
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: const Text('Change Password'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showChangePasswordDialog(context, isDarkMode);
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.logout, color: Colors.red),
+                        title: const Text('Logout',
+                            style: TextStyle(color: Colors.red)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showLogoutConfirmation(context, isDarkMode);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           _buildSettingItem(
             isDarkMode,
@@ -539,6 +584,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showChangeUsernameDialog(BuildContext context, bool isDarkMode) {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Change Username',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'New Username',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.isNotEmpty) {
+                try {
+                  // await _authService.changeUsername(controller.text);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Username updated successfully')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.toString())),
+                  );
+                }
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context, bool isDarkMode) {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Change Password',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: currentPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'Current Password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: newPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'New Password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'Confirm New Password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          // ElevatedButton(
+          //   onPressed: () async {
+          //     if (newPasswordController.text ==
+          //         confirmPasswordController.text) {
+          //       try {
+          //         await _authService.changePassword(
+          //           currentPasswordController.text,
+          //           newPasswordController.text,
+          //         );
+          //         Navigator.pop(context);
+          //         ScaffoldMessenger.of(context).showSnackBar(
+          //           const SnackBar(
+          //               content: Text('Password updated successfully')),
+          //         );
+          //       } catch (e) {
+          //         ScaffoldMessenger.of(context).showSnackBar(
+          //           SnackBar(content: Text(e.toString())),
+          //         );
+          //       }
+          //     } else {
+          //       ScaffoldMessenger.of(context).showSnackBar(
+          //         const SnackBar(content: Text('Passwords do not match')),
+          //       );
+          //     }
+          //   },
+          //   child: const Text('Update'),
+          // ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context, bool isDarkMode) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Logout',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                // await _authService.logout();
+                Navigator.pop(context);
+                // Navigate to login screen
+                Navigator.pushReplacementNamed(context, '/login');
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(e.toString())),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
       ),
     );
   }
