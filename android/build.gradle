@@ -16,11 +16,21 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // Force resolution of compatible versions
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.lifecycle:lifecycle-common:2.6.2'
+            force 'androidx.lifecycle:lifecycle-runtime:2.6.2'
+        }
+    }
 }
 
 rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
     project.evaluationDependsOn(':app')
 }
 
