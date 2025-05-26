@@ -29,7 +29,7 @@ class MarketplaceScreen extends StatefulWidget {
 }
 
 class _MarketplaceScreenState extends State<MarketplaceScreen> {
-  int _selectedIndex = 0; // Setting marketplace as selected in bottom nav
+  int _selectedIndex = 0;
   late Size _screenSize;
   bool _isSmallScreen = false;
   String _selectedCategory = 'All';
@@ -38,7 +38,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   bool _showQuickInfo = false;
   Map<String, dynamic>? _hoveredProduct;
 
-  // Add filter state variables
+  // Filter state variables
   double _minPrice = 0;
   double _maxPrice = 100;
   String _selectedRegion = 'All';
@@ -53,7 +53,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     'Australia',
   ];
 
-  // Add controllers for price inputs
+  // Controllers for price inputs
   final TextEditingController _minPriceController = TextEditingController(
     text: '0',
   );
@@ -533,11 +533,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     _screenSize = MediaQuery.of(context).size;
     _isSmallScreen = _screenSize.width < 600;
 
-    // Get theme provider
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
-    // Use ValueNotifier for better performance
     final darkModeNotifier = ValueNotifier<bool>(isDarkMode);
 
     return ValueListenableBuilder<bool>(
@@ -949,7 +947,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
           )
         else
-          // Grid view of filtered products
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1432,7 +1429,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     required double originalPrice,
   }) {
     // TODO: Implement actual bid submission to backend
-    // For now, we'll just show a success message
+    // For now, it'll just show a success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

@@ -63,10 +63,8 @@ class _CommunityScreenState extends State<CommunityScreen>
       'rating': 4.9,
       'verified': true,
     },
-    // Add more sample members as needed
   ];
 
-  // Sample data for leaderboard with months
   final Map<String, Map<String, List<Map<String, dynamic>>>>
       _leaderboardDataByMonth = {
     'April': {
@@ -881,7 +879,6 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
-  // Add the month selector widget
   Widget _buildMonthSelector(bool isDarkMode) {
     return Container(
       height: 44,

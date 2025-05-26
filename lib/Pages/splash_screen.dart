@@ -184,7 +184,6 @@ class FancyTextWidget extends StatelessWidget {
         fontSize: 36,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
-        // Updated text color to white for better contrast against purple background
         color: Colors.white,
         shadows: const [
           Shadow(

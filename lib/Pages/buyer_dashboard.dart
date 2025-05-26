@@ -50,8 +50,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     if (index == _selectedIndex) return;
 
     switch (index) {
-      case 0: // Dashboard (current screen)
-        // No navigation needed
+      case 0: // Dashboard
         break;
       case 1: // Marketplace
         Navigator.pushReplacement(
@@ -837,7 +836,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     );
   }
 
-  // Update sample data to include more details
   final List<Map<String, dynamic>> _topSellingCrops = [
     {
       'name': 'Organic Apples 🍎',

@@ -7,6 +7,7 @@ import 'buyer_dashboard.dart';
 import 'community_screen.dart';
 import 'theme_provider.dart';
 import '../Services/auth_service.dart';
+import '../Services/auth_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -84,7 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         break;
       case 3: // Profile (current screen)
-        // No navigation needed as we're already on the Profile screen
+
         break;
     }
     setState(() {
@@ -613,7 +614,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               if (controller.text.isNotEmpty) {
                 try {
-                  // await _authService.changeUsername(controller.text);
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
+                  await authProvider.updateProfile(name: controller.text);
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -681,33 +684,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          // ElevatedButton(
-          //   onPressed: () async {
-          //     if (newPasswordController.text ==
-          //         confirmPasswordController.text) {
-          //       try {
-          //         await _authService.changePassword(
-          //           currentPasswordController.text,
-          //           newPasswordController.text,
-          //         );
-          //         Navigator.pop(context);
-          //         ScaffoldMessenger.of(context).showSnackBar(
-          //           const SnackBar(
-          //               content: Text('Password updated successfully')),
-          //         );
-          //       } catch (e) {
-          //         ScaffoldMessenger.of(context).showSnackBar(
-          //           SnackBar(content: Text(e.toString())),
-          //         );
-          //       }
-          //     } else {
-          //       ScaffoldMessenger.of(context).showSnackBar(
-          //         const SnackBar(content: Text('Passwords do not match')),
-          //       );
-          //     }
-          //   },
-          //   child: const Text('Update'),
-          // ),
+          ElevatedButton(
+            onPressed: () async {
+              if (newPasswordController.text ==
+                  confirmPasswordController.text) {
+                try {
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
+                  await authProvider.changePassword(
+                    currentPasswordController.text,
+                    newPasswordController.text,
+                  );
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Password updated successfully')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.toString())),
+                  );
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Passwords do not match')),
+                );
+              }
+            },
+            child: const Text('Update'),
+          ),
         ],
       ),
     );
@@ -730,9 +735,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ElevatedButton(
             onPressed: () async {
               try {
-                // await _authService.logout();
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.signOut();
                 Navigator.pop(context);
-                // Navigate to login screen
                 Navigator.pushReplacementNamed(context, '/login');
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(

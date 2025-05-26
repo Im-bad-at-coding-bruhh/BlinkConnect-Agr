@@ -680,7 +680,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
 
-          // Farmer Wallet widget in AppBar
+          // Farmer Wallet widget in AppBar....Don't think this is needed
           Container(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
             decoration: BoxDecoration(
@@ -1491,10 +1491,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
 
     return Container(
-      height: 400, // Fixed height to make it scrollable
+      height: 400,
       child: ListView.builder(
         shrinkWrap: true,
-        physics: const AlwaysScrollableScrollPhysics(), // Make it scrollable
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: invoices.length,
         itemBuilder: (context, index) {
           final invoice = invoices[index];
@@ -1599,7 +1599,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildInvoicesTable(bool isDarkMode) {
-    // Expanded to 20 sample invoices
     final invoices = [
       {
         'name': 'Sarah Johnson',

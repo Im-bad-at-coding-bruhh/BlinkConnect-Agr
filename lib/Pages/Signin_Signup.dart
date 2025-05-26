@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'dashboard_screen.dart';
 import 'buyer_dashboard.dart';
+import '../Services/auth_provider.dart';
 
 // Custom painter for wave pattern on the left side
 class WavePattern extends CustomPainter {
@@ -70,10 +72,14 @@ class _AuthScreenState extends State<AuthScreen>
   late Animation<double> _fadeAnimation;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   bool _rememberMe = false;
   bool _passwordVisible = false;
+  bool _confirmPasswordVisible = false;
+  bool _isFarmer = false;
 
   @override
   void initState() {
@@ -98,6 +104,7 @@ class _AuthScreenState extends State<AuthScreen>
     _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _usernameController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -106,15 +113,59 @@ class _AuthScreenState extends State<AuthScreen>
   void toggleAuthMode() {
     setState(() {
       isSignIn = !isSignIn;
+      _emailController.clear();
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+      _usernameController.clear();
+      _phoneController.clear();
     });
   }
 
-  void _handleSignIn() {
-    if (isSignIn) {
-      // For existing users who are signing in
-      bool isFarmer = false; // Default to consumer/buyer
-      bool isVerified = false; // Default to not verified
+  Future<void> _handleSignIn() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
 
+    try {
+      print(
+          'SignIn: Attempting to sign in with email: ${_emailController.text}');
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.signIn(
+          _emailController.text, _passwordController.text);
+
+      if (authProvider.error != null) {
+        print('SignIn: Error during sign in: ${authProvider.error}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authProvider.error!)),
+        );
+        return;
+      }
+
+      print('SignIn: Successfully signed in, getting user profile');
+      // Get user profile from Firestore
+      final userProfile = await authProvider.getUserProfile();
+      if (userProfile == null) {
+        print('SignIn: Failed to get user profile');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to get user profile')),
+        );
+        return;
+      }
+
+      print('SignIn: User profile retrieved: $userProfile');
+
+      // Safely extract user type and verification status with null checks
+      final bool isFarmer = userProfile['isFarmer'] == true;
+      final bool isVerified = userProfile['isVerified'] == true;
+
+      print('SignIn: User type - isFarmer: $isFarmer, isVerified: $isVerified');
+
+      if (!mounted) return;
+
+      // Navigate to appropriate dashboard based on user type
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (context) => isFarmer
@@ -129,12 +180,82 @@ class _AuthScreenState extends State<AuthScreen>
         ),
         (route) => false,
       );
-    } else {
-      // For new users signing up, continue to user type selection
-      Navigator.of(context).push(
+    } catch (e) {
+      print('SignIn error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('An error occurred during sign in: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _handleSignUp() async {
+    if (_emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.register(
+        _emailController.text,
+        _passwordController.text,
+        isFarmer: _isFarmer,
+      );
+
+      if (authProvider.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authProvider.error!)),
+        );
+        return;
+      }
+
+      // Get user profile from Firestore
+      final userProfile = await authProvider.getUserProfile();
+      if (userProfile == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to get user profile')),
+        );
+        return;
+      }
+
+      // Safely extract user type and verification status
+      final bool isFarmer = userProfile['isFarmer'] == true;
+      final bool isVerified = userProfile['isVerified'] == true;
+
+      if (!mounted) return;
+
+      // Navigate to appropriate dashboard based on user type
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => const UserTypeSelectionScreen(),
+          builder: (context) => isFarmer
+              ? DashboardScreen(
+                  isFarmer: isFarmer,
+                  isVerified: isVerified,
+                )
+              : BuyerDashboardScreen(
+                  isFarmer: isFarmer,
+                  isVerified: isVerified,
+                ),
         ),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
       );
     }
   }
@@ -465,6 +586,160 @@ class _AuthScreenState extends State<AuthScreen>
                                   SizedBox(height: 24),
 
                                   // Email field
+                                  if (!isSignIn) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16, horizontal: 20),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2C2C2C),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: const Color(0xFF3D3D3D),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Account Type',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Expanded(
+                                                child: InkWell(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _isFarmer = false;
+                                                    });
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        vertical: 12),
+                                                    decoration: BoxDecoration(
+                                                      color: !_isFarmer
+                                                          ? const Color(
+                                                              0xFF594FD1)
+                                                          : Colors.transparent,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
+                                                      border: Border.all(
+                                                        color: !_isFarmer
+                                                            ? const Color(
+                                                                0xFF594FD1)
+                                                            : const Color(
+                                                                0xFF3D3D3D),
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .shopping_cart_outlined,
+                                                          color: !_isFarmer
+                                                              ? Colors.white
+                                                              : Colors.white70,
+                                                          size: 20,
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 8),
+                                                        Text(
+                                                          'Buyer',
+                                                          style: GoogleFonts
+                                                              .poppins(
+                                                            color: !_isFarmer
+                                                                ? Colors.white
+                                                                : Colors
+                                                                    .white70,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: InkWell(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _isFarmer = true;
+                                                    });
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        vertical: 12),
+                                                    decoration: BoxDecoration(
+                                                      color: _isFarmer
+                                                          ? const Color(
+                                                              0xFF594FD1)
+                                                          : Colors.transparent,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
+                                                      border: Border.all(
+                                                        color: _isFarmer
+                                                            ? const Color(
+                                                                0xFF594FD1)
+                                                            : const Color(
+                                                                0xFF3D3D3D),
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .agriculture_outlined,
+                                                          color: _isFarmer
+                                                              ? Colors.white
+                                                              : Colors.white70,
+                                                          size: 20,
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 8),
+                                                        Text(
+                                                          'Farmer',
+                                                          style: GoogleFonts
+                                                              .poppins(
+                                                            color: _isFarmer
+                                                                ? Colors.white
+                                                                : Colors
+                                                                    .white70,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
                                   _buildTextField(
                                     label: 'Email Address',
                                     controller: _emailController,
@@ -489,6 +764,20 @@ class _AuthScreenState extends State<AuthScreen>
 
                                   // Additional fields for sign up
                                   if (!isSignIn) ...[
+                                    SizedBox(height: 16),
+                                    _buildTextField(
+                                      label: 'Confirm Password',
+                                      controller: _confirmPasswordController,
+                                      icon: Icons.lock_outline,
+                                      isPassword: true,
+                                      isVisible: _confirmPasswordVisible,
+                                      onVisibilityToggle: () {
+                                        setState(() {
+                                          _confirmPasswordVisible =
+                                              !_confirmPasswordVisible;
+                                        });
+                                      },
+                                    ),
                                     SizedBox(height: 16),
                                     _buildTextField(
                                       label: 'Username',
@@ -539,7 +828,50 @@ class _AuthScreenState extends State<AuthScreen>
                                         // Forgot password
                                         TextButton(
                                           onPressed: () {
-                                            // Handle forgot password
+                                            // Show forgot password dialog
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: Text(
+                                                  'Reset Password',
+                                                  style: GoogleFonts.poppins(
+                                                      fontWeight:
+                                                          FontWeight.w600),
+                                                ),
+                                                content: TextField(
+                                                  controller:
+                                                      TextEditingController(),
+                                                  decoration:
+                                                      const InputDecoration(
+                                                    labelText: 'Email Address',
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  ElevatedButton(
+                                                    onPressed: () async {
+                                                      // Implement password reset
+                                                      Navigator.pop(context);
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                              'Password reset email sent'),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: const Text('Reset'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
                                           },
                                           child: Text(
                                             'Forgot password?',
@@ -555,12 +887,14 @@ class _AuthScreenState extends State<AuthScreen>
 
                                   SizedBox(height: 32),
 
-                                  // Sign in button
+                                  // Sign in/up button
                                   SizedBox(
                                     width: double.infinity,
                                     height: 48,
                                     child: ElevatedButton(
-                                      onPressed: _handleSignIn,
+                                      onPressed: isSignIn
+                                          ? _handleSignIn
+                                          : _handleSignUp,
                                       style: ElevatedButton.styleFrom(
                                         foregroundColor: Colors.white,
                                         backgroundColor: Color(0xFF594FD1),
@@ -649,6 +983,7 @@ class _UserTypeSelectionScreenState extends State<UserTypeSelectionScreen>
 
   late AnimationController _animationController;
   late Animation<double> _cardAnimation;
+  bool _isFarmer = false;
 
   @override
   void initState() {

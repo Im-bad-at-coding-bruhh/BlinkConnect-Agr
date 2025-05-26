@@ -8,6 +8,7 @@ import 'theme_provider.dart';
 import 'product_provider.dart';
 import '../Services/cart_service.dart';
 import '../Services/auth_service.dart';
+import '../Services/auth_provider.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -1575,7 +1576,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
             onPressed: () async {
               if (controller.text.isNotEmpty) {
                 try {
-                  // await _authService.changeUsername(controller.text);
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
+                  await authProvider.updateProfile(name: controller.text);
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -1643,33 +1646,35 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          //   ElevatedButton(
-          //     onPressed: () async {
-          //       if (newPasswordController.text ==
-          //           confirmPasswordController.text) {
-          //         try {
-          //           await _authService.changePassword(
-          //             currentPasswordController.text,
-          //             newPasswordController.text,
-          //           );
-          //           Navigator.pop(context);
-          //           ScaffoldMessenger.of(context).showSnackBar(
-          //             const SnackBar(
-          //                 content: Text('Password updated successfully')),
-          //           );
-          //         } catch (e) {
-          //           ScaffoldMessenger.of(context).showSnackBar(
-          //             SnackBar(content: Text(e.toString())),
-          //           );
-          //         }
-          //       } else {
-          //         ScaffoldMessenger.of(context).showSnackBar(
-          //           const SnackBar(content: Text('Passwords do not match')),
-          //         );
-          //       }
-          //     },
-          //     child: const Text('Update'),
-          //   ),
+          ElevatedButton(
+            onPressed: () async {
+              if (newPasswordController.text ==
+                  confirmPasswordController.text) {
+                try {
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
+                  await authProvider.changePassword(
+                    currentPasswordController.text,
+                    newPasswordController.text,
+                  );
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Password updated successfully')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.toString())),
+                  );
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Passwords do not match')),
+                );
+              }
+            },
+            child: const Text('Update'),
+          ),
         ],
       ),
     );
@@ -1692,9 +1697,10 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           ElevatedButton(
             onPressed: () async {
               try {
-                // await _authService.logout();
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.signOut();
                 Navigator.pop(context);
-                // Navigate to login screen
                 Navigator.pushReplacementNamed(context, '/login');
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
