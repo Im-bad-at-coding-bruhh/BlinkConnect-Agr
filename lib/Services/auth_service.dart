@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -31,10 +32,10 @@ class AuthService {
         // If document doesn't exist, create it with default values
         Map<String, dynamic> defaultData = {
           'email': currentUser!.email,
-          'isFarmer': false,
-          'isVerified': false,
+          'isActive': true,
+          'user_type': 'buyer',
+          'username': currentUser!.email?.split('@')[0] ?? 'user',
           'createdAt': FieldValue.serverTimestamp(),
-          'uid': currentUser!.uid,
         };
 
         await _firestore
@@ -62,9 +63,10 @@ class AuthService {
       // Ensure required fields exist with proper types
       final Map<String, dynamic> profileData = {
         'email': data['email'] ?? currentUser!.email,
-        'isFarmer': data['isFarmer'] == true,
-        'isVerified': data['isVerified'] == true,
-        'uid': currentUser!.uid,
+        'isActive': data['isActive'] == true,
+        'user_type': data['user_type'] ?? 'buyer',
+        'username':
+            data['username'] ?? currentUser!.email?.split('@')[0] ?? 'user',
       };
 
       return profileData;
@@ -92,6 +94,7 @@ class AuthService {
     String email,
     String password, {
     bool isFarmer = false,
+    String? username,
   }) async {
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -99,11 +102,13 @@ class AuthService {
         password: password,
       );
 
-      // Create user profile in Firestore
+      // Create user profile in Firestore with the required structure
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'email': email,
-        'isFarmer': isFarmer,
-        'isVerified': false,
+        'isActive': true,
+        'user_type': isFarmer ? 'farmer' : 'buyer',
+        'username': username ??
+            email.split('@')[0], // Use email prefix if username not provided
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -248,6 +253,100 @@ class AuthService {
       await _auth.signOut();
     } catch (e) {
       throw 'Failed to logout. Please try again.';
+    }
+  }
+
+  /// Sign in with Google
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      print('Starting Google Sign In process...');
+
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      print(
+          'Google Sign In result: ${googleUser != null ? 'Success' : 'Aborted'}');
+
+      if (googleUser == null) {
+        print('Google Sign In was aborted by user');
+        throw 'Google sign in was cancelled';
+      }
+
+      print('Getting Google auth details...');
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      print('Got Google auth details');
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      print('Created Firebase credential');
+
+      // Sign in to Firebase with the Google credential
+      print('Signing in to Firebase...');
+      final userCredential = await _auth.signInWithCredential(credential);
+      print('Successfully signed in to Firebase');
+
+      // Check if this is a new user
+      final isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
+      print('Is new user: $isNewUser');
+
+      if (isNewUser) {
+        print('Creating new user profile in Firestore...');
+        // Create user profile in Firestore for new users
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'email': userCredential.user!.email,
+          'isActive': true,
+          'user_type': 'buyer', // Default to buyer for Google sign-in
+          'username': userCredential.user!.displayName ??
+              userCredential.user!.email?.split('@')[0] ??
+              'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        print('New user profile created in Firestore');
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      print(
+          'Firebase Auth Error during Google Sign In: ${e.code} - ${e.message}');
+      String message;
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          message =
+              'An account already exists with the same email address but different sign-in credentials.';
+          break;
+        case 'invalid-credential':
+          message = 'The credential is invalid or has expired.';
+          break;
+        case 'operation-not-allowed':
+          message = 'Google Sign In is not enabled. Please contact support.';
+          break;
+        case 'user-disabled':
+          message = 'This user account has been disabled.';
+          break;
+        case 'user-not-found':
+          message = 'No user found with this email.';
+          break;
+        case 'wrong-password':
+          message = 'Wrong password provided.';
+          break;
+        case 'invalid-verification-code':
+          message = 'The verification code is invalid.';
+          break;
+        case 'invalid-verification-id':
+          message = 'The verification ID is invalid.';
+          break;
+        default:
+          message =
+              'An error occurred during Google Sign In. Please try again.';
+      }
+      throw message;
+    } catch (e) {
+      print('Error during Google Sign In: $e');
+      throw 'Failed to sign in with Google. Please try again.';
     }
   }
 }

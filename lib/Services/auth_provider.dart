@@ -41,7 +41,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> register(String email, String password,
-      {bool isFarmer = false}) async {
+      {bool isFarmer = false, String? username}) async {
     try {
       _isLoading = true;
       _error = null;
@@ -51,6 +51,7 @@ class AuthProvider with ChangeNotifier {
         email,
         password,
         isFarmer: isFarmer,
+        username: username,
       );
     } catch (e) {
       _error = e.toString();
@@ -163,6 +164,22 @@ class AuthProvider with ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return null;
+    }
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      await _authService.signInWithGoogle();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

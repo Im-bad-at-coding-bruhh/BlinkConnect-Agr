@@ -157,11 +157,12 @@ class _AuthScreenState extends State<AuthScreen>
 
       print('SignIn: User profile retrieved: $userProfile');
 
-      // Safely extract user type and verification status with null checks
-      final bool isFarmer = userProfile['isFarmer'] == true;
-      final bool isVerified = userProfile['isVerified'] == true;
+      // Check user_type from Firestore
+      final String userType = userProfile['user_type'] ?? 'buyer';
+      final bool isActive = userProfile['isActive'] == true;
+      final bool isFarmer = userType == 'farmer';
 
-      print('SignIn: User type - isFarmer: $isFarmer, isVerified: $isVerified');
+      print('SignIn: User type - isFarmer: $isFarmer, isActive: $isActive');
 
       if (!mounted) return;
 
@@ -171,11 +172,11 @@ class _AuthScreenState extends State<AuthScreen>
           builder: (context) => isFarmer
               ? DashboardScreen(
                   isFarmer: isFarmer,
-                  isVerified: isVerified,
+                  isVerified: isActive,
                 )
               : BuyerDashboardScreen(
                   isFarmer: isFarmer,
-                  isVerified: isVerified,
+                  isVerified: isActive,
                 ),
         ),
         (route) => false,
@@ -193,7 +194,8 @@ class _AuthScreenState extends State<AuthScreen>
   Future<void> _handleSignUp() async {
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
+        _confirmPasswordController.text.isEmpty ||
+        _usernameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -213,6 +215,7 @@ class _AuthScreenState extends State<AuthScreen>
         _emailController.text,
         _passwordController.text,
         isFarmer: _isFarmer,
+        username: _usernameController.text,
       );
 
       if (authProvider.error != null) {
@@ -231,9 +234,10 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
-      // Safely extract user type and verification status
-      final bool isFarmer = userProfile['isFarmer'] == true;
-      final bool isVerified = userProfile['isVerified'] == true;
+      // Check user_type from Firestore
+      final String userType = userProfile['user_type'] ?? 'buyer';
+      final bool isActive = userProfile['isActive'] == true;
+      final bool isFarmer = userType == 'farmer';
 
       if (!mounted) return;
 
@@ -243,11 +247,11 @@ class _AuthScreenState extends State<AuthScreen>
           builder: (context) => isFarmer
               ? DashboardScreen(
                   isFarmer: isFarmer,
-                  isVerified: isVerified,
+                  isVerified: isActive,
                 )
               : BuyerDashboardScreen(
                   isFarmer: isFarmer,
-                  isVerified: isVerified,
+                  isVerified: isActive,
                 ),
         ),
         (route) => false,
@@ -260,7 +264,7 @@ class _AuthScreenState extends State<AuthScreen>
     }
   }
 
-  void _handleSocialSignIn(String platform) {
+  Future<void> _handleSocialSignIn(String platform) async {
     if (isSignIn) {
       bool isFarmer = false;
       bool isVerified = false;
@@ -284,6 +288,62 @@ class _AuthScreenState extends State<AuthScreen>
         MaterialPageRoute(
           builder: (context) => const UserTypeSelectionScreen(),
         ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.signInWithGoogle();
+
+      if (authProvider.error != null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authProvider.error!)),
+        );
+        return;
+      }
+
+      // Get user profile from Firestore
+      final userProfile = await authProvider.getUserProfile();
+
+      if (!mounted) return;
+
+      if (userProfile == null) {
+        // New user - redirect to user type selection
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const UserTypeSelectionScreen(),
+          ),
+        );
+      } else {
+        // Existing user - check user type and redirect to appropriate dashboard
+        final String userType = userProfile['user_type'] ?? 'buyer';
+        final bool isFarmer = userType == 'farmer';
+        final bool isVerified = userProfile['isVerified'] ?? false;
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => isFarmer
+                ? DashboardScreen(
+                    isFarmer: isFarmer,
+                    isVerified: isVerified,
+                  )
+                : BuyerDashboardScreen(
+                    isFarmer: isFarmer,
+                    isVerified: isVerified,
+                  ),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'An error occurred during Google sign in: ${e.toString()}')),
       );
     }
   }
@@ -342,35 +402,39 @@ class _AuthScreenState extends State<AuthScreen>
     required VoidCallback onTap,
   }) {
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: const Color(0xFF3D3D3D),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFF3D3D3D),
+              ),
+              color: const Color(0xFF2C2C2C),
             ),
-            color: const Color(0xFF2C2C2C),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FaIcon(
-                icon,
-                size: 18,
-                color: Colors.white70,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: GoogleFonts.poppins(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FaIcon(
+                  icon,
+                  size: 18,
                   color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -537,22 +601,130 @@ class _AuthScreenState extends State<AuthScreen>
                                       _buildSocialButton(
                                         icon: FontAwesomeIcons.google,
                                         label: 'Google',
-                                        onTap: () =>
-                                            _handleSocialSignIn('google'),
+                                        onTap: () async {
+                                          // Show loading indicator
+                                          showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (context) => Center(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(20),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black87,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    const CircularProgressIndicator(
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                                  Color>(
+                                                              Color(
+                                                                  0xFF594FD1)),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      'Signing in with Google...',
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        color: Colors.white,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+
+                                          try {
+                                            await _handleGoogleSignIn();
+                                            if (!mounted) return;
+                                            Navigator.pop(
+                                                context); // Remove loading indicator
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            Navigator.pop(
+                                                context); // Remove loading indicator
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    'Failed to sign in with Google: ${e.toString()}'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        },
                                       ),
-                                      SizedBox(width: 16),
+                                      const SizedBox(width: 16),
                                       _buildSocialButton(
-                                        icon: FontAwesomeIcons.apple,
-                                        label: 'Apple',
-                                        onTap: () =>
-                                            _handleSocialSignIn('apple'),
-                                      ),
-                                      SizedBox(width: 16),
-                                      _buildSocialButton(
-                                        icon: FontAwesomeIcons.xTwitter,
-                                        label: 'X',
-                                        onTap: () =>
-                                            _handleSocialSignIn('twitter'),
+                                        icon: FontAwesomeIcons.facebook,
+                                        label: 'Facebook',
+                                        onTap: () async {
+                                          // Show loading indicator
+                                          showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (context) => Center(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(20),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black87,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    const CircularProgressIndicator(
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                                  Color>(
+                                                              Color(
+                                                                  0xFF594FD1)),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      'Signing in with Facebook...',
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        color: Colors.white,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+
+                                          try {
+                                            await _handleSocialSignIn(
+                                                'facebook');
+                                            if (!mounted) return;
+                                            Navigator.pop(
+                                                context); // Remove loading indicator
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            Navigator.pop(
+                                                context); // Remove loading indicator
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    'Failed to sign in with Facebook: ${e.toString()}'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        },
                                       ),
                                     ],
                                   ),

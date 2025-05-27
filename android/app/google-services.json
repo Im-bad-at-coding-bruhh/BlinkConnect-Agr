@@ -12,7 +12,20 @@
           "package_name": "com.BlinkConnect.com"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "486950115709-19denufru4rt3rsgpbo18vmt72kfchuv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.BlinkConnect.com",
+            "certificate_hash": "2b562d9b268718f9367cccb696b93c1980e92259"
+          }
+        },
+        {
+          "client_id": "486950115709-h2hal4h9fr11o46pr7072kj0crebtf0k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAjU2RkJm6mJiIMuwJtfWqt7NK0kUA62Ak"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "486950115709-h2hal4h9fr11o46pr7072kj0crebtf0k.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "486950115709-6qj4njl2sv0je287ua3a03d4i6g46b8o.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.BlinkConnect.apps"
+              }
+            }
+          ]
         }
       }
     }

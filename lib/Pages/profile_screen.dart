@@ -8,6 +8,7 @@ import 'community_screen.dart';
 import 'theme_provider.dart';
 import '../Services/auth_service.dart';
 import '../Services/auth_provider.dart';
+import 'signin_signup.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -738,9 +739,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 final authProvider =
                     Provider.of<AuthProvider>(context, listen: false);
                 await authProvider.signOut();
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/login');
+                if (!mounted) return;
+                Navigator.pop(context); // Close the dialog
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthScreen()),
+                  (route) => false,
+                );
               } catch (e) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(e.toString())),
                 );
