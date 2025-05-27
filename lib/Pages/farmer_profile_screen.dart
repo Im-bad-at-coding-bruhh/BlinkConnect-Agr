@@ -10,6 +10,7 @@ import '../Services/cart_service.dart';
 import '../Services/auth_service.dart';
 import '../Services/auth_provider.dart';
 import 'signin_signup.dart';
+import '../Models/product_model.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -512,7 +513,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
 
   Widget _buildProductsTab(bool isDarkMode) {
     final productProvider = Provider.of<ProductProvider>(context);
-    final products = productProvider.products;
+    final products = productProvider.farmerProducts;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -559,11 +560,17 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                               ),
                             ),
                             child: Center(
-                              child: Image.asset(
-                                product['image'],
-                                height: 120,
-                                fit: BoxFit.contain,
-                              ),
+                              child: product.images.isNotEmpty
+                                  ? Image.network(
+                                      product.images.first,
+                                      height: 120,
+                                      fit: BoxFit.contain,
+                                    )
+                                  : const Icon(
+                                      Icons.image_not_supported,
+                                      size: 48,
+                                      color: Colors.grey,
+                                    ),
                             ),
                           ),
                         ),
@@ -573,7 +580,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                product['name'] ?? 'Unnamed Product',
+                                product.productName,
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -584,7 +591,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '\$${product['price']?.toStringAsFixed(2) ?? '0.00'}',
+                                '\$${product.price.toStringAsFixed(2)}',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -595,7 +602,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                               Row(
                                 children: [
                                   Icon(
-                                    Icons.person,
+                                    Icons.location_on,
                                     size: 16,
                                     color: isDarkMode
                                         ? Colors.white70
@@ -603,7 +610,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    product['seller'] ?? 'Unknown Seller',
+                                    product.region,
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: isDarkMode
@@ -617,13 +624,15 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                               Row(
                                 children: [
                                   Icon(
-                                    Icons.star,
+                                    Icons.inventory_2,
                                     size: 16,
-                                    color: Colors.amber,
+                                    color: isDarkMode
+                                        ? Colors.white70
+                                        : Colors.black54,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    product['rating']?.toString() ?? '0.0',
+                                    '${product.quantity} ${product.unit}',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: isDarkMode
@@ -643,7 +652,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                       right: 8,
                       child: IconButton(
                         onPressed: () {
-                          productProvider.removeProduct(index);
+                          productProvider.deleteProduct(product.id);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Product removed successfully'),

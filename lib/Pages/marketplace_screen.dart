@@ -11,6 +11,8 @@ import 'farmer_profile_screen.dart';
 import 'dart:async';
 import '/Services/cart_service.dart';
 import 'cart_screen.dart';
+import 'product_provider.dart';
+import '../Models/product_model.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -21,7 +23,7 @@ class MarketplaceScreen extends StatefulWidget {
     Key? key,
     required this.isFarmer,
     required this.isVerified,
-    this.initialIndex = 0, // Default to 0 for Marketplace
+    this.initialIndex = 0,
   }) : super(key: key);
 
   @override
@@ -36,7 +38,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   TextEditingController _searchController = TextEditingController();
   Timer? _hoverTimer;
   bool _showQuickInfo = false;
-  Map<String, dynamic>? _hoveredProduct;
+  Product? _hoveredProduct;
 
   // Filter state variables
   double _minPrice = 0;
@@ -72,116 +74,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     'Seeds',
   ];
 
-  // All product list
-  final List<Map<String, dynamic>> _allProducts = [
-    {
-      'name': 'Apples 🍎',
-      'price': 2.99,
-      'image': 'assets/images/apple.png',
-      'seller': 'Green Farm',
-      'rating': 4.5,
-      'category': 'Fruits',
-      'region': 'North America',
-    },
-    {
-      'name': 'Strawberries 🍓',
-      'price': 4.99,
-      'image': 'assets/images/strawberry.png',
-      'seller': 'Berry Fields',
-      'rating': 4.3,
-      'category': 'Fruits',
-      'region': 'Europe',
-    },
-    {
-      'name': 'Carrots 🥕',
-      'price': 1.99,
-      'image': 'assets/images/carrot.png',
-      'seller': 'Green Valley',
-      'rating': 4.2,
-      'category': 'Vegetables',
-      'region': 'Asia',
-    },
-    {
-      'name': 'Broccoli 🥦',
-      'price': 2.49,
-      'image': 'assets/images/broccoli.png',
-      'seller': 'Fresh Greens',
-      'rating': 4.0,
-      'category': 'Vegetables',
-      'region': 'Europe',
-    },
-    {
-      'name': 'Wheat 🌾',
-      'price': 5.99,
-      'image': 'assets/images/wheat.png',
-      'seller': 'Golden Fields',
-      'rating': 4.6,
-      'category': 'Grains',
-      'region': 'North America',
-    },
-    {
-      'name': 'Tomatoes 🍅',
-      'price': 3.49,
-      'image': 'assets/images/tomato.png',
-      'seller': 'Red Farms',
-      'rating': 4.1,
-      'category': 'Vegetables',
-      'region': 'South America',
-    },
-    {
-      'name': 'Potatoes 🥔',
-      'price': 2.99,
-      'image': 'assets/images/potato.png',
-      'seller': 'Harvest Fields',
-      'rating': 4.4,
-      'category': 'Vegetables',
-      'region': 'Europe',
-    },
-    {
-      'name': 'Bananas 🍌',
-      'price': 1.79,
-      'image': 'assets/images/banana.png',
-      'seller': 'Tropical Farm',
-      'rating': 4.7,
-      'category': 'Fruits',
-      'region': 'South America',
-    },
-    {
-      'name': 'Corn 🌽',
-      'price': 3.99,
-      'image': 'assets/images/corn.png',
-      'seller': 'Sunrise Farms',
-      'rating': 4.3,
-      'category': 'Grains',
-      'region': 'Africa',
-    },
-    {
-      'name': 'Onions 🧅',
-      'price': 1.49,
-      'image': 'assets/images/onion.png',
-      'seller': 'Valley Farm',
-      'rating': 4.0,
-      'category': 'Vegetables',
-      'region': 'Asia',
-    },
-  ];
-
-  // Add cache for filtered products
-  List<Map<String, dynamic>>? _cachedFilteredProducts;
-  String? _lastSearchQuery;
-  String? _lastCategory;
-  String? _lastRegion;
-  double? _lastMinPrice;
-  double? _lastMaxPrice;
-
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _searchController.addListener(() {
-      setState(() {
-        _cachedFilteredProducts = null; // Clear cache when search text changes
-      });
+      setState(() {});
     });
     // Set system UI overlay style for status bar
     SystemChrome.setSystemUIOverlayStyle(
@@ -190,6 +88,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         statusBarIconBrightness: Brightness.light,
       ),
     );
+
+    // Load products when marketplace initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final productProvider =
+          Provider.of<ProductProvider>(context, listen: false);
+      productProvider.loadProducts();
+    });
   }
 
   @override
@@ -261,7 +166,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     });
   }
 
-  void _startHoverTimer(Map<String, dynamic> product) {
+  void _startHoverTimer(Product product) {
     _hoverTimer?.cancel();
     _hoverTimer = Timer(const Duration(seconds: 1), () {
       setState(() {
@@ -279,23 +184,23 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     });
   }
 
-  void _addToCart(Map<String, dynamic> product, int quantity) {
+  void _addToCart(Product product, int quantity) {
     try {
       if (quantity <= 0) {
         throw ArgumentError('Quantity must be greater than 0');
       }
 
-      if (product['price'] <= 0) {
+      if (product.price <= 0) {
         throw ArgumentError('Price must be greater than 0');
       }
 
       final cartService = Provider.of<CartService>(context, listen: false);
 
       final cartItem = CartItem(
-        name: product['name'],
-        pricePerKg: product['price'].toDouble(),
-        image: product['image'],
-        seller: product['seller'],
+        name: product.productName,
+        pricePerKg: product.price,
+        image: product.images.isNotEmpty ? product.images.first : '',
+        seller: product.farmerName,
         quantity: quantity,
       );
 
@@ -303,7 +208,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${product['name']} (${quantity}kg) added to cart'),
+          content: Text('${product.productName} (${quantity}kg) added to cart'),
           duration: const Duration(seconds: 2),
           action: SnackBarAction(
             label: 'View Cart',
@@ -333,42 +238,30 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   // Optimize the filtering method
-  List<Map<String, dynamic>> _getFilteredProducts() {
-    // Check if we can use cached results
-    if (_cachedFilteredProducts != null &&
-        _lastSearchQuery == _searchController.text &&
-        _lastCategory == _selectedCategory &&
-        _lastRegion == _selectedRegion &&
-        _lastMinPrice == _minPrice &&
-        _lastMaxPrice == _maxPrice) {
-      return _cachedFilteredProducts!;
-    }
-
+  List<Product> _getFilteredProducts(List<Product> products) {
     final String searchQuery = _searchController.text.toLowerCase();
     final bool hasSearchQuery = searchQuery.isNotEmpty;
 
-    // Single pass filtering
-    final filteredProducts = _allProducts.where((product) {
+    return products.where((product) {
       // Category filter
-      if (_selectedCategory != 'All' &&
-          product['category'] != _selectedCategory) {
+      if (_selectedCategory != 'All' && product.category != _selectedCategory) {
         return false;
       }
 
       // Price range filter
-      if (product['price'] < _minPrice || product['price'] > _maxPrice) {
+      if (product.price < _minPrice || product.price > _maxPrice) {
         return false;
       }
 
       // Region filter
-      if (_selectedRegion != 'All' && product['region'] != _selectedRegion) {
+      if (_selectedRegion != 'All' && product.region != _selectedRegion) {
         return false;
       }
 
       // Search filter (only if there's a search query)
       if (hasSearchQuery) {
-        final String name = product['name'].toString().toLowerCase();
-        final String seller = product['seller'].toString().toLowerCase();
+        final String name = product.productName.toLowerCase();
+        final String seller = product.farmerName.toLowerCase();
         if (!name.contains(searchQuery) && !seller.contains(searchQuery)) {
           return false;
         }
@@ -376,16 +269,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
       return true;
     }).toList();
-
-    // Cache the results
-    _cachedFilteredProducts = filteredProducts;
-    _lastSearchQuery = _searchController.text;
-    _lastCategory = _selectedCategory;
-    _lastRegion = _selectedRegion;
-    _lastMinPrice = _minPrice;
-    _lastMaxPrice = _maxPrice;
-
-    return filteredProducts;
   }
 
   // Clear cache when filters change
@@ -502,7 +385,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     _selectedRegion = 'All';
                     _minPriceController.text = '0';
                     _maxPriceController.text = '100';
-                    _cachedFilteredProducts = null; // Clear cache on reset
                   });
                   Navigator.pop(context);
                 },
@@ -514,9 +396,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  setState(() {
-                    _cachedFilteredProducts = null; // Clear cache on apply
-                  });
                   Navigator.pop(context);
                 },
                 child: const Text('Apply'),
@@ -880,93 +759,98 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   // All product section
   Widget _buildAllProductsSection(bool isDarkMode) {
-    final List<Map<String, dynamic>> filteredProducts = _getFilteredProducts();
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        final List<Product> filteredProducts =
+            _getFilteredProducts(productProvider.products);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'All Products',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-            ),
-            Text(
-              '${filteredProducts.length} items',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: isDarkMode ? Colors.white70 : Colors.black54,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (filteredProducts.isEmpty)
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? Colors.black.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.search_off_outlined,
-                    size: 60,
-                    color: isDarkMode ? Colors.white30 : Colors.black26,
-                  ),
-                ),
-                const SizedBox(height: 24),
                 Text(
-                  'No products found',
+                  'All Products',
                   style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 16),
                 Text(
-                  'Try adjusting your search or category',
+                  '${filteredProducts.length} items',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
-                    color: isDarkMode ? Colors.white54 : Colors.black45,
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
                   ),
                 ),
               ],
             ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _isSmallScreen ? 2 : 3,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.75,
-            ),
-            itemCount: filteredProducts.length,
-            itemBuilder: (context, index) {
-              final product = filteredProducts[index];
-              return _buildProductCard(isDarkMode, product);
-            },
-          ),
-      ],
+            const SizedBox(height: 16),
+            if (filteredProducts.isEmpty)
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? Colors.black.withOpacity(0.2)
+                            : Colors.white.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.search_off_outlined,
+                        size: 60,
+                        color: isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'No products found',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Try adjusting your search or category',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.white54 : Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: _isSmallScreen ? 2 : 3,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.75,
+                ),
+                itemCount: filteredProducts.length,
+                itemBuilder: (context, index) {
+                  final product = filteredProducts[index];
+                  return _buildProductCard(isDarkMode, product);
+                },
+              ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildProductCard(bool isDarkMode, Map<String, dynamic> product) {
+  Widget _buildProductCard(bool isDarkMode, Product product) {
     return MouseRegion(
       onEnter: (_) => _startHoverTimer(product),
       onExit: (_) => _cancelHoverTimer(),
@@ -1012,18 +896,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           top: Radius.circular(12),
                         ),
                       ),
-                      child: PageView.builder(
-                        itemCount: 3, // Assuming 3 images per product
-                        itemBuilder: (context, index) {
-                          return Center(
-                            child: Image.asset(
-                              product['image'],
+                      child: product.images.isNotEmpty
+                          ? Image.network(
+                              product.images.first,
                               height: 120,
                               fit: BoxFit.contain,
+                            )
+                          : const Center(
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                             ),
-                          );
-                        },
-                      ),
                     ),
                   ),
                   Padding(
@@ -1032,7 +917,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product['name'] ?? 'Unnamed Product',
+                          product.productName,
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1041,7 +926,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '\$${product['price']?.toStringAsFixed(2) ?? '0.00'}',
+                          '\$${product.price.toStringAsFixed(2)}',
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -1059,7 +944,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              product['seller'] ?? 'Unknown Seller',
+                              product.farmerName,
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 color: isDarkMode
@@ -1072,10 +957,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.star, size: 16, color: Colors.amber),
+                            Icon(
+                              Icons.location_on,
+                              size: 16,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              product['rating']?.toString() ?? '0.0',
+                              product.region,
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 color: isDarkMode
@@ -1112,19 +1002,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Region: ${product['region'] ?? 'N/A'}',
+                          'Region: ${product.region}',
                           style: GoogleFonts.poppins(color: Colors.white),
                         ),
                         Text(
-                          'Insecticides: ${product['insecticides'] ?? 'N/A'}',
+                          'Fertilizer: ${product.fertilizerType}',
                           style: GoogleFonts.poppins(color: Colors.white),
                         ),
                         Text(
-                          'Fertilizers: ${product['fertilizers'] ?? 'N/A'}',
+                          'Pesticide: ${product.pesticideType}',
                           style: GoogleFonts.poppins(color: Colors.white),
                         ),
                         Text(
-                          'Available Weight: ${product['weight'] ?? 'N/A'}',
+                          'Available: ${product.quantity} ${product.unit}',
                           style: GoogleFonts.poppins(color: Colors.white),
                         ),
                       ],
@@ -1138,31 +1028,28 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     );
   }
 
-  void _showProductDetails(Map<String, dynamic> product) {
+  void _showProductDetails(Product product) {
     final TextEditingController quantityController = TextEditingController(
       text: '1',
     );
-    double originalTotalPrice = product['price'] * 1; // Default quantity of 1
+    double originalTotalPrice = product.price * 1; // Default quantity of 1
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: Text(product['name']),
+            title: Text(product.productName),
             content: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Seller: ${product['seller']}'),
-                  Text('Price: \$${product['price']}/kg'),
-                  Text('Rating: ${product['rating']}'),
+                  Text('Seller: ${product.farmerName}'),
+                  Text('Price: \$${product.price}/kg'),
                   const SizedBox(height: 8),
                   const Text('Product Description:'),
-                  Text(
-                    product['description'] ?? 'No description available',
-                  ),
+                  Text(product.description),
                   const SizedBox(height: 16),
 
                   // Quantity Selection
@@ -1187,12 +1074,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             if (value.isEmpty) {
                               setState(() {
                                 quantityController.text = '1';
-                                originalTotalPrice = product['price'];
+                                originalTotalPrice = product.price;
                               });
                             } else {
                               setState(() {
                                 originalTotalPrice =
-                                    product['price'] * double.parse(value);
+                                    product.price * double.parse(value);
                               });
                             }
                           },
@@ -1217,20 +1104,22 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Close'),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  if (quantityController.text.isEmpty) {
-                    quantityController.text = '1';
-                  }
-                  _showNegotiationDialog(
-                    product,
-                    double.parse(quantityController.text),
-                    originalTotalPrice,
-                  );
-                },
-                child: const Text('Negotiate'),
-              ),
+              if (product.isNegotiable) ...[
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    if (quantityController.text.isEmpty) {
+                      quantityController.text = '1';
+                    }
+                    _showNegotiationDialog(
+                      product,
+                      double.parse(quantityController.text),
+                      originalTotalPrice,
+                    );
+                  },
+                  child: const Text('Negotiate'),
+                ),
+              ],
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
@@ -1248,7 +1137,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   void _showNegotiationDialog(
-    Map<String, dynamic> product,
+    Product product,
     double quantity,
     double originalTotalPrice,
   ) {
@@ -1265,7 +1154,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Product: ${product['name']}'),
+            Text('Product: ${product.productName}'),
             Text('Quantity: $quantity kg'),
             Text(
               'Original Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
@@ -1370,7 +1259,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Product: ${product['name']}'),
+                      Text('Product: ${product.productName}'),
                       Text('Quantity: $quantity kg'),
                       Text(
                         'Your Bid: \$${bidAmount.toStringAsFixed(2)}',
@@ -1399,15 +1288,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           bidAmount: bidAmount,
                           originalPrice: originalTotalPrice,
                         );
-                        Navigator.pop(
-                          context,
-                        ); // Close confirmation dialog
-                        Navigator.pop(
-                          context,
-                        ); // Close negotiation dialog
-                        Navigator.pop(
-                          context,
-                        ); // Close product details dialog
+                        Navigator.pop(context); // Close confirmation dialog
+                        Navigator.pop(context); // Close negotiation dialog
+                        Navigator.pop(context); // Close product details dialog
                       },
                       child: const Text('Send Bid'),
                     ),
@@ -1423,7 +1306,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   void _submitBid({
-    required Map<String, dynamic> product,
+    required Product product,
     required double quantity,
     required double bidAmount,
     required double originalPrice,

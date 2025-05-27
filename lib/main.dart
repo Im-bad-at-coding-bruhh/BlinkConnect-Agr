@@ -6,6 +6,9 @@ import 'Services/cart_service.dart';
 import 'Pages/product_provider.dart';
 import 'Pages/splash_screen.dart';
 import 'Services/auth_provider.dart';
+import 'Pages/user_provider.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
@@ -38,6 +42,7 @@ class MyApp extends StatelessWidget {
           }
 
           return MaterialApp(
+            navigatorKey: navigatorKey,
             title: 'BlinkConnect',
             debugShowCheckedModeBanner: false,
             theme: themeProvider.lightTheme,

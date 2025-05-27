@@ -1,215 +1,228 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../Models/product_model.dart';
+import '../Models/negotiation_model.dart';
 
 class ProductService {
-  // final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Collection reference
-  // final CollectionReference _productsCollection =
-  //     FirebaseFirestore.instance.collection('products');
+  // Product Collection Reference
+  CollectionReference get _productsCollection =>
+      _firestore.collection('products');
+
+  // Negotiation Collection Reference
+  CollectionReference get _negotiationsCollection =>
+      _firestore.collection('negotiations');
 
   // Get all products
-  Stream<dynamic> getProducts() {
-    // return _productsCollection
-    //     .orderBy('createdAt', descending: true)
-    //     .snapshots();
-    return Stream.empty();
+  Stream<List<Product>> getProducts() {
+    return _productsCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
   }
 
   // Get products by category
-  Stream<dynamic> getProductsByCategory(String category) {
-    // return _productsCollection
-    //     .where('category', isEqualTo: category)
-    //     .orderBy('createdAt', descending: true)
-    //     .snapshots();
-    return Stream.empty();
-  }
-
-  // Search products
-  Stream<dynamic> searchProducts(String query) {
-    // String searchQuery = query.toLowerCase();
-    // return _productsCollection
-    //     .where('searchKeywords', arrayContains: searchQuery)
-    //     .orderBy('createdAt', descending: true)
-    //     .snapshots();
-    return Stream.empty();
+  Stream<List<Product>> getProductsByCategory(String category) {
+    return _productsCollection
+        .where('category', isEqualTo: category)
+        .where('status', isEqualTo: 'available')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
   }
 
   // Get farmer's products
-  Stream<dynamic> getFarmerProducts(String farmerId) {
-    // return _productsCollection
-    //     .where('farmerId', isEqualTo: farmerId)
-    //     .orderBy('createdAt', descending: true)
-    //     .snapshots();
-    return Stream.empty();
+  Stream<List<Product>> getFarmerProducts(String farmerId) {
+    return _productsCollection
+        .where('farmerId', isEqualTo: farmerId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
   }
 
-  // Add a new product
-  Future<void> addProduct({
-    required String name,
-    required double price,
-    required String description,
+  // Create a new product
+  Future<Product> createProduct({
     required String farmerId,
     required String farmerName,
-    required File image,
+    required String productName,
     required String category,
-    List<String>? tags,
+    required String description,
+    required double price,
+    required String region,
+    required List<String> images,
+    required double quantity,
+    required String unit,
+    required bool isNegotiable,
+    required String fertilizerType,
+    required String pesticideType,
   }) async {
-    // try {
-    //   // Upload image to Firebase Storage
-    //   String imageUrl = await _uploadImage(image);
+    try {
+      final now = DateTime.now();
+      final product = Product(
+        id: '', // Will be set by Firestore
+        farmerId: farmerId,
+        farmerName: farmerName,
+        productName: productName,
+        category: category,
+        description: description,
+        price: price,
+        currentPrice: price,
+        region: region,
+        status: 'available',
+        createdAt: now,
+        updatedAt: now,
+        images: images,
+        quantity: quantity,
+        unit: unit,
+        isNegotiable: isNegotiable,
+        fertilizerType: fertilizerType,
+        pesticideType: pesticideType,
+      );
 
-    //   // Generate search keywords
-    //   List<String> searchKeywords =
-    //       _generateSearchKeywords(name, description, category, tags);
-
-    //   // Add product to Firestore
-    //   await _productsCollection.add({
-    //     'name': name,
-    //     'price': price,
-    //     'description': description,
-    //     'farmerId': farmerId,
-    //     'farmerName': farmerName,
-    //     'imageUrl': imageUrl,
-    //     'category': category,
-    //     'tags': tags ?? [],
-    //     'searchKeywords': searchKeywords,
-    //     'rating': 0.0,
-    //     'totalRatings': 0,
-    //     'createdAt': FieldValue.serverTimestamp(),
-    //     'updatedAt': FieldValue.serverTimestamp(),
-    //   });
-    // } catch (e) {
-    //   throw 'Failed to add product. Please try again.';
-    // }
+      final docRef = await _productsCollection.add(product.toMap());
+      return product.copyWith(id: docRef.id);
+    } catch (e) {
+      throw 'Failed to create product: $e';
+    }
   }
 
   // Update a product
-  Future<void> updateProduct({
-    required String productId,
-    String? name,
-    double? price,
-    String? description,
-    File? image,
-    String? category,
-    List<String>? tags,
-  }) async {
-    // try {
-    //   Map<String, dynamic> updateData = {};
-
-    //   if (name != null) updateData['name'] = name;
-    //   if (price != null) updateData['price'] = price;
-    //   if (description != null) updateData['description'] = description;
-    //   if (category != null) updateData['category'] = category;
-    //   if (tags != null) updateData['tags'] = tags;
-
-    //   if (name != null ||
-    //       description != null ||
-    //       category != null ||
-    //       tags != null) {
-    //     updateData['searchKeywords'] = _generateSearchKeywords(
-    //       name ?? '',
-    //       description ?? '',
-    //       category ?? '',
-    //       tags,
-    //     );
-    //   }
-
-    //   if (image != null) {
-    //     String imageUrl = await _uploadImage(image);
-    //     updateData['imageUrl'] = imageUrl;
-    //   }
-
-    //   updateData['updatedAt'] = FieldValue.serverTimestamp();
-
-    //   await _productsCollection.doc(productId).update(updateData);
-    // } catch (e) {
-    //   throw 'Failed to update product. Please try again.';
-    // }
+  Future<void> updateProduct(
+      String productId, Map<String, dynamic> data) async {
+    try {
+      await _productsCollection.doc(productId).update({
+        ...data,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw 'Failed to update product: $e';
+    }
   }
 
   // Delete a product
   Future<void> deleteProduct(String productId) async {
-    // try {
-    //   // Get product data to delete image
-    //   DocumentSnapshot doc = await _productsCollection.doc(productId).get();
-    //   Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-
-    //   if (data != null && data['imageUrl'] != null) {
-    //     // Delete image from storage
-    //     try {
-    //       await _storage.refFromURL(data['imageUrl']).delete();
-    //     } catch (e) {
-    //       print('Failed to delete product image: $e');
-    //     }
-    //   }
-
-    //   // Delete product document
-    //   await _productsCollection.doc(productId).delete();
-    // } catch (e) {
-    //   throw 'Failed to delete product. Please try again.';
-    // }
-  }
-
-  // Rate a product
-  Future<void> rateProduct(String productId, double rating) async {
-    // try {
-    //   DocumentSnapshot doc = await _productsCollection.doc(productId).get();
-    //   Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-
-    //   if (data == null) throw 'Product not found.';
-
-    //   double currentRating = data['rating'] ?? 0.0;
-    //   int totalRatings = data['totalRatings'] ?? 0;
-
-    //   double newRating =
-    //       ((currentRating * totalRatings) + rating) / (totalRatings + 1);
-
-    //   await _productsCollection.doc(productId).update({
-    //     'rating': newRating,
-    //     'totalRatings': totalRatings + 1,
-    //     'updatedAt': FieldValue.serverTimestamp(),
-    //   });
-    // } catch (e) {
-    //   throw 'Failed to rate product. Please try again.';
-    // }
-  }
-
-  // Upload image to Firebase Storage
-  Future<String> _uploadImage(File image) async {
-    // try {
-    //   String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-    //   Reference ref = _storage.ref().child('products/$fileName');
-
-    //   UploadTask uploadTask = ref.putFile(image);
-    //   TaskSnapshot taskSnapshot = await uploadTask;
-
-    //   return await taskSnapshot.ref.getDownloadURL();
-    // } catch (e) {
-    //   throw 'Failed to upload image. Please try again.';
-    // }
-    return '';
-  }
-
-  // Generate search keywords
-  List<String> _generateSearchKeywords(
-    String name,
-    String description,
-    String category,
-    List<String>? tags,
-  ) {
-    Set<String> keywords = {};
-
-    // Add name words
-    keywords.addAll(name.toLowerCase().split(' '));
-    keywords.addAll(description.toLowerCase().split(' '));
-    keywords.add(category.toLowerCase());
-    if (tags != null) {
-      keywords.addAll(tags.map((tag) => tag.toLowerCase()));
+    try {
+      await _productsCollection.doc(productId).delete();
+    } catch (e) {
+      throw 'Failed to delete product: $e';
     }
+  }
 
-    return keywords.toList();
+  // Get products by region
+  Stream<List<Product>> getProductsByRegion(String region) {
+    return _productsCollection
+        .where('region', isEqualTo: region)
+        .where('status', isEqualTo: 'available')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
+  // Search products
+  Stream<List<Product>> searchProducts(String query) {
+    String searchQuery = query.toLowerCase();
+    return _productsCollection
+        .where('productName', isGreaterThanOrEqualTo: searchQuery)
+        .where('productName', isLessThanOrEqualTo: searchQuery + '\uf8ff')
+        .where('status', isEqualTo: 'available')
+        .orderBy('productName')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
+  // Create a negotiation
+  Future<Negotiation> createNegotiation(Negotiation negotiation) async {
+    try {
+      final docRef = await _negotiationsCollection.add(negotiation.toMap());
+      return negotiation.copyWith(id: docRef.id);
+    } catch (e) {
+      throw 'Failed to create negotiation: $e';
+    }
+  }
+
+  // Get a negotiation by ID
+  Future<Negotiation?> getNegotiation(String negotiationId) async {
+    try {
+      final doc = await _negotiationsCollection.doc(negotiationId).get();
+      if (!doc.exists) return null;
+      return Negotiation.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    } catch (e) {
+      throw 'Failed to get negotiation: $e';
+    }
+  }
+
+  // Update negotiation status
+  Future<void> updateNegotiationStatus(
+      String negotiationId, String status) async {
+    try {
+      await _negotiationsCollection.doc(negotiationId).update({
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw 'Failed to update negotiation status: $e';
+    }
+  }
+
+  // Add message to negotiation
+  Future<void> addNegotiationMessage(
+      String negotiationId, NegotiationMessage message) async {
+    try {
+      await _negotiationsCollection.doc(negotiationId).update({
+        'messages': FieldValue.arrayUnion([message.toMap()]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw 'Failed to add negotiation message: $e';
+    }
+  }
+
+  // Get negotiations by buyer
+  Stream<List<Negotiation>> getNegotiationsByBuyer(String buyerId) {
+    return _negotiationsCollection
+        .where('buyerId', isEqualTo: buyerId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Negotiation.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
+  // Get negotiations by farmer
+  Stream<List<Negotiation>> getNegotiationsByFarmer(String farmerId) {
+    return _negotiationsCollection
+        .where('farmerId', isEqualTo: farmerId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Negotiation.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
+  // Update product price after negotiation
+  Future<void> updateProductPrice(String productId, double newPrice) async {
+    try {
+      await _productsCollection.doc(productId).update({
+        'currentPrice': newPrice,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw 'Failed to update product price: $e';
+    }
   }
 }

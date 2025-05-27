@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../Models/product_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddProductForm extends StatefulWidget {
   final bool isDarkMode;
   final String defaultDescription;
-  final Function(Map<String, dynamic>) onProductAdded;
+  final Function(Product) onProductAdded;
+  final String farmerId;
+  final String username;
 
   const AddProductForm({
     Key? key,
     required this.isDarkMode,
     required this.defaultDescription,
     required this.onProductAdded,
+    required this.farmerId,
+    required this.username,
   }) : super(key: key);
 
   @override
@@ -28,21 +34,41 @@ class _AddProductFormState extends State<AddProductForm> {
   String _selectedUnit = 'kg';
   List<String> _selectedImages = [];
   bool _useDefaultDescription = true;
-  String _selectedFertilizerType = 'Natural';
+  bool _isNegotiable = false;
+  String _selectedFertilizerType = 'None';
   String _selectedPesticideType = 'None';
-  String _selectedCategory = 'Fruits';
+  String _selectedCategory = 'Vegetables';
+  String _selectedRegion = 'Asia';
 
   final List<String> _units = ['kg', 'pound', 'gram'];
-  final List<String> _fertilizerTypes = ['Natural', 'Chemical', 'Mixed'];
-  final List<String> _pesticideTypes = ['None', 'Natural', 'Chemical', 'Mixed'];
+  final List<String> _fertilizerTypes = [
+    'None',
+    'Organic',
+    'Chemical',
+  ];
+  final List<String> _pesticideTypes = [
+    'None',
+    'Organic',
+    'Chemical',
+  ];
   final List<String> _categories = [
-    'Fruits',
     'Vegetables',
+    'Fruits',
     'Grains',
     'Dairy',
     'Meat',
-    'Seeds',
-    'Tools',
+    'Poultry',
+    'Seafood',
+    'Other',
+  ];
+  final List<String> _regions = [
+    'Asia',
+    'Africa',
+    'North America',
+    'South America',
+    'Antarctica',
+    'Europe',
+    'Australia',
   ];
 
   @override
@@ -79,20 +105,29 @@ class _AddProductFormState extends State<AddProductForm> {
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
-      final productData = {
-        'name': _nameController.text,
-        'price': double.parse(_priceController.text),
-        'quantity': _quantityController.text,
-        'unit': _selectedUnit,
-        'description': _descriptionController.text,
-        'images': _selectedImages,
-        'fertilizerType': _selectedFertilizerType,
-        'pesticideType': _selectedPesticideType,
-        'useDefaultDescription': _useDefaultDescription,
-        'category': _selectedCategory,
-      };
+      final now = DateTime.now();
+      final product = Product(
+        id: '', // This will be set by Firestore
+        farmerId: widget.farmerId,
+        farmerName: widget.username,
+        productName: _nameController.text,
+        category: _selectedCategory,
+        description: _descriptionController.text,
+        price: double.parse(_priceController.text),
+        currentPrice: double.parse(_priceController.text),
+        region: _selectedRegion,
+        status: 'available',
+        createdAt: now,
+        updatedAt: now,
+        images: _selectedImages,
+        quantity: double.parse(_quantityController.text),
+        unit: _selectedUnit,
+        isNegotiable: _isNegotiable,
+        fertilizerType: _selectedFertilizerType,
+        pesticideType: _selectedPesticideType,
+      );
 
-      widget.onProductAdded(productData);
+      widget.onProductAdded(product);
       Navigator.of(context).pop();
     }
   }
@@ -208,6 +243,9 @@ class _AddProductFormState extends State<AddProductForm> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a quantity';
                   }
+                  if (double.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
                   return null;
                 },
               ),
@@ -230,206 +268,27 @@ class _AddProductFormState extends State<AddProductForm> {
                     ),
                   ),
                 ),
-                items:
-                    _units.map((String unit) {
-                      return DropdownMenuItem<String>(
-                        value: unit,
-                        child: Text(
-                          unit,
-                          style: GoogleFonts.poppins(
-                            color:
-                                widget.isDarkMode
-                                    ? Colors.white
-                                    : Colors.black87,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
+                items: _units.map((unit) {
+                  return DropdownMenuItem(
+                    value: unit,
+                    child: Text(
+                      unit,
+                      style: GoogleFonts.poppins(
+                        color:
+                            widget.isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
                     setState(() {
-                      _selectedUnit = newValue;
+                      _selectedUnit = value;
                     });
                   }
                 },
               ),
               const SizedBox(height: 16),
-              Text(
-                'Fertilizer Type',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color:
-                      widget.isDarkMode
-                          ? Colors.black.withOpacity(0.2)
-                          : Colors.grey.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: widget.isDarkMode ? Colors.white24 : Colors.black12,
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedFertilizerType,
-                    isExpanded: true,
-                    dropdownColor:
-                        widget.isDarkMode
-                            ? const Color(0xFF1A1A2E)
-                            : Colors.white,
-                    style: TextStyle(
-                      color: widget.isDarkMode ? Colors.white : Colors.black87,
-                    ),
-                    icon: Icon(
-                      Icons.arrow_drop_down,
-                      color:
-                          widget.isDarkMode ? Colors.white70 : Colors.black54,
-                    ),
-                    items:
-                        _fertilizerTypes.map((String type) {
-                          return DropdownMenuItem<String>(
-                            value: type,
-                            child: Text(type),
-                          );
-                        }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedFertilizerType = newValue;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Pesticide Type',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color:
-                      widget.isDarkMode
-                          ? Colors.black.withOpacity(0.2)
-                          : Colors.grey.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: widget.isDarkMode ? Colors.white24 : Colors.black12,
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedPesticideType,
-                    isExpanded: true,
-                    dropdownColor:
-                        widget.isDarkMode
-                            ? const Color(0xFF1A1A2E)
-                            : Colors.white,
-                    style: TextStyle(
-                      color: widget.isDarkMode ? Colors.white : Colors.black87,
-                    ),
-                    icon: Icon(
-                      Icons.arrow_drop_down,
-                      color:
-                          widget.isDarkMode ? Colors.white70 : Colors.black54,
-                    ),
-                    items:
-                        _pesticideTypes.map((String type) {
-                          return DropdownMenuItem<String>(
-                            value: type,
-                            child: Text(type),
-                          );
-                        }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedPesticideType = newValue;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (widget.defaultDescription != null)
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _useDefaultDescription,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _useDefaultDescription = value ?? false;
-                          if (_useDefaultDescription) {
-                            _descriptionController.text =
-                                widget.defaultDescription!;
-                          } else {
-                            _descriptionController.clear();
-                          }
-                        });
-                      },
-                    ),
-                    Text(
-                      'Use default description',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color:
-                            widget.isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              if (!_useDefaultDescription || widget.defaultDescription == null)
-                TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Description',
-                    labelStyle: GoogleFonts.poppins(
-                      color:
-                          widget.isDarkMode ? Colors.white70 : Colors.black54,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color:
-                            widget.isDarkMode ? Colors.white30 : Colors.black26,
-                      ),
-                    ),
-                  ),
-                  style: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                  validator: (value) {
-                    if (!_useDefaultDescription &&
-                        (value == null || value.isEmpty)) {
-                      return 'Please enter a description';
-                    }
-                    return null;
-                  },
-                ),
-              const SizedBox(height: 16),
-              Text(
-                'Category',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 decoration: InputDecoration(
@@ -448,122 +307,191 @@ class _AddProductFormState extends State<AddProductForm> {
                     ),
                   ),
                 ),
-                items:
-                    _categories.map((String category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(
-                          category,
-                          style: GoogleFonts.poppins(
-                            color:
-                                widget.isDarkMode
-                                    ? Colors.white
-                                    : Colors.black87,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
+                items: _categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(
+                      category,
+                      style: GoogleFonts.poppins(
+                        color:
+                            widget.isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
                     setState(() {
-                      _selectedCategory = newValue;
+                      _selectedCategory = value;
                     });
                   }
                 },
               ),
               const SizedBox(height: 16),
-              Text(
-                'Product Images',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color:
-                            widget.isDarkMode
-                                ? Colors.black.withOpacity(0.3)
-                                : Colors.grey.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color:
-                              widget.isDarkMode
-                                  ? Colors.white24
-                                  : Colors.black12,
-                          width: 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.add_a_photo,
-                          size: 28,
-                          color:
-                              widget.isDarkMode
-                                  ? Colors.white70
-                                  : Colors.black54,
-                        ),
-                      ),
+              DropdownButtonFormField<String>(
+                value: _selectedRegion,
+                decoration: InputDecoration(
+                  labelText: 'Region',
+                  labelStyle: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color:
+                          widget.isDarkMode ? Colors.white30 : Colors.black26,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  if (_selectedImages.isNotEmpty)
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children:
-                              _selectedImages.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final image = entry.value;
-                                return Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  width: 100,
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    image: DecorationImage(
-                                      image: FileImage(File(image)),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      Positioned(
-                                        right: 0,
-                                        top: 0,
-                                        child: IconButton(
-                                          icon: Icon(
-                                            Icons.close,
-                                            color:
-                                                widget.isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black87,
-                                            size: 20,
-                                          ),
-                                          onPressed: () => _removeImage(index),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                        ),
+                ),
+                items: _regions.map((region) {
+                  return DropdownMenuItem(
+                    value: region,
+                    child: Text(
+                      region,
+                      style: GoogleFonts.poppins(
+                        color:
+                            widget.isDarkMode ? Colors.white : Colors.black87,
                       ),
                     ),
-                ],
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedRegion = value;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedFertilizerType,
+                decoration: InputDecoration(
+                  labelText: 'Fertilizer Type',
+                  labelStyle: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color:
+                          widget.isDarkMode ? Colors.white30 : Colors.black26,
+                    ),
+                  ),
+                ),
+                items: _fertilizerTypes.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(
+                      type,
+                      style: GoogleFonts.poppins(
+                        color:
+                            widget.isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedFertilizerType = value;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedPesticideType,
+                decoration: InputDecoration(
+                  labelText: 'Pesticide Type',
+                  labelStyle: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color:
+                          widget.isDarkMode ? Colors.white30 : Colors.black26,
+                    ),
+                  ),
+                ),
+                items: _pesticideTypes.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(
+                      type,
+                      style: GoogleFonts.poppins(
+                        color:
+                            widget.isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedPesticideType = value;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: Text(
+                  'Allow Negotiation',
+                  style: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                value: _isNegotiable,
+                onChanged: (value) {
+                  setState(() {
+                    _isNegotiable = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color:
+                          widget.isDarkMode ? Colors.white30 : Colors.black26,
+                    ),
+                  ),
+                ),
+                style: GoogleFonts.poppins(
+                  color: widget.isDarkMode ? Colors.white : Colors.black87,
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a description';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -575,7 +503,6 @@ class _AddProductFormState extends State<AddProductForm> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(

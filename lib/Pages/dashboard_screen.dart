@@ -9,6 +9,8 @@ import 'profile_screen.dart';
 import 'add_product_form.dart';
 import 'farmer_profile_screen.dart';
 import 'product_provider.dart';
+import '../Models/product_model.dart';
+import '../Services/auth_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -47,7 +49,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'November',
     'December',
   ];
-  List<Map<String, dynamic>> _myProducts = [];
 
   @override
   void initState() {
@@ -60,6 +61,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         statusBarIconBrightness: Brightness.light,
       ),
     );
+
+    // Load products when dashboard initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final productProvider =
+          Provider.of<ProductProvider>(context, listen: false);
+      productProvider.loadFarmerProducts();
+    });
   }
 
   @override
@@ -129,92 +137,135 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context) {
         final themeProvider = Provider.of<ThemeProvider>(context);
         final isDarkMode = themeProvider.isDarkMode;
+        final productProvider = Provider.of<ProductProvider>(context);
+        final products = productProvider.farmerProducts;
 
-        return Dialog(
-          backgroundColor: isDarkMode ? const Color(0xFF1A1A2E) : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'My Products',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_myProducts.isEmpty)
-                  Center(
-                    child: Text(
-                      'No products added yet',
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor:
+                  isDarkMode ? const Color(0xFF1A1A2E) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'My Products',
                       style: GoogleFonts.poppins(
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
                       ),
                     ),
-                  )
-                else
-                  SizedBox(
-                    height: 300,
-                    child: ListView.builder(
-                      itemCount: _myProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _myProducts[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isDarkMode
-                                ? Colors.black.withOpacity(0.2)
-                                : Colors.grey[100],
-                            borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 16),
+                    if (products.isEmpty)
+                      Center(
+                        child: Text(
+                          'No products added yet',
+                          style: GoogleFonts.poppins(
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product['title'],
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87,
-                                ),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 300,
+                        child: ListView.builder(
+                          itemCount: products.length,
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDarkMode
+                                    ? Colors.black.withOpacity(0.2)
+                                    : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '\$${product['price']}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: const Color(0xFF6C5DD3),
-                                ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.productName,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDarkMode
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '\$${product.price}',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            color: const Color(0xFF6C5DD3),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          product.description,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            color: isDarkMode
+                                                ? Colors.white70
+                                                : Colors.black54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    onPressed: () async {
+                                      try {
+                                        await productProvider
+                                            .deleteProduct(product.id);
+                                        setDialogState(
+                                            () {}); // Update dialog state
+                                        setState(
+                                            () {}); // Update main screen state
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Product deleted successfully'),
+                                          ),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Failed to delete product: $e'),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                product['description'],
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: isDarkMode
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -227,25 +278,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context) {
         final themeProvider = Provider.of<ThemeProvider>(context);
         final isDarkMode = themeProvider.isDarkMode;
+        final authProvider = Provider.of<AuthProvider>(context);
+        final productProvider = Provider.of<ProductProvider>(context);
 
         return AddProductForm(
           isDarkMode: isDarkMode,
-          defaultDescription:
-              'Naturally grown with organic fertilizers and no pesticides.',
-          onProductAdded: (productData) {
-            setState(() {
-              _myProducts.add({
-                'title': productData['name'],
-                'price': productData['price'],
-                'description': productData['description'],
-                'category': productData['category'],
-                'dateAdded': DateTime.now(),
-              });
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Product added successfully')),
-            );
+          defaultDescription: 'Fresh and organic produce from our farm.',
+          onProductAdded: (Product product) async {
+            try {
+              await productProvider.addProduct(product);
+              setState(() {}); // Update main screen state
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Product added successfully'),
+                ),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to add product: ${e.toString()}'),
+                ),
+              );
+            }
           },
+          farmerId: authProvider.user?.uid ?? '',
+          username: authProvider.user?.displayName ?? '',
         );
       },
     );
@@ -1151,165 +1208,295 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildMobileWishlist(bool isDarkMode) {
-    final productProvider = Provider.of<ProductProvider>(context);
-    final products = productProvider.products;
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        final products = productProvider.farmerProducts;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'MY PRODUCTS',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1,
-                color: isDarkMode ? Colors.white60 : Colors.grey[600],
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FarmerProfileScreen(
-                      isFarmer: widget.isFarmer,
-                      isVerified: widget.isVerified,
-                      initialIndex: 3,
-                      initialTabIndex: 1, // Products tab
-                    ),
-                  ),
-                );
-              },
-              child: Text(
-                'See All',
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF6C5DD3),
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: products
-                .map((product) => _buildProductItem(product, isDarkMode))
-                .toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProductItem(Map<String, dynamic> product, bool isDarkMode) {
-    return Container(
-      width: 200,
-      margin: const EdgeInsets.only(right: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 200,
-            decoration: BoxDecoration(
-              color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? Colors.black.withOpacity(0.3)
-                          : Colors.white.withOpacity(0.3),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12),
-                      ),
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        product['image'],
-                        height: 120,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+                Text(
+                  'MY PRODUCTS',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
+                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product['name'] ?? 'Unnamed Product',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode ? Colors.white : Colors.black87,
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FarmerProfileScreen(
+                          isFarmer: widget.isFarmer,
+                          isVerified: widget.isVerified,
+                          initialIndex: 3,
+                          initialTabIndex: 1, // Products tab
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '\$${product['price']?.toStringAsFixed(2) ?? '0.00'}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF6C5DD3),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person,
-                            size: 16,
-                            color: isDarkMode ? Colors.white70 : Colors.black54,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            product['seller'] ?? 'Unknown Seller',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color:
-                                  isDarkMode ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.star, size: 16, color: Colors.amber),
-                          const SizedBox(width: 4),
-                          Text(
-                            product['rating']?.toString() ?? '0.0',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color:
-                                  isDarkMode ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    );
+                  },
+                  child: Text(
+                    'See All',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF6C5DD3),
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            if (products.isEmpty)
+              Center(
+                child: Text(
+                  'No products added yet',
+                  style: GoogleFonts.poppins(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+              )
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: products
+                      .map((product) => _buildProductCard(product, isDarkMode))
+                      .toList(),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProductCard(Product product, bool isDarkMode) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
       ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: product.images.isNotEmpty
+                  ? Image.network(
+                      product.images.first,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 80,
+                          height: 80,
+                          color: isDarkMode ? Colors.white10 : Colors.black12,
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            color: isDarkMode ? Colors.white30 : Colors.black26,
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      width: 80,
+                      height: 80,
+                      color: isDarkMode ? Colors.white10 : Colors.black12,
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.productName,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${product.price.toStringAsFixed(2)}/kg',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: const Color(0xFF6C5DD3),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Available: ${product.quantity} ${product.unit}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Region: ${product.region}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  onPressed: () => _showEditProductDialog(product),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _showDeleteConfirmationDialog(product),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditProductDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+        final authProvider = Provider.of<AuthProvider>(context);
+        final productProvider = Provider.of<ProductProvider>(context);
+
+        return AddProductForm(
+          isDarkMode: isDarkMode,
+          defaultDescription: product.description,
+          onProductAdded: (Product updatedProduct) async {
+            try {
+              await productProvider.updateProduct(
+                product.copyWith(
+                  productName: updatedProduct.productName,
+                  description: updatedProduct.description,
+                  price: updatedProduct.price,
+                  currentPrice: updatedProduct.currentPrice,
+                  quantity: updatedProduct.quantity,
+                  unit: updatedProduct.unit,
+                  category: updatedProduct.category,
+                  region: updatedProduct.region,
+                  isNegotiable: updatedProduct.isNegotiable,
+                  fertilizerType: updatedProduct.fertilizerType,
+                  pesticideType: updatedProduct.pesticideType,
+                  images: updatedProduct.images,
+                  updatedAt: DateTime.now(),
+                ),
+              );
+              setState(() {}); // Update main screen state
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Product updated successfully'),
+                ),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to update product: ${e.toString()}'),
+                ),
+              );
+            }
+          },
+          farmerId: authProvider.user?.uid ?? '',
+          username: authProvider.user?.displayName ?? '',
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        final isDarkMode = themeProvider.isDarkMode;
+        final productProvider = Provider.of<ProductProvider>(context);
+
+        return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF1A1A2E) : Colors.white,
+          title: Text(
+            'Delete Product',
+            style: GoogleFonts.poppins(
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete ${product.productName}?',
+            style: GoogleFonts.poppins(
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  await productProvider.deleteProduct(product.id);
+                  Navigator.pop(context); // Close dialog
+                  setState(() {}); // Update main screen state
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Product deleted successfully'),
+                    ),
+                  );
+                } catch (e) {
+                  Navigator.pop(context); // Close dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text('Failed to delete product: ${e.toString()}'),
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                'Delete',
+                style: GoogleFonts.poppins(
+                  color: Colors.red,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:provider/provider.dart';
 import 'auth_service.dart';
+import '../Pages/user_provider.dart';
+import '../main.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
-  User? _user;
+  firebase_auth.User? _user;
   bool _isLoading = false;
   String? _error;
 
@@ -12,14 +15,29 @@ class AuthProvider with ChangeNotifier {
     _init();
   }
 
-  User? get user => _user;
+  firebase_auth.User? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
 
   void _init() {
-    _authService.authStateChanges.listen((User? user) {
+    _authService.authStateChanges.listen((firebase_auth.User? user) async {
       _user = user;
+      if (user != null) {
+        final profile = await _authService.getUserProfile();
+        if (profile != null) {
+          final userProvider = Provider.of<UserProvider>(
+            navigatorKey.currentContext!,
+            listen: false,
+          );
+          userProvider.setUser(User(
+            id: user.uid,
+            username: profile['username'] as String,
+            email: profile['email'] as String,
+            role: profile['user_type'] as String,
+          ));
+        }
+      }
       notifyListeners();
     });
   }
@@ -68,6 +86,11 @@ class AuthProvider with ChangeNotifier {
       _error = null;
       notifyListeners();
 
+      final userProvider = Provider.of<UserProvider>(
+        navigatorKey.currentContext!,
+        listen: false,
+      );
+      userProvider.clearUser();
       await _authService.signOut();
     } catch (e) {
       _error = e.toString();
