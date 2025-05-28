@@ -38,7 +38,6 @@ class _AddProductFormState extends State<AddProductForm> {
   String _selectedFertilizerType = 'None';
   String _selectedPesticideType = 'None';
   String _selectedCategory = 'Vegetables';
-  String _selectedRegion = 'Asia';
 
   final List<String> _units = ['kg', 'pound', 'gram'];
   final List<String> _fertilizerTypes = [
@@ -60,15 +59,6 @@ class _AddProductFormState extends State<AddProductForm> {
     'Poultry',
     'Seafood',
     'Other',
-  ];
-  final List<String> _regions = [
-    'Asia',
-    'Africa',
-    'North America',
-    'South America',
-    'Antarctica',
-    'Europe',
-    'Australia',
   ];
 
   @override
@@ -115,7 +105,7 @@ class _AddProductFormState extends State<AddProductForm> {
         description: _descriptionController.text,
         price: double.parse(_priceController.text),
         currentPrice: double.parse(_priceController.text),
-        region: _selectedRegion,
+        region: 'Default', // Set a default region
         status: 'available',
         createdAt: now,
         updatedAt: now,
@@ -155,6 +145,110 @@ class _AddProductFormState extends State<AddProductForm> {
                 ),
               ),
               const SizedBox(height: 24),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Product Images',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: widget.isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: _selectedImages.isEmpty
+                        ? Center(
+                            child: TextButton.icon(
+                              onPressed: _pickImage,
+                              icon: Icon(
+                                Icons.add_photo_alternate,
+                                color: widget.isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
+                              ),
+                              label: Text(
+                                'Add Images',
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _selectedImages.length + 1,
+                            itemBuilder: (context, index) {
+                              if (index == _selectedImages.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: TextButton.icon(
+                                    onPressed: _pickImage,
+                                    icon: Icon(
+                                      Icons.add_photo_alternate,
+                                      color: widget.isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                    ),
+                                    label: Text(
+                                      'Add More',
+                                      style: GoogleFonts.poppins(
+                                        color: widget.isDarkMode
+                                            ? Colors.white70
+                                            : Colors.black54,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        image: DecorationImage(
+                                          image: FileImage(
+                                              File(_selectedImages[index])),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.remove_circle,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () => _removeImage(index),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -323,45 +417,6 @@ class _AddProductFormState extends State<AddProductForm> {
                   if (value != null) {
                     setState(() {
                       _selectedCategory = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedRegion,
-                decoration: InputDecoration(
-                  labelText: 'Region',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                items: _regions.map((region) {
-                  return DropdownMenuItem(
-                    value: region,
-                    child: Text(
-                      region,
-                      style: GoogleFonts.poppins(
-                        color:
-                            widget.isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedRegion = value;
                     });
                   }
                 },

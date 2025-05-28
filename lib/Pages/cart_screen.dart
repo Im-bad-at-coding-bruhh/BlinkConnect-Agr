@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
 import '/Services/cart_service.dart';
+import 'dashboard_screen.dart';
+import 'buyer_dashboard.dart';
 
 class CartScreen extends StatelessWidget {
   final bool isFarmer;
@@ -31,7 +33,24 @@ class CartScreen extends StatelessWidget {
                 Icons.arrow_back,
                 color: isDarkMode ? Colors.white : Colors.black,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => isFarmer
+                        ? DashboardScreen(
+                            isFarmer: isFarmer,
+                            isVerified: isVerified,
+                            initialIndex: 1,
+                          )
+                        : BuyerDashboardScreen(
+                            isFarmer: isFarmer,
+                            isVerified: isVerified,
+                            initialIndex: 1,
+                          ),
+                  ),
+                );
+              },
             ),
             title: Text(
               'Shopping Cart',

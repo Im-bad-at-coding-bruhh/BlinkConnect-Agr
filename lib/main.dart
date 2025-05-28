@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'Pages/theme_provider.dart';
 import 'Services/cart_service.dart';
-import 'Pages/product_provider.dart';
+import 'Services/product_provider.dart';
 import 'Pages/splash_screen.dart';
 import 'Services/auth_provider.dart';
 import 'Pages/user_provider.dart';

@@ -53,8 +53,8 @@ class Product {
       'currentPrice': currentPrice,
       'region': region,
       'status': status,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
       'images': images,
       'quantity': quantity,
       'unit': unit,
@@ -66,26 +66,36 @@ class Product {
 
   // Create Product from Map
   factory Product.fromMap(String id, Map<String, dynamic> map) {
-    return Product(
-      id: id,
-      farmerId: map['farmerId'] ?? '',
-      farmerName: map['farmerName'] ?? '',
-      productName: map['productName'] ?? '',
-      category: map['category'] ?? '',
-      description: map['description'] ?? '',
-      price: (map['price'] ?? 0.0).toDouble(),
-      currentPrice: (map['currentPrice'] ?? 0.0).toDouble(),
-      region: map['region'] ?? '',
-      status: map['status'] ?? 'available',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
-      images: List<String>.from(map['images'] ?? []),
-      quantity: (map['quantity'] ?? 0.0).toDouble(),
-      unit: map['unit'] ?? '',
-      isNegotiable: map['isNegotiable'] ?? false,
-      fertilizerType: map['fertilizerType'] ?? 'None',
-      pesticideType: map['pesticideType'] ?? 'None',
-    );
+    print('Converting map to product: $map'); // Debug print
+    try {
+      return Product(
+        id: id,
+        farmerId: map['farmerId'] ?? '',
+        farmerName: map['farmerName'] ?? '',
+        productName: map['productName'] ?? '',
+        category: map['category'] ?? '',
+        description: map['description'] ?? '',
+        price: (map['price'] ?? 0.0).toDouble(),
+        currentPrice: (map['currentPrice'] ?? 0.0).toDouble(),
+        region: map['region'] ?? '',
+        status: map['status'] ?? 'active',
+        createdAt: map['createdAt'] != null
+            ? DateTime.parse(map['createdAt'])
+            : DateTime.now(),
+        updatedAt: map['updatedAt'] != null
+            ? DateTime.parse(map['updatedAt'])
+            : DateTime.now(),
+        images: List<String>.from(map['images'] ?? []),
+        quantity: (map['quantity'] ?? 0.0).toDouble(),
+        unit: map['unit'] ?? 'kg',
+        isNegotiable: map['isNegotiable'] ?? false,
+        fertilizerType: map['fertilizerType'] ?? '',
+        pesticideType: map['pesticideType'] ?? '',
+      );
+    } catch (e) {
+      print('Error converting map to product: $e'); // Debug print
+      rethrow;
+    }
   }
 
   // Create a copy of Product with some fields updated

@@ -20,27 +20,121 @@ class ProductProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  // Load all products
   Future<void> loadProducts() async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final snapshot = await _firestore.collection('products').get();
+      _products = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Product(
+          id: doc.id,
+          farmerId: data['farmerId'] ?? '',
+          farmerName: data['farmerName'] ?? '',
+          productName: data['productName'] ?? '',
+          description: data['description'] ?? '',
+          price: (data['price'] ?? 0.0).toDouble(),
+          quantity: (data['quantity'] ?? 0.0).toDouble(),
+          unit: data['unit'] ?? 'kg',
+          region: data['region'] ?? '',
+          images: List<String>.from(data['images'] ?? []),
+          isNegotiable: data['isNegotiable'] ?? false,
+          fertilizerType: data['fertilizerType'] ?? '',
+          pesticideType: data['pesticideType'] ?? '',
+          category: data['category'] ?? 'Other',
+          currentPrice:
+              (data['currentPrice'] ?? data['price'] ?? 0.0).toDouble(),
+          status: data['status'] ?? 'available',
+          createdAt: data['createdAt'] is Timestamp
+              ? (data['createdAt'] as Timestamp).toDate()
+              : DateTime.now(),
+          updatedAt: data['updatedAt'] is Timestamp
+              ? (data['updatedAt'] as Timestamp).toDate()
+              : DateTime.now(),
+        );
+      }).toList();
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      print('Error loading products: $e');
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Load farmer's products
+  Future<void> loadFarmerProducts() async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      final QuerySnapshot snapshot = await _firestore
-          .collection('products')
-          .orderBy('createdAt', descending: true)
-          .get();
+      final currentUser = _authService.currentUser;
+      if (currentUser == null) {
+        print('ProductProvider: No user logged in'); // Debug print
+        throw 'No user logged in';
+      }
 
-      _products = snapshot.docs
-          .map((doc) =>
-              Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+      print(
+          'ProductProvider: Loading products for user: ${currentUser.uid}'); // Debug print
+
+      // Clear existing products first
+      _farmerProducts = [];
+      notifyListeners();
+
+      // Get all products and filter in memory
+      final products = await _firestore.collection('products').get();
+
+      print(
+          'ProductProvider: Found ${products.docs.length} total products'); // Debug print
+
+      // Filter products by farmerId
+      final filteredDocs = products.docs.where((doc) {
+        final data = doc.data();
+        final isFarmerProduct = data['farmerId'] == currentUser.uid;
+        print(
+            'ProductProvider: Checking product ${doc.id} - farmerId: ${data['farmerId']}, isFarmerProduct: $isFarmerProduct'); // Debug print
+        return isFarmerProduct;
+      }).toList();
+
+      print(
+          'ProductProvider: Found ${filteredDocs.length} products for farmer'); // Debug print
+
+      // Convert to Product objects
+      _farmerProducts = filteredDocs
+          .map((doc) {
+            try {
+              final data = doc.data();
+              print(
+                  'ProductProvider: Converting product ${doc.id} - data: $data'); // Debug print
+              return Product.fromMap(doc.id, data);
+            } catch (e) {
+              print(
+                  'ProductProvider: Error converting document ${doc.id}: $e'); // Debug print
+              return null;
+            }
+          })
+          .whereType<Product>()
           .toList();
+
+      // Sort by createdAt in memory
+      _farmerProducts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      print(
+          'ProductProvider: Successfully loaded ${_farmerProducts.length} farmer products'); // Debug print
+      print(
+          'ProductProvider: Products: ${_farmerProducts.map((p) => p.productName).join(', ')}'); // Debug print
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _isLoading = false;
+      print(
+          'ProductProvider: Error loading farmer products: $e'); // Debug print
       _error = e.toString();
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -51,9 +145,16 @@ class ProductProvider with ChangeNotifier {
       _error = null;
       notifyListeners();
 
+      print(
+          'ProductProvider: Adding product: ${product.productName}'); // Debug print
+
+      // First add to Firestore
       final docRef =
           await _firestore.collection('products').add(product.toMap());
+      print(
+          'ProductProvider: Added product to Firestore with ID: ${docRef.id}'); // Debug print
 
+      // Create new product with Firestore ID
       final newProduct = Product(
         id: docRef.id,
         farmerId: product.farmerId,
@@ -75,10 +176,22 @@ class ProductProvider with ChangeNotifier {
         pesticideType: product.pesticideType,
       );
 
+      // Add to local lists
       _products.insert(0, newProduct);
+      if (product.farmerId == _authService.currentUser?.uid) {
+        _farmerProducts.insert(0, newProduct);
+      }
+
+      print(
+          'ProductProvider: Updated local lists - Total: ${_products.length}, Farmer: ${_farmerProducts.length}'); // Debug print
+
       _isLoading = false;
       notifyListeners();
+
+      // Reload farmer products to ensure everything is in sync
+      await loadFarmerProducts();
     } catch (e) {
+      print('ProductProvider: Error adding product: $e'); // Debug print
       _isLoading = false;
       _error = e.toString();
       notifyListeners();
@@ -116,13 +229,25 @@ class ProductProvider with ChangeNotifier {
       _error = null;
       notifyListeners();
 
+      print('Deleting product: $productId'); // Debug print
+
       await _firestore.collection('products').doc(productId).delete();
 
       _products.removeWhere((product) => product.id == productId);
+      _farmerProducts.removeWhere((product) => product.id == productId);
+
+      print('Product deleted successfully'); // Debug print
 
       _isLoading = false;
       notifyListeners();
+
+      // Reload both product lists to ensure everything is in sync
+      await Future.wait([
+        loadProducts(),
+        loadFarmerProducts(),
+      ]);
     } catch (e) {
+      print('Error deleting product: $e'); // Debug print
       _isLoading = false;
       _error = e.toString();
       notifyListeners();
@@ -162,30 +287,6 @@ class ProductProvider with ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
-      notifyListeners();
-    }
-  }
-
-  // Load farmer's products
-  Future<void> loadFarmerProducts() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final currentUser = _authService.currentUser;
-      if (currentUser == null) {
-        throw 'No user logged in';
-      }
-
-      _productService.getFarmerProducts(currentUser.uid).listen((products) {
-        _farmerProducts = products;
-        _isLoading = false;
-        notifyListeners();
-      });
-    } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
       notifyListeners();
     }
   }
@@ -250,33 +351,6 @@ class ProductProvider with ChangeNotifier {
         .collection('products')
         .where('category', isEqualTo: category)
         .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) =>
-                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
-  }
-
-  // Get products by region
-  Stream<List<Product>> getProductsByRegion(String region) {
-    return _firestore
-        .collection('products')
-        .where('region', isEqualTo: region)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) =>
-                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
-  }
-
-  // Search products
-  Stream<List<Product>> searchProducts(String query) {
-    return _firestore
-        .collection('products')
-        .orderBy('productName')
-        .startAt([query])
-        .endAt([query + '\uf8ff'])
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) =>

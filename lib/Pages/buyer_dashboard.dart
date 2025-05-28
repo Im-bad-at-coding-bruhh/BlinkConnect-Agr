@@ -8,6 +8,7 @@ import 'theme_provider.dart';
 import 'dart:async';
 import '/Services/cart_service.dart';
 import '/Pages/cart_screen.dart';
+import '/Pages/negotiation_screen.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -768,6 +769,25 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Close'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NegotiationScreen(
+                        productId: product['id'] ?? '',
+                        sellerId: product['sellerId'] ?? '',
+                        originalPrice: product['price'].toDouble(),
+                        productName: product['name'],
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6C5DD3),
+                ),
+                child: const Text('Negotiate'),
               ),
               ElevatedButton(
                 onPressed: () {

@@ -11,7 +11,7 @@ import 'farmer_profile_screen.dart';
 import 'dart:async';
 import '/Services/cart_service.dart';
 import 'cart_screen.dart';
-import 'product_provider.dart';
+import '../Services/product_provider.dart';
 import '../Models/product_model.dart';
 
 class MarketplaceScreen extends StatefulWidget {

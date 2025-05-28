@@ -405,18 +405,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icons.person_outline,
             'Personal Information',
             'Update your personal details',
+            onTap: () {
+              _showChangeUsernameDialog(context, isDarkMode);
+            },
           ),
           _buildSettingItem(
             isDarkMode,
             Icons.location_on_outlined,
             'Addresses',
             'Manage your delivery addresses',
+            onTap: () {
+              _showChangePasswordDialog(context, isDarkMode);
+            },
           ),
           _buildSettingItem(
             isDarkMode,
             Icons.payment_outlined,
             'Payment Methods',
             'Add or update payment methods',
+            onTap: () {
+              _showLogoutConfirmation(context, isDarkMode);
+            },
           ),
           _buildSettingItem(
             isDarkMode,
@@ -430,61 +439,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   builder: (context) => CartScreen(
                     isFarmer: widget.isFarmer,
                     isVerified: widget.isVerified,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildSettingItem(
-            isDarkMode,
-            Icons.notifications_outlined,
-            'Notifications',
-            'Manage your notification preferences',
-          ),
-          _buildSettingItem(
-            isDarkMode,
-            Icons.security_outlined,
-            'Security',
-            'Change password and security settings',
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(
-                    'Security Settings',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.person_outline),
-                        title: const Text('Change Username'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showChangeUsernameDialog(context, isDarkMode);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: const Text('Change Password'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showChangePasswordDialog(context, isDarkMode);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.logout, color: Colors.red),
-                        title: const Text('Logout',
-                            style: TextStyle(color: Colors.red)),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showLogoutConfirmation(context, isDarkMode);
-                        },
-                      ),
-                    ],
                   ),
                 ),
               );
