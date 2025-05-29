@@ -24,16 +24,25 @@ class ProductProvider with ChangeNotifier {
   Future<void> loadProducts() async {
     try {
       _isLoading = true;
+      _error = null;
       notifyListeners();
+
+      print('ProductProvider: Starting to load products...'); // Debug print
 
       final snapshot = await _firestore.collection('products').get();
       _products =
           snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
 
+      print(
+          'ProductProvider: Loaded ${_products.length} products'); // Debug print
+      print(
+          'ProductProvider: Products: ${_products.map((p) => p.productName).join(', ')}'); // Debug print
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       print('Error loading products: $e');
+      _error = e.toString();
       _isLoading = false;
       notifyListeners();
     }
@@ -141,8 +150,11 @@ class ProductProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Reload farmer products to ensure everything is in sync
-      await loadFarmerProducts();
+      // Reload both product lists to ensure everything is in sync
+      await Future.wait([
+        loadProducts(),
+        loadFarmerProducts(),
+      ]);
     } catch (e) {
       print('ProductProvider: Error adding product: $e'); // Debug print
       _isLoading = false;

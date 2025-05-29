@@ -58,7 +58,7 @@ class Negotiation {
   final String productName;
   final String status;
   final DateTime timestamp;
-  final Map<String, dynamic> messages;
+  final Map<String, Map<String, dynamic>> messages;
 
   Negotiation({
     required this.id,
@@ -72,26 +72,26 @@ class Negotiation {
     required this.productName,
     required this.status,
     required this.timestamp,
-    required this.messages,
+    this.messages = const {},
   });
 
   // Create Negotiation from Map
   factory Negotiation.fromMap(String id, Map<String, dynamic> map) {
     return Negotiation(
       id: id,
-      productId: map['productId'] ?? '',
-      sellerId: map['sellerId'] ?? '',
-      buyerId: map['buyerId'] ?? '',
-      buyerName: map['buyerName'] ?? '',
-      originalPrice: (map['originalPrice'] ?? 0.0).toDouble(),
-      bidAmount: (map['bidAmount'] ?? 0.0).toDouble(),
-      quantity: (map['quantity'] ?? 0.0).toDouble(),
+      productId: map['productId']?.toString() ?? '',
+      sellerId: map['sellerId']?.toString() ?? '',
+      buyerId: map['buyerId']?.toString() ?? '',
+      buyerName: map['buyerName']?.toString() ?? '',
+      originalPrice: (map['originalPrice'] as num?)?.toDouble() ?? 0.0,
+      bidAmount: (map['bidAmount'] as num?)?.toDouble() ?? 0.0,
+      quantity: (map['quantity'] as num?)?.toDouble() ?? 0.0,
       productName: map['productName'] ?? '',
-      status: map['status'] ?? 'pending',
-      timestamp: map['timestamp'] is Timestamp
-          ? (map['timestamp'] as Timestamp).toDate()
-          : DateTime.now(),
-      messages: Map<String, dynamic>.from(map['messages'] ?? {}),
+      status: map['status']?.toString() ?? 'pending',
+      timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      messages: (map['messages'] as Map<String, dynamic>?)?.map((key, value) =>
+              MapEntry(key, Map<String, dynamic>.from(value ?? {}))) ??
+          {},
     );
   }
 
@@ -131,7 +131,7 @@ class Negotiation {
     String? productName,
     String? status,
     DateTime? timestamp,
-    Map<String, dynamic>? messages,
+    Map<String, Map<String, dynamic>>? messages,
   }) {
     return Negotiation(
       id: id ?? this.id,

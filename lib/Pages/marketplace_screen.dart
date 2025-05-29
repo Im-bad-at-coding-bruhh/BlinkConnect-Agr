@@ -14,6 +14,9 @@ import 'cart_screen.dart';
 import '../Services/product_provider.dart';
 import '../Models/product_model.dart';
 import '../Services/negotiation_service.dart';
+import '../Models/cart_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -43,7 +46,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   // Filter state variables
   double _minPrice = 0;
-  double _maxPrice = 100;
+  double _maxPrice = double.infinity;
   String _selectedRegion = 'All';
   final List<String> _regions = const [
     'All',
@@ -61,7 +64,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     text: '0',
   );
   final TextEditingController _maxPriceController = TextEditingController(
-    text: '100',
+    text: '',
   );
 
   // Product categories
@@ -198,14 +201,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       final cartService = Provider.of<CartService>(context, listen: false);
 
       final cartItem = CartItem(
-        name: product.productName,
-        pricePerKg: product.price,
-        image: product.images.isNotEmpty ? product.images.first : '',
-        seller: product.farmerName,
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        productId: product.id,
+        productName: product.productName,
         quantity: quantity,
+        originalPrice: product.price,
+        negotiatedPrice: product.price,
+        negotiationId: '',
+        addedAt: DateTime.now(),
+        status: 'pending',
       );
 
-      cartService.addItem(cartItem);
+      cartService.addToCart(cartItem);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -242,20 +249,41 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   List<Product> _getFilteredProducts(List<Product> products) {
     final String searchQuery = _searchController.text.toLowerCase();
     final bool hasSearchQuery = searchQuery.isNotEmpty;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    return products.where((product) {
+    print('Filtering ${products.length} products'); // Debug print
+    print('Search query: $searchQuery'); // Debug print
+    print('Selected category: $_selectedCategory'); // Debug print
+    print(
+        'Price range: $_minPrice - ${_maxPrice == double.infinity ? "∞" : _maxPrice}'); // Debug print
+    print('Selected region: $_selectedRegion'); // Debug print
+    print('Current user ID: $currentUserId'); // Debug print
+
+    final filtered = products.where((product) {
+      // Filter out current farmer's products
+      if (widget.isFarmer && product.farmerId == currentUserId) {
+        print(
+            'Filtered out own product: ${product.productName}'); // Debug print
+        return false;
+      }
+
       // Category filter
       if (_selectedCategory != 'All' && product.category != _selectedCategory) {
+        print(
+            'Filtered out by category: ${product.productName}'); // Debug print
         return false;
       }
 
       // Price range filter
-      if (product.price < _minPrice || product.price > _maxPrice) {
+      if (product.price < _minPrice ||
+          (_maxPrice != double.infinity && product.price > _maxPrice)) {
+        print('Filtered out by price: ${product.productName}'); // Debug print
         return false;
       }
 
       // Region filter
       if (_selectedRegion != 'All' && product.region != _selectedRegion) {
+        print('Filtered out by region: ${product.productName}'); // Debug print
         return false;
       }
 
@@ -264,12 +292,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         final String name = product.productName.toLowerCase();
         final String seller = product.farmerName.toLowerCase();
         if (!name.contains(searchQuery) && !seller.contains(searchQuery)) {
+          print(
+              'Filtered out by search: ${product.productName}'); // Debug print
           return false;
         }
       }
 
       return true;
     }).toList();
+
+    print('After filtering: ${filtered.length} products remain'); // Debug print
+    return filtered;
   }
 
   // Clear cache when filters change
@@ -303,9 +336,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           ),
                           onChanged: (value) {
                             final min = double.tryParse(value) ?? 0;
-                            final max =
-                                double.tryParse(_maxPriceController.text) ??
-                                    100;
+                            final max = _maxPriceController.text.isEmpty
+                                ? double.infinity
+                                : double.tryParse(_maxPriceController.text) ??
+                                    double.infinity;
                             if (min < max) {
                               setState(() {
                                 _minPrice = min;
@@ -332,7 +366,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (value) {
-                            final max = double.tryParse(value) ?? 100;
+                            final max = value.isEmpty
+                                ? double.infinity
+                                : double.tryParse(value) ?? double.infinity;
                             final min =
                                 double.tryParse(_minPriceController.text) ?? 0;
                             if (max > min) {
@@ -382,10 +418,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 onPressed: () {
                   setState(() {
                     _minPrice = 0;
-                    _maxPrice = 100;
+                    _maxPrice = double.infinity;
                     _selectedRegion = 'All';
                     _minPriceController.text = '0';
-                    _maxPriceController.text = '100';
+                    _maxPriceController.text = '';
                   });
                   Navigator.pop(context);
                 },
@@ -572,12 +608,33 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   ),
                 ],
               ),
-              IconButton(
-                icon: Icon(
-                  Icons.filter_list_rounded,
-                  color: const Color(0xFF6C5DD3),
-                ),
-                onPressed: _showFilterDialog,
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.shopping_cart_rounded,
+                      color: const Color(0xFF6C5DD3),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CartScreen(
+                            isFarmer: widget.isFarmer,
+                            isVerified: widget.isVerified,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.filter_list_rounded,
+                      color: const Color(0xFF6C5DD3),
+                    ),
+                    onPressed: _showFilterDialog,
+                  ),
+                ],
               ),
             ],
           ),
@@ -760,10 +817,51 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   // All product section
   Widget _buildAllProductsSection(bool isDarkMode) {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        final List<Product> filteredProducts =
-            _getFilteredProducts(productProvider.products);
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          print('StreamBuilder Error: ${snapshot.error}'); // Debug print
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        print(
+            'StreamBuilder: Received ${snapshot.data?.docs.length ?? 0} products'); // Debug print
+
+        final products = snapshot.data!.docs
+            .map((doc) {
+              try {
+                final product = Product.fromFirestore(doc);
+                print(
+                    'StreamBuilder: Loaded product: ${product.productName}'); // Debug print
+                return product;
+              } catch (e) {
+                print(
+                    'StreamBuilder: Error converting product: $e'); // Debug print
+                return null;
+              }
+            })
+            .whereType<Product>()
+            .toList();
+
+        print(
+            'StreamBuilder: Filtered ${products.length} products'); // Debug print
+
+        final List<Product> filteredProducts = _getFilteredProducts(products);
+
+        print(
+            'StreamBuilder: After filtering: ${filteredProducts.length} products'); // Debug print
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -835,9 +933,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: _isSmallScreen ? 2 : 3,
+                  childAspectRatio: 0.75,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 0.75,
                 ),
                 itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
@@ -1370,10 +1468,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           ? DashboardScreen(
                               isFarmer: widget.isFarmer,
                               isVerified: widget.isVerified,
+                              initialIndex: 0,
                             )
                           : BuyerDashboardScreen(
                               isFarmer: widget.isFarmer,
                               isVerified: widget.isVerified,
+                              initialIndex: 0,
                             ),
                     ),
                   );
@@ -1392,6 +1492,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       builder: (context) => MarketplaceScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
+                        initialIndex: 1,
                       ),
                     ),
                   );

@@ -11,6 +11,7 @@ import '/Pages/cart_screen.dart';
 import '/Pages/negotiation_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '/Services/negotiation_service.dart';
+import '../Models/cart_model.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -278,6 +279,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       builder: (context) => MarketplaceScreen(
                         isFarmer: widget.isFarmer,
                         isVerified: widget.isVerified,
+                        initialIndex: 1,
                       ),
                     ),
                   );
@@ -647,51 +649,73 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   void _addToCart(Map<String, dynamic> product) {
-    try {
-      final cartService = Provider.of<CartService>(
-        context,
-        listen: false,
-      );
+    final quantityController = TextEditingController(text: '1');
+    final cartService = Provider.of<CartService>(context, listen: false);
 
-      cartService.addItem(
-        CartItem(
-          name: product['name'],
-          pricePerKg: product['price'].toDouble(),
-          image: product['image'],
-          seller: product['seller'],
-          quantity: 1,
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add to Cart'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Product: ${product['name']}'),
+            Text('Price: \$${product['price']}'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: quantityController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${product['name']} (1kg) added to cart'),
-          duration: const Duration(seconds: 2),
-          action: SnackBarAction(
-            label: 'View Cart',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartScreen(
-                    isFarmer: widget.isFarmer,
-                    isVerified: widget.isVerified,
-                  ),
-                ),
-              );
-            },
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-        ),
-      );
-    } catch (e) {
-      debugPrint('Error adding to cart: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to add item to cart'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+          ElevatedButton(
+            onPressed: () {
+              final quantity = int.tryParse(quantityController.text);
+              if (quantity != null && quantity > 0) {
+                final cartItem = CartItem(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  productId: product['id']?.toString() ?? '',
+                  productName: product['name']?.toString() ?? '',
+                  quantity: quantity,
+                  originalPrice: (product['price'] ?? 0.0).toDouble(),
+                  negotiatedPrice: (product['price'] ?? 0.0).toDouble(),
+                  negotiationId: '',
+                  addedAt: DateTime.now(),
+                  status: 'pending',
+                );
+                cartService.addToCart(cartItem).then((_) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Added to cart successfully')),
+                  );
+                }).catchError((e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid quantity'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: const Text('Add to Cart'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showProductDetails(Map<String, dynamic> product) {
@@ -816,7 +840,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 child: const Text('Negotiate'),
               ),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final quantity = int.tryParse(quantityController.text) ?? 1;
                   if (quantity > 0) {
                     try {
@@ -824,15 +848,18 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                         context,
                         listen: false,
                       );
-                      cartService.addItem(
-                        CartItem(
-                          name: product['name'],
-                          pricePerKg: product['price'].toDouble(),
-                          image: product['image'],
-                          seller: product['seller'],
-                          quantity: quantity,
-                        ),
+                      final cartItem = CartItem(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        productId: product['id'] ?? '',
+                        productName: product['name'] ?? '',
+                        quantity: quantity,
+                        originalPrice: product['price'] ?? 0.0,
+                        negotiatedPrice: product['price'] ?? 0.0,
+                        negotiationId: '',
+                        addedAt: DateTime.now(),
+                        status: 'pending',
                       );
+                      await cartService.addToCart(cartItem);
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

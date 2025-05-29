@@ -1,12 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../Models/negotiation_model.dart';
-import '../Services/cart_service.dart';
-import '../Services/product_service.dart';
+import '../Models/cart_model.dart';
+import 'auth_service.dart';
+import 'cart_service.dart';
 
 class NegotiationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthService _authService = AuthService();
+  final CartService _cartService = CartService();
   final String _collection = 'negotiations';
 
   // Start a new negotiation
@@ -129,6 +132,15 @@ class NegotiationService {
       if (user == null)
         throw Exception('User must be logged in to create a bid');
 
+      final messageId = DateTime.now().millisecondsSinceEpoch.toString();
+      final messages = {
+        messageId: {
+          'message': 'Initial bid of \$$bidAmount for $quantity units',
+          'timestamp': Timestamp.now(),
+          'senderId': user.uid,
+        }
+      };
+
       final bid = Negotiation(
         id: '', // Will be set by Firestore
         productId: productId,
@@ -141,13 +153,7 @@ class NegotiationService {
         productName: productName,
         status: 'pending',
         timestamp: DateTime.now(),
-        messages: {
-          'initial': {
-            'message': 'Initial bid of \$$bidAmount for $quantity units',
-            'timestamp': Timestamp.now(),
-            'senderId': user.uid,
-          }
-        },
+        messages: messages,
       );
 
       // First add to seller's bids collection
@@ -228,113 +234,94 @@ class NegotiationService {
     String? message,
     double? counterAmount,
   }) async {
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) throw Exception('User not logged in');
+    final user = _authService.currentUser;
+    if (user == null) throw Exception('User not authenticated');
 
-    try {
-      // Get the bid document to check the status
-      final bidDoc = await _firestore
-          .collection('users')
-          .doc(currentUser.uid)
-          .collection('bids')
-          .doc(bidId)
-          .get();
+    final bidRef = _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('bids')
+        .doc(bidId);
 
-      if (!bidDoc.exists) {
-        throw Exception('Bid not found');
-      }
+    final bidDoc = await bidRef.get();
+    if (!bidDoc.exists) throw Exception('Bid not found');
 
-      final bid = Negotiation.fromFirestore(bidDoc);
-      if (bid.status != 'pending' && bid.status != 'countered') {
-        throw Exception(
-            'Cannot update bid status: Bid is already ${bid.status}');
-      }
+    final bid = Negotiation.fromMap(bidDoc.id, bidDoc.data()!);
+    final timestamp = Timestamp.now();
 
-      // Create a batch to update both users' collections
-      final batch = _firestore.batch();
+    // Create a new message entry
+    final newMessage = {
+      'senderId': user.uid,
+      'message': message ?? 'Bid ${status.toLowerCase()}',
+      'timestamp': timestamp,
+      if (counterAmount != null) 'price': counterAmount,
+    };
 
-      // Update seller's bid document
-      final sellerBidRef = _firestore
-          .collection('users')
-          .doc(bid.sellerId)
-          .collection('bids')
-          .doc(bidId);
+    // Generate a unique key for the new message
+    final messageKey = DateTime.now().millisecondsSinceEpoch.toString();
 
-      // Update buyer's bid document
-      final buyerBidRef = _firestore
-          .collection('users')
-          .doc(bid.buyerId)
-          .collection('bids')
-          .doc(bidId);
+    // Create a copy of the existing messages map and add the new message
+    final updatedMessages =
+        Map<String, Map<String, dynamic>>.from(bid.messages);
+    updatedMessages[messageKey] = newMessage;
 
-      // Prepare the update data
-      final updateData = {
-        'status': status,
-        'updatedAt': Timestamp.now(),
-      };
+    // Prepare update data
+    final updateData = {
+      'messages': updatedMessages,
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
 
-      // Add message if provided
-      if (message != null) {
-        final messageKey = 'message_${DateTime.now().millisecondsSinceEpoch}';
-        updateData['messages.$messageKey'] = {
-          'message': message,
-          'senderId': currentUser.uid,
-          'timestamp': Timestamp.now(),
-          if (counterAmount != null) 'price': counterAmount,
-        };
-      }
+    if (counterAmount != null) {
+      updateData['bidAmount'] = counterAmount;
+    }
 
-      // Update counter amount if provided
-      if (counterAmount != null) {
-        updateData['counterAmount'] = counterAmount;
-      }
+    // Create a batch write
+    final batch = _firestore.batch();
 
-      // Add to both collections
-      batch.update(sellerBidRef, updateData);
-      batch.update(buyerBidRef, updateData);
+    // Update both seller's and buyer's bid documents
+    final sellerBidRef = _firestore
+        .collection('users')
+        .doc(bid.sellerId)
+        .collection('bids')
+        .doc(bidId);
+    final buyerBidRef = _firestore
+        .collection('users')
+        .doc(bid.buyerId)
+        .collection('bids')
+        .doc(bidId);
 
-      // If the bid is accepted, add the product to the buyer's cart with special pricing
-      if (status == 'accepted') {
-        try {
-          final cartService = CartService();
-          final productService = ProductService();
+    batch.update(sellerBidRef, updateData);
+    batch.update(buyerBidRef, updateData);
 
-          // Get the product details
-          final product = await productService.getProduct(bid.productId);
-          if (product == null) {
-            throw Exception('Product not found');
-          }
+    // Commit the batch
+    await batch.commit();
 
-          // Calculate the final price (use counter amount if available, otherwise use bid amount)
-          final finalPrice = counterAmount ?? bid.bidAmount;
+    // If bid is accepted, add to cart
+    if (status == 'accepted') {
+      // Retrieve the potentially updated bid after status change
+      final acceptedBidDoc = await bidRef.get();
+      if (!acceptedBidDoc.exists)
+        throw Exception('Accepted bid not found after update');
+      final acceptedBid =
+          Negotiation.fromMap(acceptedBidDoc.id, acceptedBidDoc.data()!);
 
-          // Add to cart with special pricing
-          await cartService.addToCartWithSpecialPrice(
-            productId: bid.productId,
-            quantity: bid.quantity.toInt(),
-            specialPrice: finalPrice,
-            buyerId: bid.buyerId,
-          );
-
-          // Update product quantity
-          await productService.updateProduct(bid.productId, {
-            'quantity': FieldValue.increment(-bid.quantity),
-          });
-
-          print(
-              'Product added to cart successfully with special price: $finalPrice');
-        } catch (e) {
-          print('Error adding product to cart: $e');
-          // Don't rethrow the error to prevent the bid acceptance from failing
-          // Just log it and continue with the bid acceptance
-        }
-      }
-
-      // Commit the batch
-      await batch.commit();
-    } catch (e) {
-      print('Error updating bid status: $e');
-      rethrow;
+      final cartService = CartService();
+      await cartService.addToCart(
+        CartItem(
+          id: '',
+          productId: acceptedBid.productId,
+          productName: acceptedBid.productName,
+          quantity: acceptedBid.quantity.toInt(),
+          originalPrice: acceptedBid.originalPrice,
+          negotiatedPrice: counterAmount ?? acceptedBid.bidAmount,
+          negotiationId: acceptedBid.id,
+          addedAt: DateTime.now(),
+          status: 'pending',
+          negotiationMessage: message ??
+              'Accepted bid of \$${counterAmount ?? acceptedBid.bidAmount}',
+        ),
+      );
     }
   }
 }

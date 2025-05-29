@@ -81,6 +81,22 @@ class _AuthScreenState extends State<AuthScreen>
   bool _confirmPasswordVisible = false;
   bool _isFarmer = false;
 
+  // Helper method to validate and clean email
+  String? _validateAndCleanEmail(String email) {
+    if (email.isEmpty) return null;
+
+    // Trim whitespace
+    final cleanedEmail = email.trim();
+
+    // Basic email validation regex
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(cleanedEmail)) {
+      return 'Please enter a valid email address';
+    }
+
+    return cleanedEmail;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -122,7 +138,8 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _handleSignIn() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    final cleanedEmail = _validateAndCleanEmail(_emailController.text);
+    if (cleanedEmail == null || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -130,11 +147,9 @@ class _AuthScreenState extends State<AuthScreen>
     }
 
     try {
-      print(
-          'SignIn: Attempting to sign in with email: ${_emailController.text}');
+      print('SignIn: Attempting to sign in with email: $cleanedEmail');
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.signIn(
-          _emailController.text, _passwordController.text);
+      await authProvider.signIn(cleanedEmail, _passwordController.text);
 
       if (authProvider.error != null) {
         print('SignIn: Error during sign in: ${authProvider.error}');
@@ -192,7 +207,8 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _handleSignUp() async {
-    if (_emailController.text.isEmpty ||
+    final cleanedEmail = _validateAndCleanEmail(_emailController.text);
+    if (cleanedEmail == null ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty ||
         _usernameController.text.isEmpty) {
@@ -212,7 +228,7 @@ class _AuthScreenState extends State<AuthScreen>
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.register(
-        _emailController.text,
+        cleanedEmail,
         _passwordController.text,
         isFarmer: _isFarmer,
         username: _usernameController.text,
@@ -355,6 +371,7 @@ class _AuthScreenState extends State<AuthScreen>
     bool isPassword = false,
     bool isVisible = false,
     VoidCallback? onVisibilityToggle,
+    bool isEmail = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -368,6 +385,19 @@ class _AuthScreenState extends State<AuthScreen>
         controller: controller,
         obscureText: isPassword && !isVisible,
         style: GoogleFonts.poppins(color: Colors.white),
+        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        onChanged: isEmail
+            ? (value) {
+                // Trim whitespace as user types
+                if (value.endsWith(' ')) {
+                  final trimmed = value.trim();
+                  controller.text = trimmed;
+                  controller.selection = TextSelection.fromPosition(
+                    TextPosition(offset: trimmed.length),
+                  );
+                }
+              }
+            : null,
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
             vertical: 16,
@@ -916,6 +946,7 @@ class _AuthScreenState extends State<AuthScreen>
                                     label: 'Email Address',
                                     controller: _emailController,
                                     icon: Icons.email_outlined,
+                                    isEmail: true,
                                   ),
 
                                   SizedBox(height: 16),
