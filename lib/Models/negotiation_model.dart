@@ -51,98 +51,101 @@ class Negotiation {
   final String productId;
   final String sellerId;
   final String buyerId;
+  final String buyerName;
   final double originalPrice;
-  final double proposedPrice;
+  final double bidAmount;
+  final double quantity;
+  final String productName;
   final String status;
-  final List<NegotiationMessage> messages;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime timestamp;
+  final Map<String, dynamic> messages;
 
   Negotiation({
     required this.id,
     required this.productId,
     required this.sellerId,
     required this.buyerId,
+    required this.buyerName,
     required this.originalPrice,
-    required this.proposedPrice,
+    required this.bidAmount,
+    required this.quantity,
+    required this.productName,
     required this.status,
+    required this.timestamp,
     required this.messages,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
-  factory Negotiation.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Negotiation(
-      id: doc.id,
-      productId: data['productId'] ?? '',
-      sellerId: data['sellerId'] ?? '',
-      buyerId: data['buyerId'] ?? '',
-      originalPrice: (data['originalPrice'] ?? 0.0).toDouble(),
-      proposedPrice: (data['proposedPrice'] ?? 0.0).toDouble(),
-      status: data['status'] ?? 'pending',
-      messages: (data['messages'] as List<dynamic>? ?? []).map((message) {
-        return NegotiationMessage.fromMap(message);
-      }).toList(),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-    );
-  }
-
-  factory Negotiation.fromMap(String id, Map<String, dynamic> data) {
+  // Create Negotiation from Map
+  factory Negotiation.fromMap(String id, Map<String, dynamic> map) {
     return Negotiation(
       id: id,
-      productId: data['productId'] ?? '',
-      sellerId: data['sellerId'] ?? '',
-      buyerId: data['buyerId'] ?? '',
-      originalPrice: (data['originalPrice'] ?? 0.0).toDouble(),
-      proposedPrice: (data['proposedPrice'] ?? 0.0).toDouble(),
-      status: data['status'] ?? 'pending',
-      messages: (data['messages'] as List<dynamic>? ?? []).map((message) {
-        return NegotiationMessage.fromMap(message);
-      }).toList(),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      productId: map['productId'] ?? '',
+      sellerId: map['sellerId'] ?? '',
+      buyerId: map['buyerId'] ?? '',
+      buyerName: map['buyerName'] ?? '',
+      originalPrice: (map['originalPrice'] ?? 0.0).toDouble(),
+      bidAmount: (map['bidAmount'] ?? 0.0).toDouble(),
+      quantity: (map['quantity'] ?? 0.0).toDouble(),
+      productName: map['productName'] ?? '',
+      status: map['status'] ?? 'pending',
+      timestamp: map['timestamp'] is Timestamp
+          ? (map['timestamp'] as Timestamp).toDate()
+          : DateTime.now(),
+      messages: Map<String, dynamic>.from(map['messages'] ?? {}),
     );
   }
 
+  // Create Negotiation from Firestore Document
+  factory Negotiation.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Negotiation.fromMap(doc.id, data);
+  }
+
+  // Convert Negotiation to Map
   Map<String, dynamic> toMap() {
     return {
       'productId': productId,
       'sellerId': sellerId,
       'buyerId': buyerId,
+      'buyerName': buyerName,
       'originalPrice': originalPrice,
-      'proposedPrice': proposedPrice,
+      'bidAmount': bidAmount,
+      'quantity': quantity,
+      'productName': productName,
       'status': status,
-      'messages': messages.map((message) => message.toMap()).toList(),
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'timestamp': Timestamp.fromDate(timestamp),
+      'messages': messages,
     };
   }
 
+  // Create a copy of Negotiation with some fields updated
   Negotiation copyWith({
     String? id,
     String? productId,
     String? sellerId,
     String? buyerId,
+    String? buyerName,
     double? originalPrice,
-    double? proposedPrice,
+    double? bidAmount,
+    double? quantity,
+    String? productName,
     String? status,
-    List<NegotiationMessage>? messages,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    DateTime? timestamp,
+    Map<String, dynamic>? messages,
   }) {
     return Negotiation(
       id: id ?? this.id,
       productId: productId ?? this.productId,
       sellerId: sellerId ?? this.sellerId,
       buyerId: buyerId ?? this.buyerId,
+      buyerName: buyerName ?? this.buyerName,
       originalPrice: originalPrice ?? this.originalPrice,
-      proposedPrice: proposedPrice ?? this.proposedPrice,
+      bidAmount: bidAmount ?? this.bidAmount,
+      quantity: quantity ?? this.quantity,
+      productName: productName ?? this.productName,
       status: status ?? this.status,
+      timestamp: timestamp ?? this.timestamp,
       messages: messages ?? this.messages,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

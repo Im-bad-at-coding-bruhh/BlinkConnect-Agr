@@ -9,6 +9,8 @@ import 'dart:async';
 import '/Services/cart_service.dart';
 import '/Pages/cart_screen.dart';
 import '/Pages/negotiation_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '/Services/negotiation_service.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -771,18 +773,42 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 child: const Text('Close'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NegotiationScreen(
-                        productId: product['id'] ?? '',
-                        sellerId: product['sellerId'] ?? '',
-                        originalPrice: product['price'].toDouble(),
-                        productName: product['name'],
-                      ),
-                    ),
-                  );
+                onPressed: () async {
+                  // Create a new negotiation first
+                  final negotiationService = NegotiationService();
+                  try {
+                    await negotiationService.createBid(
+                      productId: product['id'] ?? '',
+                      sellerId: product['sellerId'] ?? '',
+                      originalPrice: (product['price'] as num).toDouble(),
+                      bidAmount: (product['price'] as num).toDouble(),
+                      quantity: (int.tryParse(quantityController.text) ?? 1)
+                          .toDouble(),
+                      productName: product['name'],
+                    );
+                    if (mounted) {
+                      Navigator.pop(context); // Close the dialog
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NegotiationScreen(),
+                        ),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Negotiation started successfully'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to start negotiation: $e'),
+                        ),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6C5DD3),

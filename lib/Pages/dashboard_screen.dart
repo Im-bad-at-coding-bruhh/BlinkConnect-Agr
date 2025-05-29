@@ -468,12 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => NegotiationScreen(
-                    productId: '',
-                    sellerId: '',
-                    originalPrice: 0.0,
-                    productName: 'My Bids',
-                  ),
+                  builder: (context) => const NegotiationScreen(),
                 ),
               );
             },

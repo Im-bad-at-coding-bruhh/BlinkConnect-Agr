@@ -27,34 +27,8 @@ class ProductProvider with ChangeNotifier {
       notifyListeners();
 
       final snapshot = await _firestore.collection('products').get();
-      _products = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Product(
-          id: doc.id,
-          farmerId: data['farmerId'] ?? '',
-          farmerName: data['farmerName'] ?? '',
-          productName: data['productName'] ?? '',
-          description: data['description'] ?? '',
-          price: (data['price'] ?? 0.0).toDouble(),
-          quantity: (data['quantity'] ?? 0.0).toDouble(),
-          unit: data['unit'] ?? 'kg',
-          region: data['region'] ?? '',
-          images: List<String>.from(data['images'] ?? []),
-          isNegotiable: data['isNegotiable'] ?? false,
-          fertilizerType: data['fertilizerType'] ?? '',
-          pesticideType: data['pesticideType'] ?? '',
-          category: data['category'] ?? 'Other',
-          currentPrice:
-              (data['currentPrice'] ?? data['price'] ?? 0.0).toDouble(),
-          status: data['status'] ?? 'available',
-          createdAt: data['createdAt'] is Timestamp
-              ? (data['createdAt'] as Timestamp).toDate()
-              : DateTime.now(),
-          updatedAt: data['updatedAt'] is Timestamp
-              ? (data['updatedAt'] as Timestamp).toDate()
-              : DateTime.now(),
-        );
-      }).toList();
+      _products =
+          snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
 
       _isLoading = false;
       notifyListeners();
@@ -107,10 +81,7 @@ class ProductProvider with ChangeNotifier {
       _farmerProducts = filteredDocs
           .map((doc) {
             try {
-              final data = doc.data();
-              print(
-                  'ProductProvider: Converting product ${doc.id} - data: $data'); // Debug print
-              return Product.fromMap(doc.id, data);
+              return Product.fromFirestore(doc);
             } catch (e) {
               print(
                   'ProductProvider: Error converting document ${doc.id}: $e'); // Debug print
@@ -154,27 +125,9 @@ class ProductProvider with ChangeNotifier {
       print(
           'ProductProvider: Added product to Firestore with ID: ${docRef.id}'); // Debug print
 
-      // Create new product with Firestore ID
-      final newProduct = Product(
-        id: docRef.id,
-        farmerId: product.farmerId,
-        farmerName: product.farmerName,
-        productName: product.productName,
-        category: product.category,
-        description: product.description,
-        price: product.price,
-        currentPrice: product.currentPrice,
-        region: product.region,
-        status: product.status,
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-        images: product.images,
-        quantity: product.quantity,
-        unit: product.unit,
-        isNegotiable: product.isNegotiable,
-        fertilizerType: product.fertilizerType,
-        pesticideType: product.pesticideType,
-      );
+      // Get the newly created product from Firestore
+      final doc = await docRef.get();
+      final newProduct = Product.fromFirestore(doc);
 
       // Add to local lists
       _products.insert(0, newProduct);
@@ -209,9 +162,13 @@ class ProductProvider with ChangeNotifier {
           .doc(product.id)
           .update(product.toMap());
 
+      // Get the updated product from Firestore
+      final doc = await _firestore.collection('products').doc(product.id).get();
+      final updatedProduct = Product.fromFirestore(doc);
+
       final index = _products.indexWhere((p) => p.id == product.id);
       if (index != -1) {
-        _products[index] = product;
+        _products[index] = updatedProduct;
       }
 
       _isLoading = false;

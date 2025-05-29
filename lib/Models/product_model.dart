@@ -53,8 +53,8 @@ class Product {
       'currentPrice': currentPrice,
       'region': region,
       'status': status,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
       'images': images,
       'quantity': quantity,
       'unit': unit,
@@ -79,11 +79,11 @@ class Product {
         currentPrice: (map['currentPrice'] ?? 0.0).toDouble(),
         region: map['region'] ?? '',
         status: map['status'] ?? 'active',
-        createdAt: map['createdAt'] != null
-            ? DateTime.parse(map['createdAt'])
+        createdAt: map['createdAt'] is Timestamp
+            ? (map['createdAt'] as Timestamp).toDate()
             : DateTime.now(),
-        updatedAt: map['updatedAt'] != null
-            ? DateTime.parse(map['updatedAt'])
+        updatedAt: map['updatedAt'] is Timestamp
+            ? (map['updatedAt'] as Timestamp).toDate()
             : DateTime.now(),
         images: List<String>.from(map['images'] ?? []),
         quantity: (map['quantity'] ?? 0.0).toDouble(),
@@ -96,6 +96,12 @@ class Product {
       print('Error converting map to product: $e'); // Debug print
       rethrow;
     }
+  }
+
+  // Create Product from Firestore Document
+  factory Product.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Product.fromMap(doc.id, data);
   }
 
   // Create a copy of Product with some fields updated

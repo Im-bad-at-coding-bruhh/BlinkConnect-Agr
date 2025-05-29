@@ -13,6 +13,7 @@ import '/Services/cart_service.dart';
 import 'cart_screen.dart';
 import '../Services/product_provider.dart';
 import '../Models/product_model.dart';
+import '../Services/negotiation_service.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -1311,16 +1312,34 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     required double bidAmount,
     required double originalPrice,
   }) {
-    // TODO: Implement actual bid submission to backend
-    // For now, it'll just show a success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Bid of \$${bidAmount.toStringAsFixed(2)} sent successfully!',
+    final negotiationService = NegotiationService();
+
+    negotiationService
+        .createBid(
+      productId: product.id,
+      sellerId: product.farmerId,
+      originalPrice: originalPrice,
+      bidAmount: bidAmount,
+      quantity: quantity,
+      productName: product.productName,
+    )
+        .then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Bid of \$${bidAmount.toStringAsFixed(2)} sent successfully!',
+          ),
+          duration: const Duration(seconds: 2),
         ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sending bid: $error'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    });
   }
 
   // Bottom navigation bar for small screens

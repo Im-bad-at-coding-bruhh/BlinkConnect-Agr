@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CartItem {
   final String name;
@@ -57,6 +58,7 @@ class CartItem {
 class CartService extends ChangeNotifier {
   final Map<String, CartItem> _items = {};
   bool _isLoading = false;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool get isLoading => _isLoading;
   List<CartItem> get items => _items.values.toList();
@@ -149,6 +151,96 @@ class CartService extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Add a product to cart with special pricing for a specific buyer
+  Future<void> addToCartWithSpecialPrice({
+    required String productId,
+    required int quantity,
+    required double specialPrice,
+    required String buyerId,
+  }) async {
+    try {
+      // First get the product details
+      final productDoc =
+          await _firestore.collection('products').doc(productId).get();
+
+      if (!productDoc.exists) {
+        throw Exception('Product not found');
+      }
+
+      final productData = productDoc.data()!;
+
+      // Create cart item with special pricing
+      final cartItem = {
+        'productId': productId,
+        'productName': productData['productName'],
+        'quantity': quantity,
+        'specialPrice': specialPrice,
+        'originalPrice': productData['price'],
+        'imageUrl': productData['imageUrl'],
+        'sellerId': productData['farmerId'],
+        'sellerName': productData['farmerName'],
+        'addedAt': Timestamp.now(),
+        'isSpecialPrice': true,
+      };
+
+      // Add to user's cart
+      await _firestore
+          .collection('users')
+          .doc(buyerId)
+          .collection('cart')
+          .doc(productId)
+          .set(cartItem);
+
+      print(
+          'Added to cart: ${productData['productName']} with special price $specialPrice');
+    } catch (e) {
+      print('Error adding to cart with special price: $e');
+      rethrow;
+    }
+  }
+
+  // Get cart items with special pricing
+  Stream<List<CartItem>> getCartItemsWithSpecialPricing(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .snapshots()
+        .map((snapshot) {
+      final items = <CartItem>[];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final specialPrice = data['specialPrice'] as double?;
+
+        items.add(CartItem(
+          name: data['productName'] as String,
+          pricePerKg: specialPrice ?? (data['originalPrice'] as num).toDouble(),
+          image: data['imageUrl'] as String? ?? '',
+          seller: data['sellerName'] as String? ?? '',
+          quantity: data['quantity'] as int,
+        ));
+      }
+
+      return items;
+    });
+  }
+
+  // Remove special pricing when item is removed from cart
+  Future<void> removeFromCart(String userId, String productId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .doc(productId)
+          .delete();
+    } catch (e) {
+      print('Error removing from cart: $e');
+      rethrow;
     }
   }
 }

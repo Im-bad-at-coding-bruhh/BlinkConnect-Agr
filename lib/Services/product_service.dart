@@ -225,4 +225,18 @@ class ProductService {
       throw 'Failed to update product price: $e';
     }
   }
+
+  // Get a single product by ID
+  Future<Product?> getProduct(String productId) async {
+    try {
+      final doc = await _firestore.collection('products').doc(productId).get();
+      if (doc.exists) {
+        return Product.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      print('Error getting product: $e');
+      rethrow;
+    }
+  }
 }
