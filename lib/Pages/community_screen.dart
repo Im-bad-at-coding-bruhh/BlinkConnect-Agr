@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../Models/community_model.dart';
 import 'marketplace_screen.dart';
 import 'buyer_dashboard.dart';
 import 'profile_screen.dart';
@@ -311,6 +314,13 @@ class _CommunityScreenState extends State<CommunityScreen>
     'December',
   ];
 
+  // Add new controllers for community creation
+  final TextEditingController _communityNameController =
+      TextEditingController();
+  final TextEditingController _communityDescriptionController =
+      TextEditingController();
+  bool _isCreatingCommunity = false;
+
   @override
   void initState() {
     super.initState();
@@ -322,6 +332,8 @@ class _CommunityScreenState extends State<CommunityScreen>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _communityNameController.dispose();
+    _communityDescriptionController.dispose();
     super.dispose();
   }
 
@@ -556,67 +568,29 @@ class _CommunityScreenState extends State<CommunityScreen>
               ),
             ],
           ),
-          if (!_isSearching)
-            IconButton(
-              icon: Icon(
-                Icons.search_rounded,
-                color: isDarkMode ? Colors.white70 : Colors.black54,
-              ),
-              onPressed: () {
-                setState(() {
-                  _isSearching = true;
-                });
-              },
-            )
-          else
-            Expanded(
-              child: Container(
-                height: 40,
-                margin: const EdgeInsets.only(left: 16),
-                decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? Colors.black.withOpacity(0.3)
-                      : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  style: GoogleFonts.poppins(
-                    color: isDarkMode ? Colors.white : Colors.black87,
+          Row(
+            children: [
+              if (!_isSearching)
+                IconButton(
+                  icon: Icon(
+                    Icons.search_rounded,
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
                   ),
-                  decoration: InputDecoration(
-                    hintText: 'Search members...',
-                    hintStyle: GoogleFonts.poppins(
-                      color: isDarkMode ? Colors.white54 : Colors.grey[600],
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isSearching = false;
-                          _searchQuery = '';
-                          _searchController.clear();
-                        });
-                      },
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                  onChanged: (value) {
+                  onPressed: () {
                     setState(() {
-                      _searchQuery = value.toLowerCase();
+                      _isSearching = true;
                     });
                   },
                 ),
+              IconButton(
+                icon: Icon(
+                  Icons.add_circle_outline_rounded,
+                  color: const Color(0xFF6C5DD3),
+                ),
+                onPressed: _showCreateCommunityDialog,
               ),
-            ),
+            ],
+          ),
         ],
       ),
     );
@@ -1419,6 +1393,175 @@ class _CommunityScreenState extends State<CommunityScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _createCommunity() async {
+    final name = _communityNameController.text.trim();
+    final description = _communityDescriptionController.text.trim();
+
+    if (name.isEmpty || description.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isCreatingCommunity = true;
+    });
+
+    try {
+      // Check if community name already exists
+      final existingCommunity = await FirebaseFirestore.instance
+          .collection('communities')
+          .where('name', isEqualTo: name)
+          .get();
+
+      if (existingCommunity.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('A community with this name already exists')),
+        );
+        return;
+      }
+
+      // Get current user
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('You must be logged in to create a community')),
+        );
+        return;
+      }
+
+      // Create new community
+      final community = Community(
+        id: '', // Will be set by Firestore
+        name: name,
+        description: description,
+        creatorId: user.uid,
+        creatorName: user.displayName ?? 'Anonymous',
+        createdAt: DateTime.now(),
+        status: 'pending',
+      );
+
+      // Add to Firestore
+      await FirebaseFirestore.instance
+          .collection('communities')
+          .add(community.toMap());
+
+      // Clear form and close dialog
+      _communityNameController.clear();
+      _communityDescriptionController.clear();
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Community request submitted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating community: $e')),
+      );
+    } finally {
+      setState(() {
+        _isCreatingCommunity = false;
+      });
+    }
+  }
+
+  void _showCreateCommunityDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Create New Community',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Community Name',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _communityNameController,
+                decoration: InputDecoration(
+                  hintText: 'Enter community name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Description',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _communityDescriptionController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Describe the purpose of this community',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _isCreatingCommunity ? null : _createCommunity,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6C5DD3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: _isCreatingCommunity
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    'Submit',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
   }

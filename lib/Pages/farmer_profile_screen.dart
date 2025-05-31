@@ -14,6 +14,8 @@ import 'signin_signup.dart';
 import '../Models/product_model.dart';
 import 'add_product_form.dart';
 import 'dart:io';
+import '../Services/admin_service.dart';
+import '../Pages/admin_screen.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -265,6 +267,39 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                       },
                     ),
                     const SizedBox(height: 4),
+
+                    // Admin Dashboard Section (only for admins)
+                    FutureBuilder<bool>(
+                      future: AdminService().isAdmin(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+
+                        if (snapshot.data == true) {
+                          return _buildSettingItem(
+                            isDarkMode,
+                            Icons.admin_panel_settings_outlined,
+                            'Admin Dashboard',
+                            'Manage communities and users',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AdminScreen(
+                                    isFarmer: widget.isFarmer,
+                                    isVerified: widget.isVerified,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
 
                     // Products Section
                     _buildSettingItem(

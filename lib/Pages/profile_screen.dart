@@ -9,6 +9,9 @@ import 'theme_provider.dart';
 import '../Services/auth_service.dart';
 import '../Services/auth_provider.dart';
 import 'signin_signup.dart';
+import '../Services/admin_service.dart';
+import 'admin_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 class ProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -30,12 +33,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late int _selectedIndex;
   late Size _screenSize;
   bool _isSmallScreen = false;
-  // final AuthService _authService = AuthService();
+  final AuthService _authService = AuthService();
+  final AdminService _adminService = AdminService();
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    print('ProfileScreen: initState called'); // Debug print
     _selectedIndex = widget.initialIndex;
+
+    // Add this to check current user
+    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    print('ProfileScreen: Current user UID: ${user?.uid}'); // Debug print
+
+    _checkAdminStatus();
   }
 
   @override
@@ -43,6 +55,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didChangeDependencies();
     _screenSize = MediaQuery.of(context).size;
     _isSmallScreen = _screenSize.width < 600;
+  }
+
+  Future<void> _checkAdminStatus() async {
+    print('ProfileScreen: Checking admin status...'); // Debug print
+    try {
+      final isAdmin = await _adminService.isAdmin();
+      print('ProfileScreen: Admin check result: $isAdmin'); // Debug print
+      if (mounted) {
+        setState(() {
+          _isAdmin = isAdmin;
+          print('ProfileScreen: Updated _isAdmin to: $_isAdmin'); // Debug print
+        });
+      }
+    } catch (e) {
+      print('ProfileScreen: Error checking admin status: $e'); // Debug print
+    }
   }
 
   void _onItemTapped(int index) {
@@ -118,8 +146,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(
             child: Container(
               color: isDarkMode ? Colors.black : Colors.white,
-              child: Column(
-                children: [Expanded(child: _buildMainContent(isDarkMode))],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Profile Card
+                    _buildProfileCard(isDarkMode),
+                    const SizedBox(height: 24),
+
+                    // Account Settings
+                    Text(
+                      'Account Settings',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSettingItem(
+                      isDarkMode,
+                      Icons.person_outline,
+                      'Personal Information',
+                      'Update your personal details',
+                      onTap: () {
+                        _showChangeUsernameDialog(context, isDarkMode);
+                      },
+                    ),
+                    _buildSettingItem(
+                      isDarkMode,
+                      Icons.location_on_outlined,
+                      'Location',
+                      'Manage your location',
+                      onTap: () {
+                        _showChangePasswordDialog(context, isDarkMode);
+                      },
+                    ),
+                    _buildSettingItem(
+                      isDarkMode,
+                      Icons.payment_outlined,
+                      'Payment Methods',
+                      'Add or update payment methods',
+                      onTap: () {
+                        _showLogoutConfirmation(context, isDarkMode);
+                      },
+                    ),
+                    _buildSettingItem(
+                      isDarkMode,
+                      Icons.security_outlined,
+                      'Security Settings',
+                      'Manage your account security',
+                      onTap: () {
+                        _showSecuritySettingsDialog(context, isDarkMode);
+                      },
+                    ),
+                    _buildSettingItem(
+                      isDarkMode,
+                      isDarkMode
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
+                      'Theme',
+                      isDarkMode
+                          ? 'Switch to Light Mode'
+                          : 'Switch to Dark Mode',
+                      onTap: () {
+                        final themeProvider = Provider.of<ThemeProvider>(
+                          context,
+                          listen: false,
+                        );
+                        themeProvider.toggleTheme(!isDarkMode);
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -300,162 +400,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMainContent(bool isDarkMode) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+  Widget _buildProfileCard(bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Profile Header
-          Row(
-            children: [
-              Icon(
-                Icons.person_rounded,
-                size: 28,
-                color: const Color(0xFF6C5DD3),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Profile',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Profile Card
+          // Profile Picture
           Container(
-            padding: const EdgeInsets.all(16),
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
-              color: isDarkMode
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
-              ),
+              shape: BoxShape.circle,
+              color: const Color(0xFF6C5DD3).withOpacity(0.2),
             ),
-            child: Column(
-              children: [
-                // Profile Picture
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF6C5DD3).withOpacity(0.2),
-                  ),
-                  child: const Icon(
-                    Icons.person,
-                    size: 50,
-                    color: Color(0xFF6C5DD3),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'John Doe',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Buyer',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildProfileStat(isDarkMode, 'Orders', '12'),
-                    const SizedBox(width: 24),
-                    _buildProfileStat(isDarkMode, 'Favorites', '8'),
-                    const SizedBox(width: 24),
-                    _buildProfileStat(isDarkMode, 'Reviews', '5'),
-                  ],
-                ),
-              ],
+            child: const Icon(
+              Icons.person,
+              size: 50,
+              color: Color(0xFF6C5DD3),
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Account Settings
+          const SizedBox(height: 16),
           Text(
-            'Account Settings',
+            'John Doe',
             style: GoogleFonts.poppins(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.w600,
               color: isDarkMode ? Colors.white : Colors.black87,
             ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Buyer',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+            ),
+          ),
           const SizedBox(height: 16),
-          _buildSettingItem(
-            isDarkMode,
-            Icons.person_outline,
-            'Personal Information',
-            'Update your personal details',
-            onTap: () {
-              _showChangeUsernameDialog(context, isDarkMode);
-            },
-          ),
-          _buildSettingItem(
-            isDarkMode,
-            Icons.location_on_outlined,
-            'Addresses',
-            'Manage your delivery addresses',
-            onTap: () {
-              _showChangePasswordDialog(context, isDarkMode);
-            },
-          ),
-          _buildSettingItem(
-            isDarkMode,
-            Icons.payment_outlined,
-            'Payment Methods',
-            'Add or update payment methods',
-            onTap: () {
-              _showLogoutConfirmation(context, isDarkMode);
-            },
-          ),
-          _buildSettingItem(
-            isDarkMode,
-            Icons.shopping_cart_outlined,
-            'Shopping Cart',
-            'View and manage your cart items',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartScreen(
-                    isFarmer: widget.isFarmer,
-                    isVerified: widget.isVerified,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildSettingItem(
-            isDarkMode,
-            isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            'Theme',
-            isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-            onTap: () {
-              final themeProvider = Provider.of<ThemeProvider>(
-                context,
-                listen: false,
-              );
-              themeProvider.toggleTheme(!isDarkMode);
-            },
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildProfileStat(isDarkMode, 'Orders', '12'),
+              const SizedBox(width: 24),
+              _buildProfileStat(isDarkMode, 'Favorites', '8'),
+              const SizedBox(width: 24),
+              _buildProfileStat(isDarkMode, 'Reviews', '5'),
+            ],
           ),
         ],
       ),
@@ -713,5 +714,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  void _showSecuritySettingsDialog(BuildContext context, bool isDarkMode) {
+    // Implementation of _showSecuritySettingsDialog method
   }
 }
