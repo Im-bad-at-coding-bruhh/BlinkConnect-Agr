@@ -39,7 +39,7 @@ dependencies:
   provider: ^6.1.1
   gradient_borders: ^1.0.0
   animated_text_kit: ^4.2.2
-  image_picker: ^1.0.5
+  image_picker: ^1.0.7
   cached_network_image: ^3.3.0
   uuid: ^4.2.2
   intl: 0.20.2

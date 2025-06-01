@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:convert';
 import '../Models/product_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -38,6 +39,7 @@ class _AddProductFormState extends State<AddProductForm> {
   String _selectedFertilizerType = 'None';
   String _selectedPesticideType = 'None';
   String _selectedCategory = 'Vegetables';
+  final ImagePicker _picker = ImagePicker();
 
   final List<String> _units = ['kg', 'pound', 'gram'];
   final List<String> _fertilizerTypes = [
@@ -77,13 +79,29 @@ class _AddProductFormState extends State<AddProductForm> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
 
-    if (image != null) {
-      setState(() {
-        _selectedImages.add(image.path);
-      });
+      if (image != null) {
+        setState(() {
+          _selectedImages.add(image.path);
+        });
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -95,6 +113,14 @@ class _AddProductFormState extends State<AddProductForm> {
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
+      if (_selectedImages.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Please add at least one product image')),
+        );
+        return;
+      }
+
       final now = DateTime.now();
       final product = Product(
         id: '', // This will be set by Firestore
@@ -148,104 +174,92 @@ class _AddProductFormState extends State<AddProductForm> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Product Images',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: widget.isDarkMode ? Colors.white : Colors.black87,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Product Images *',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color:
+                              widget.isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '(At least 1 required)',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: widget.isDarkMode
+                              ? Colors.white70
+                              : Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color:
-                            widget.isDarkMode ? Colors.white30 : Colors.black26,
-                        width: 1,
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6C5DD3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.add_photo_alternate,
+                            color: Colors.white),
+                        label: Text(
+                          'Add Image',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: _selectedImages.isEmpty
-                        ? Center(
-                            child: TextButton.icon(
-                              onPressed: _pickImage,
-                              icon: Icon(
-                                Icons.add_photo_alternate,
-                                color: widget.isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black54,
-                              ),
-                              label: Text(
-                                'Add Images',
-                                style: GoogleFonts.poppins(
-                                  color: widget.isDarkMode
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                ),
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _selectedImages.length + 1,
-                            itemBuilder: (context, index) {
-                              if (index == _selectedImages.length) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: TextButton.icon(
-                                    onPressed: _pickImage,
-                                    icon: Icon(
-                                      Icons.add_photo_alternate,
-                                      color: widget.isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                    ),
-                                    label: Text(
-                                      'Add More',
-                                      style: GoogleFonts.poppins(
-                                        color: widget.isDarkMode
-                                            ? Colors.white70
-                                            : Colors.black54,
-                                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_selectedImages.isNotEmpty)
+                    SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _selectedImages.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    image: DecorationImage(
+                                      image: FileImage(
+                                          File(_selectedImages[index])),
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
-                                );
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      width: 100,
-                                      height: 100,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        image: DecorationImage(
-                                          image: FileImage(
-                                              File(_selectedImages[index])),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 0,
-                                      right: 0,
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.remove_circle,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () => _removeImage(index),
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                              );
-                            },
-                          ),
-                  ),
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.remove_circle,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () => _removeImage(index),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 16),

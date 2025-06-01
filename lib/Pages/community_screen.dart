@@ -3,13 +3,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:convert';
 import '../Models/community_model.dart';
+import '../Services/admin_service.dart';
 import 'marketplace_screen.dart';
 import 'buyer_dashboard.dart';
 import 'profile_screen.dart';
 import 'dashboard_screen.dart';
 import 'farmer_profile_screen.dart';
 import 'theme_provider.dart';
+import 'news_editor_screen.dart';
+import 'news_article_screen.dart';
 
 class CommunityScreen extends StatefulWidget {
   final bool isFarmer;
@@ -321,11 +327,18 @@ class _CommunityScreenState extends State<CommunityScreen>
       TextEditingController();
   bool _isCreatingCommunity = false;
 
+  final TextEditingController _newsTitleController = TextEditingController();
+  final TextEditingController _newsContentController = TextEditingController();
+  bool _isCreatingNews = false;
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
+  bool _isProcessingImage = false;
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -334,6 +347,8 @@ class _CommunityScreenState extends State<CommunityScreen>
     _searchController.dispose();
     _communityNameController.dispose();
     _communityDescriptionController.dispose();
+    _newsTitleController.dispose();
+    _newsContentController.dispose();
     super.dispose();
   }
 
@@ -411,6 +426,40 @@ class _CommunityScreenState extends State<CommunityScreen>
       body: _buildBody(isDarkMode),
       bottomNavigationBar:
           _isSmallScreen ? _buildModernBottomBar(isDarkMode) : null,
+      floatingActionButton: FutureBuilder<bool>(
+        future: AdminService().isAdmin(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const FloatingActionButton(
+              onPressed: null,
+              backgroundColor: Colors.grey,
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            print('Error checking admin status: ${snapshot.error}');
+            return const SizedBox.shrink();
+          }
+
+          if (snapshot.data == true) {
+            return FloatingActionButton(
+              onPressed: _showCreateNewsDialog,
+              backgroundColor: const Color(0xFF6C5DD3),
+              child: const Icon(Icons.add, color: Colors.white),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
@@ -441,7 +490,6 @@ class _CommunityScreenState extends State<CommunityScreen>
                       children: [
                         _buildFeedTab(isDarkMode),
                         _buildLeaderboardTab(isDarkMode),
-                        _buildConnectionsTab(isDarkMode),
                       ],
                     ),
                   ),
@@ -548,69 +596,24 @@ class _CommunityScreenState extends State<CommunityScreen>
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.people_alt_rounded,
-                size: 28,
-                color: const Color(0xFF6C5DD3),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Community',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-            ],
+          Icon(
+            Icons.people_rounded,
+            size: 28,
+            color: const Color(0xFF6C5DD3),
           ),
-          Row(
-            children: [
-              if (!_isSearching)
-                IconButton(
-                  icon: Icon(
-                    Icons.search_rounded,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isSearching = true;
-                    });
-                  },
-                ),
-              IconButton(
-                icon: Icon(
-                  Icons.add_circle_outline_rounded,
-                  color: const Color(0xFF6C5DD3),
-                ),
-                onPressed: _showCreateCommunityDialog,
-              ),
-            ],
+          const SizedBox(width: 12),
+          Text(
+            'Community',
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
           ),
         ],
       ),
     );
-  }
-
-  List<Map<String, dynamic>> _getFilteredMembers() {
-    if (_searchQuery.isEmpty) {
-      return _communityMembers;
-    }
-    return _communityMembers.where((member) {
-      final name = member['name'].toString().toLowerCase();
-      final role = member['role'].toString().toLowerCase();
-      final location = member['location'].toString().toLowerCase();
-      final specialties = member['specialties'].join(' ').toLowerCase();
-
-      return name.contains(_searchQuery) ||
-          role.contains(_searchQuery) ||
-          location.contains(_searchQuery) ||
-          specialties.contains(_searchQuery);
-    }).toList();
   }
 
   Widget _buildTabBar(bool isDarkMode) {
@@ -624,105 +627,155 @@ class _CommunityScreenState extends State<CommunityScreen>
         tabs: [
           Tab(icon: Icon(Icons.dynamic_feed_rounded), text: 'Feed'),
           Tab(icon: Icon(Icons.leaderboard_rounded), text: 'Leaderboard'),
-          Tab(icon: Icon(Icons.people_rounded), text: 'Connections'),
         ],
       ),
     );
   }
 
   Widget _buildFeedTab(bool isDarkMode) {
-    final filteredMembers = _getFilteredMembers();
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('announcements')
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => {
+                    'id': doc.id,
+                    ...doc.data(),
+                  })
+              .toList()),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: GoogleFonts.poppins(
+                color: Colors.red,
+              ),
+            ),
+          );
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: filteredMembers.length,
-      itemBuilder: (context, index) {
-        final member = filteredMembers[index];
-        return _buildFeedCard(member, isDarkMode);
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final announcements = snapshot.data!;
+
+        if (announcements.isEmpty) {
+          return Center(
+            child: Text(
+              'No announcements yet',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: announcements.length,
+          itemBuilder: (context, index) {
+            final announcement = announcements[index];
+            return _buildAnnouncementCard(announcement, isDarkMode);
+          },
+        );
       },
     );
   }
 
-  Widget _buildFeedCard(Map<String, dynamic> member, bool isDarkMode) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
-        ),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.05),
-                  blurRadius: 5,
-                  spreadRadius: 0,
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with avatar and name
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF6C5DD3).withOpacity(0.2),
+  Widget _buildAnnouncementCard(
+      Map<String, dynamic> announcement, bool isDarkMode) {
+    return FutureBuilder<bool>(
+      future: AdminService().isAdmin(),
+      builder: (context, snapshot) {
+        final bool isAdmin = snapshot.data ?? false;
+        final bool isOlderThanMonth =
+            _isOlderThanMonth(announcement['createdAt']);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 24),
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+            ),
+            boxShadow: isDarkMode
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.05),
+                      blurRadius: 5,
+                      spreadRadius: 0,
+                    ),
+                  ]
+                : null,
+          ),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NewsArticleScreen(
+                    article: announcement,
+                    isDarkMode: isDarkMode,
+                    onDelete: isAdmin && isOlderThanMonth
+                        ? () => _deleteArticle(announcement['id'])
+                        : null,
                   ),
-                  child: Center(
-                    child: Text(
-                      member['avatar'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF6C5DD3),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Thumbnail Image
+                if (announcement['thumbnailBase64'] != null)
+                  Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(16)),
+                      image: DecorationImage(
+                        image: MemoryImage(
+                          base64Decode(announcement['thumbnailBase64']),
+                        ),
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                // Header with title and date
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            member['name'],
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
+                      Expanded(
+                        child: Text(
+                          announcement['title'],
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white : Colors.black87,
                           ),
-                          if (member['verified'])
-                            Padding(
-                              padding: const EdgeInsets.only(left: 4),
-                              child: Icon(
-                                Icons.verified_rounded,
-                                size: 16,
-                                color: const Color(0xFF6C5DD3),
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
                       Text(
-                        member['role'],
+                        _formatDate(announcement['createdAt']),
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: isDarkMode ? Colors.white70 : Colors.black54,
@@ -731,164 +784,65 @@ class _CommunityScreenState extends State<CommunityScreen>
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  onPressed: () {
-                    // Show options menu
-                  },
-                ),
-              ],
-            ),
-          ),
-          // Location
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.location_on_outlined,
-                  size: 16,
-                  color: isDarkMode ? Colors.white70 : Colors.black54,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  member['location'],
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Specialties
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: member['specialties'].map<Widget>((specialty) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+
+                // Summary
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    specialty,
+                    announcement['summary'] ?? announcement['content'],
                     style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: const Color(0xFF6C5DD3),
+                      fontSize: 16,
+                      height: 1.5,
+                      color: isDarkMode ? Colors.white70 : Colors.black87,
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-          ),
-          // Action buttons
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildActionButton(
-                  isDarkMode,
-                  Icons.message_rounded,
-                  'Message',
-                  () {
-                    // Implement message action
-                  },
                 ),
-                _buildActionButton(
-                  isDarkMode,
-                  Icons.person_add_rounded,
-                  'Connect',
-                  () {
-                    // Implement connect action
-                  },
-                ),
-                _buildActionButton(
-                  isDarkMode,
-                  Icons.share_rounded,
-                  'Share',
-                  () {
-                    // Implement share action
-                  },
+
+                // Footer with author and read more
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 16,
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Posted by ${announcement['authorName']}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Read More',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: const Color(0xFF6C5DD3),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildActionButton(
-    bool isDarkMode,
-    IconData icon,
-    String label,
-    VoidCallback onPressed,
-  ) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20, color: const Color(0xFF6C5DD3)),
-      label: Text(
-        label,
-        style: GoogleFonts.poppins(
-          fontSize: 14,
-          color: const Color(0xFF6C5DD3),
-        ),
-      ),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        backgroundColor: const Color(0xFF6C5DD3).withOpacity(0.1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-    );
-  }
-
-  Widget _buildMonthSelector(bool isDarkMode) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? Colors.black.withOpacity(0.2)
-            : Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedMonth,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6C5DD3)),
-          isExpanded: true,
-          dropdownColor: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            color: isDarkMode ? Colors.white : Colors.black87,
-          ),
-          items: _months.map((String month) {
-            return DropdownMenuItem<String>(
-              value: month,
-              child: Text(month),
-            );
-          }).toList(),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              setState(() {
-                _selectedMonth = newValue;
-              });
-            }
-          },
-        ),
-      ),
-    );
+  String _formatDate(Timestamp timestamp) {
+    final date = timestamp.toDate();
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   Widget _buildLeaderboardTab(bool isDarkMode) {
@@ -1167,123 +1121,40 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
-  Widget _buildConnectionsTab(bool isDarkMode) {
-    final filteredMembers = _getFilteredMembers();
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: filteredMembers.length,
-      itemBuilder: (context, index) {
-        final member = filteredMembers[index];
-        return _buildConnectionCard(member, isDarkMode);
-      },
-    );
-  }
-
-  Widget _buildConnectionCard(Map<String, dynamic> member, bool isDarkMode) {
+  Widget _buildMonthSelector(bool isDarkMode) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
-        ),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.05),
-                  blurRadius: 5,
-                  spreadRadius: 0,
-                ),
-              ]
-            : null,
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF6C5DD3).withOpacity(0.2),
-            ),
-            child: Center(
-              child: Text(
-                member['avatar'],
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF6C5DD3),
-                ),
-              ),
-            ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedMonth,
+          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6C5DD3)),
+          isExpanded: true,
+          dropdownColor: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      member['name'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    if (member['verified'])
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Icon(
-                          Icons.verified_rounded,
-                          size: 16,
-                          color: const Color(0xFF6C5DD3),
-                        ),
-                      ),
-                  ],
-                ),
-                Text(
-                  member['role'],
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              // Implement connect action
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              backgroundColor: const Color(0xFF6C5DD3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            child: Text(
-              'Connect',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
+          items: _months.map((String month) {
+            return DropdownMenuItem<String>(
+              value: month,
+              child: Text(month),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _selectedMonth = newValue;
+              });
+            }
+          },
+        ),
       ),
     );
   }
@@ -1397,172 +1268,118 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
-  Future<void> _createCommunity() async {
-    final name = _communityNameController.text.trim();
-    final description = _communityDescriptionController.text.trim();
+  void _showCreateNewsDialog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewsEditorScreen(
+          isDarkMode:
+              Provider.of<ThemeProvider>(context, listen: false).isDarkMode,
+        ),
+      ),
+    );
+  }
 
-    if (name.isEmpty || description.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isCreatingCommunity = true;
-    });
-
+  Future<void> _pickImage() async {
     try {
-      // Check if community name already exists
-      final existingCommunity = await FirebaseFirestore.instance
-          .collection('communities')
-          .where('name', isEqualTo: name)
-          .get();
-
-      if (existingCommunity.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('A community with this name already exists')),
-        );
-        return;
-      }
-
-      // Get current user
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('You must be logged in to create a community')),
-        );
-        return;
-      }
-
-      // Create new community
-      final community = Community(
-        id: '', // Will be set by Firestore
-        name: name,
-        description: description,
-        creatorId: user.uid,
-        creatorName: user.displayName ?? 'Anonymous',
-        createdAt: DateTime.now(),
-        status: 'pending',
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
       );
 
-      // Add to Firestore
-      await FirebaseFirestore.instance
-          .collection('communities')
-          .add(community.toMap());
-
-      // Clear form and close dialog
-      _communityNameController.clear();
-      _communityDescriptionController.clear();
-      Navigator.of(context).pop();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Community request submitted successfully')),
-      );
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating community: $e')),
-      );
-    } finally {
-      setState(() {
-        _isCreatingCommunity = false;
-      });
+      print('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  void _showCreateCommunityDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Create New Community',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Community Name',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _communityNameController,
-                decoration: InputDecoration(
-                  hintText: 'Enter community name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Description',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _communityDescriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Describe the purpose of this community',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.poppins(
-                color: Colors.grey[600],
-              ),
+  bool _isOlderThanMonth(Timestamp? timestamp) {
+    if (timestamp == null) return false;
+    final now = DateTime.now();
+    final articleDate = timestamp.toDate();
+    final difference = now.difference(articleDate);
+    return difference.inDays >= 30; // 30 days = 1 month
+  }
+
+  Future<void> _deleteArticle(String articleId) async {
+    try {
+      // Show confirmation dialog
+      final bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            'Delete Article',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
             ),
           ),
-          ElevatedButton(
-            onPressed: _isCreatingCommunity ? null : _createCommunity,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6C5DD3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          content: Text(
+            'Are you sure you want to delete this article? This action cannot be undone.',
+            style: GoogleFonts.poppins(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey[600],
+                ),
               ),
             ),
-            child: _isCreatingCommunity
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Text(
-                    'Submit',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                    ),
-                  ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(
+                'Delete',
+                style: GoogleFonts.poppins(
+                  color: Colors.red,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      // Delete the article
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .doc(articleId)
+          .delete();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Article deleted successfully'),
+            backgroundColor: Colors.green,
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } catch (e) {
+      print('Error deleting article: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting article: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

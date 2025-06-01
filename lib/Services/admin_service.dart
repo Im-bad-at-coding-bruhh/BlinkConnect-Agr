@@ -8,46 +8,22 @@ class AdminService {
 
   // Check if current user is an admin
   Future<bool> isAdmin() async {
-    print('AdminService: Starting admin check...'); // Debug print
-    final user = _auth.currentUser;
-    if (user == null) {
-      print('AdminService: No user logged in'); // Debug print
-      return false;
-    }
-
-    print(
-        'AdminService: User is logged in with UID: ${user.uid}'); // Debug print
     try {
-      print(
-          'AdminService: Checking admins collection for document: ${user.uid}'); // Debug print
+      final user = _auth.currentUser;
+      print('AdminService: Current user: ${user?.uid}'); // Debug print
+      if (user == null) return false;
 
-      // Check the specific document
       final adminDoc =
           await _firestore.collection('admins').doc(user.uid).get();
       print(
           'AdminService: Admin doc exists: ${adminDoc.exists}'); // Debug print
+      if (!adminDoc.exists) return false;
 
-      if (adminDoc.exists) {
-        final data = adminDoc.data();
-        print('AdminService: Admin data: $data'); // Debug print
-        print('AdminService: Admin role: ${data?['role']}'); // Debug print
-        print(
-            'AdminService: Admin permissions: ${data?['permissions']}'); // Debug print
-        print('AdminService: Admin userId: ${data?['userId']}'); // Debug print
-      } else {
-        print('AdminService: No admin document found for user'); // Debug print
-        // Let's check if the collection is empty
-        final allAdmins = await _firestore.collection('admins').get();
-        print(
-            'AdminService: Total admin documents: ${allAdmins.docs.length}'); // Debug print
-        if (allAdmins.docs.isNotEmpty) {
-          print(
-              'AdminService: First admin document: ${allAdmins.docs.first.data()}'); // Debug print
-        }
-      }
-      return adminDoc.exists;
+      final adminData = adminDoc.data();
+      print('AdminService: Admin data: $adminData'); // Debug print
+      return adminData != null;
     } catch (e) {
-      print('AdminService: Error checking admin status: $e'); // Debug print
+      print('Error checking admin status: $e');
       return false;
     }
   }

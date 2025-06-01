@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'dashboard_screen.dart';
 import 'buyer_dashboard.dart';
 import '../Services/auth_provider.dart';
+import '../Widgets/loading_animation.dart';
 
 // Custom painter for wave pattern on the left side
 class WavePattern extends CustomPainter {
@@ -80,6 +81,7 @@ class _AuthScreenState extends State<AuthScreen>
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
   bool _isFarmer = false;
+  bool _isLoading = false;
 
   // Helper method to validate and clean email
   String? _validateAndCleanEmail(String email) {
@@ -146,6 +148,10 @@ class _AuthScreenState extends State<AuthScreen>
       return;
     }
 
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       print('SignIn: Attempting to sign in with email: $cleanedEmail');
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -153,9 +159,11 @@ class _AuthScreenState extends State<AuthScreen>
 
       if (authProvider.error != null) {
         print('SignIn: Error during sign in: ${authProvider.error}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authProvider.error!)),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(authProvider.error!)),
+          );
+        }
         return;
       }
 
@@ -164,9 +172,11 @@ class _AuthScreenState extends State<AuthScreen>
       final userProfile = await authProvider.getUserProfile();
       if (userProfile == null) {
         print('SignIn: Failed to get user profile');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get user profile')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to get user profile')),
+          );
+        }
         return;
       }
 
@@ -203,6 +213,12 @@ class _AuthScreenState extends State<AuthScreen>
         SnackBar(
             content: Text('An error occurred during sign in: ${e.toString()}')),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -225,6 +241,10 @@ class _AuthScreenState extends State<AuthScreen>
       return;
     }
 
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.register(
@@ -235,18 +255,22 @@ class _AuthScreenState extends State<AuthScreen>
       );
 
       if (authProvider.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authProvider.error!)),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(authProvider.error!)),
+          );
+        }
         return;
       }
 
       // Get user profile from Firestore
       final userProfile = await authProvider.getUserProfile();
       if (userProfile == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get user profile')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to get user profile')),
+          );
+        }
         return;
       }
 
@@ -273,10 +297,18 @@ class _AuthScreenState extends State<AuthScreen>
         (route) => false,
       );
     } catch (e) {
+      print('SignUp error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+            content: Text('An error occurred during sign up: ${e.toString()}')),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -1091,31 +1123,7 @@ class _AuthScreenState extends State<AuthScreen>
                                   SizedBox(height: 32),
 
                                   // Sign in/up button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 48,
-                                    child: ElevatedButton(
-                                      onPressed: isSignIn
-                                          ? _handleSignIn
-                                          : _handleSignUp,
-                                      style: ElevatedButton.styleFrom(
-                                        foregroundColor: Colors.white,
-                                        backgroundColor: Color(0xFF594FD1),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        elevation: 0,
-                                      ),
-                                      child: Text(
-                                        isSignIn ? 'Sign in' : 'Sign up',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                  _buildAuthButton(),
 
                                   SizedBox(height: 24),
 
@@ -1158,6 +1166,39 @@ class _AuthScreenState extends State<AuthScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAuthButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed:
+            _isLoading ? null : (isSignIn ? _handleSignIn : _handleSignUp),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6C5DD3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        child: _isLoading
+            ? const EdgeLightingLoading(
+                size: 40,
+                strokeWidth: 3,
+                primaryColor: Color(0xFF6C5DD3),
+                secondaryColor: Colors.white,
+              )
+            : Text(
+                isSignIn ? 'Sign In' : 'Sign Up',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
