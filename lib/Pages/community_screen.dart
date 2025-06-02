@@ -840,8 +840,37 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
-  String _formatDate(Timestamp timestamp) {
-    final date = timestamp.toDate();
+  bool _isOlderThanMonth(dynamic createdAt) {
+    if (createdAt == null) return false;
+
+    // Handle both Timestamp and DateTime objects
+    DateTime date;
+    if (createdAt is Timestamp) {
+      date = createdAt.toDate();
+    } else if (createdAt is DateTime) {
+      date = createdAt;
+    } else {
+      return false;
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    return difference.inDays > 30;
+  }
+
+  String _formatDate(dynamic createdAt) {
+    if (createdAt == null) return 'Unknown date';
+
+    // Handle both Timestamp and DateTime objects
+    DateTime date;
+    if (createdAt is Timestamp) {
+      date = createdAt.toDate();
+    } else if (createdAt is DateTime) {
+      date = createdAt;
+    } else {
+      return 'Invalid date';
+    }
+
     return '${date.day}/${date.month}/${date.year}';
   }
 
@@ -1305,14 +1334,6 @@ class _CommunityScreenState extends State<CommunityScreen>
         );
       }
     }
-  }
-
-  bool _isOlderThanMonth(Timestamp? timestamp) {
-    if (timestamp == null) return false;
-    final now = DateTime.now();
-    final articleDate = timestamp.toDate();
-    final difference = now.difference(articleDate);
-    return difference.inDays >= 30; // 30 days = 1 month
   }
 
   Future<void> _deleteArticle(String articleId) async {

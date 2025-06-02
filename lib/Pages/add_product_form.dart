@@ -34,8 +34,10 @@ class _AddProductFormState extends State<AddProductForm> {
   final _descriptionController = TextEditingController();
   String _selectedUnit = 'kg';
   List<String> _selectedImages = [];
+  List<String> _base64Images = [];
   bool _useDefaultDescription = true;
   bool _isNegotiable = false;
+  bool _isUploading = false;
   String _selectedFertilizerType = 'None';
   String _selectedPesticideType = 'None';
   String _selectedCategory = 'Vegetables';
@@ -88,8 +90,10 @@ class _AddProductFormState extends State<AddProductForm> {
       );
 
       if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64String = base64Encode(bytes);
         setState(() {
-          _selectedImages.add(image.path);
+          _selectedImages.add(base64String);
         });
       }
     } catch (e) {
@@ -111,7 +115,18 @@ class _AddProductFormState extends State<AddProductForm> {
     });
   }
 
-  void _submitForm() {
+  Future<String> _convertImageToBase64(String imagePath) async {
+    try {
+      final file = File(imagePath);
+      final bytes = await file.readAsBytes();
+      return base64Encode(bytes);
+    } catch (e) {
+      print('Error converting image to base64: $e');
+      throw 'Failed to convert image: $e';
+    }
+  }
+
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedImages.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,30 +136,47 @@ class _AddProductFormState extends State<AddProductForm> {
         return;
       }
 
-      final now = DateTime.now();
-      final product = Product(
-        id: '', // This will be set by Firestore
-        farmerId: widget.farmerId,
-        farmerName: widget.username,
-        productName: _nameController.text,
-        category: _selectedCategory,
-        description: _descriptionController.text,
-        price: double.parse(_priceController.text),
-        currentPrice: double.parse(_priceController.text),
-        region: 'Default', // Set a default region
-        status: 'available',
-        createdAt: now,
-        updatedAt: now,
-        images: _selectedImages,
-        quantity: double.parse(_quantityController.text),
-        unit: _selectedUnit,
-        isNegotiable: _isNegotiable,
-        fertilizerType: _selectedFertilizerType,
-        pesticideType: _selectedPesticideType,
-      );
+      setState(() {
+        _isUploading = true;
+      });
 
-      widget.onProductAdded(product);
-      Navigator.of(context).pop();
+      try {
+        final now = DateTime.now();
+        final product = Product(
+          id: '', // This will be set by Firestore
+          farmerId: widget.farmerId,
+          farmerName: widget.username,
+          productName: _nameController.text,
+          category: _selectedCategory,
+          description: _descriptionController.text,
+          price: double.parse(_priceController.text),
+          currentPrice: double.parse(_priceController.text),
+          region: 'Default', // Set a default region
+          status: 'available',
+          createdAt: now,
+          updatedAt: now,
+          images: _selectedImages, // Use the base64 strings directly
+          quantity: double.parse(_quantityController.text),
+          unit: _selectedUnit,
+          isNegotiable: _isNegotiable,
+          fertilizerType: _selectedFertilizerType,
+          pesticideType: _selectedPesticideType,
+        );
+
+        widget.onProductAdded(product);
+        Navigator.of(context).pop();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating product: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
@@ -154,443 +186,490 @@ class _AddProductFormState extends State<AddProductForm> {
       backgroundColor:
           widget.isDarkMode ? const Color(0xFF1A1A2E) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Add New Product',
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+          maxWidth: MediaQuery.of(context).size.width * 0.9,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add New Product',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Product Images *',
+                const SizedBox(height: 24),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Product Images *',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: widget.isDarkMode
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '(At least 1 required)',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: widget.isDarkMode
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _pickImage,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6C5DD3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_photo_alternate,
+                              color: Colors.white),
+                          label: Text(
+                            'Add Image',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_selectedImages.isNotEmpty)
+                      SizedBox(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _selectedImages.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      image: DecorationImage(
+                                        image: MemoryImage(
+                                          base64Decode(_selectedImages[index]),
+                                        ),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.remove_circle,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () => _removeImage(index),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Product Name',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  style: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a product name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _priceController,
+                  decoration: InputDecoration(
+                    labelText: 'Price',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  keyboardType: TextInputType.number,
+                  style: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a price';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Please enter a valid price';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _quantityController,
+                  decoration: InputDecoration(
+                    labelText: 'Quantity',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  keyboardType: TextInputType.number,
+                  style: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a quantity';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Please enter a valid number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedUnit,
+                  decoration: InputDecoration(
+                    labelText: 'Unit',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  items: _units.map((unit) {
+                    return DropdownMenuItem(
+                      value: unit,
+                      child: Text(
+                        unit,
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
                           color:
                               widget.isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '(At least 1 required)',
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedUnit = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  items: _categories.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(
+                        category,
                         style: GoogleFonts.poppins(
-                          fontSize: 12,
+                          color:
+                              widget.isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedCategory = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedFertilizerType,
+                  decoration: InputDecoration(
+                    labelText: 'Fertilizer Type',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  items: _fertilizerTypes.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(
+                        type,
+                        style: GoogleFonts.poppins(
+                          color:
+                              widget.isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedFertilizerType = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedPesticideType,
+                  decoration: InputDecoration(
+                    labelText: 'Pesticide Type',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  items: _pesticideTypes.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(
+                        type,
+                        style: GoogleFonts.poppins(
+                          color:
+                              widget.isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedPesticideType = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: Text(
+                    'Allow Negotiation',
+                    style: GoogleFonts.poppins(
+                      color: widget.isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  value: _isNegotiable,
+                  onChanged: (value) {
+                    setState(() {
+                      _isNegotiable = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color:
+                            widget.isDarkMode ? Colors.white30 : Colors.black26,
+                      ),
+                    ),
+                  ),
+                  style: GoogleFonts.poppins(
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a description';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.poppins(
                           color: widget.isDarkMode
                               ? Colors.white70
                               : Colors.black54,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _pickImage,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6C5DD3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        icon: const Icon(Icons.add_photo_alternate,
-                            color: Colors.white),
-                        label: Text(
-                          'Add Image',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (_selectedImages.isNotEmpty)
-                    SizedBox(
-                      height: 120,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _selectedImages.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Stack(
-                              children: [
-                                Container(
-                                  width: 100,
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    image: DecorationImage(
-                                      image: FileImage(
-                                          File(_selectedImages[index])),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 0,
-                                  right: 0,
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.remove_circle,
-                                      color: Colors.red,
-                                    ),
-                                    onPressed: () => _removeImage(index),
-                                  ),
-                                ),
-                              ],
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: ElevatedButton(
+                          onPressed: _isUploading ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6C5DD3),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          );
-                        },
+                          ),
+                          child: _isUploading
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Uploading Images...',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Text(
+                                  'Add Product',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Product Name',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
+                  ],
                 ),
-                style: GoogleFonts.poppins(
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a product name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _priceController,
-                decoration: InputDecoration(
-                  labelText: 'Price',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-                style: GoogleFonts.poppins(
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a price';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid price';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _quantityController,
-                decoration: InputDecoration(
-                  labelText: 'Quantity',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-                style: GoogleFonts.poppins(
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a quantity';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedUnit,
-                decoration: InputDecoration(
-                  labelText: 'Unit',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                items: _units.map((unit) {
-                  return DropdownMenuItem(
-                    value: unit,
-                    child: Text(
-                      unit,
-                      style: GoogleFonts.poppins(
-                        color:
-                            widget.isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedUnit = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(
-                      category,
-                      style: GoogleFonts.poppins(
-                        color:
-                            widget.isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedCategory = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedFertilizerType,
-                decoration: InputDecoration(
-                  labelText: 'Fertilizer Type',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                items: _fertilizerTypes.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(
-                      type,
-                      style: GoogleFonts.poppins(
-                        color:
-                            widget.isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedFertilizerType = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedPesticideType,
-                decoration: InputDecoration(
-                  labelText: 'Pesticide Type',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                items: _pesticideTypes.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(
-                      type,
-                      style: GoogleFonts.poppins(
-                        color:
-                            widget.isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedPesticideType = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                title: Text(
-                  'Allow Negotiation',
-                  style: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                value: _isNegotiable,
-                onChanged: (value) {
-                  setState(() {
-                    _isNegotiable = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          widget.isDarkMode ? Colors.white30 : Colors.black26,
-                    ),
-                  ),
-                ),
-                style: GoogleFonts.poppins(
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      'Cancel',
-                      style: GoogleFonts.poppins(
-                        color:
-                            widget.isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6C5DD3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Add Product',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

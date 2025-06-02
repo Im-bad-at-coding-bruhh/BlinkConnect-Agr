@@ -124,33 +124,41 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
 
       // Get the current cursor position
       final cursorPosition = _contentController.selection.baseOffset;
+      final imagePlaceholder =
+          '\n[IMAGE_${DateTime.now().millisecondsSinceEpoch}]\n';
 
-      // Insert a placeholder in the text at cursor position
-      final text = _contentController.text;
-      final newText = text.substring(0, cursorPosition) +
-          '\n[IMAGE]\n' +
-          text.substring(cursorPosition);
-
-      setState(() {
-        _contentController.text = newText;
-        _contentImages.add({
-          'path': pickedFile.path,
-          'position': cursorPosition,
+      if (cursorPosition == -1) {
+        // If no cursor position, append to the end
+        setState(() {
+          _contentController.text = _contentController.text + imagePlaceholder;
+          _contentImages.add({
+            'path': pickedFile.path,
+            'position':
+                _contentController.text.length - imagePlaceholder.length,
+            'placeholder': imagePlaceholder,
+          });
         });
-      });
+      } else {
+        // Insert at cursor position
+        final text = _contentController.text;
+        final newText = text.substring(0, cursorPosition) +
+            imagePlaceholder +
+            text.substring(cursorPosition);
 
-      // Move cursor after the placeholder
-      _contentController.selection = TextSelection.fromPosition(
-        TextPosition(offset: cursorPosition + 8),
-      );
+        setState(() {
+          _contentController.text = newText;
+          _contentImages.add({
+            'path': pickedFile.path,
+            'position': cursorPosition,
+            'placeholder': imagePlaceholder,
+          });
+        });
 
-      // Show a preview of where the image will be inserted
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Image will be inserted at position $cursorPosition'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        // Move cursor after the placeholder
+        _contentController.selection = TextSelection.fromPosition(
+          TextPosition(offset: cursorPosition + imagePlaceholder.length),
+        );
+      }
     } catch (e, stackTrace) {
       print('Error in _insertImageAtCursor: $e');
       print('Stack trace: $stackTrace');
@@ -206,23 +214,26 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
       final List<Map<String, dynamic>> contentImagesBase64 = [];
       String finalContent = _contentController.text;
 
-      // Sort images by position in ascending order
+      // Sort images by position in descending order to maintain correct positions
       final sortedImages = List<Map<String, dynamic>>.from(_contentImages)
-        ..sort((a, b) => (a['position'] ?? 0).compareTo(b['position'] ?? 0));
+        ..sort((a, b) => (b['position'] ?? 0).compareTo(a['position'] ?? 0));
 
-      // First, remove all [IMAGE] placeholders from the content
-      finalContent = finalContent.replaceAll('\n[IMAGE]\n', '');
-
-      // Then calculate new positions for images
-      int offset = 0;
+      // Process each image
       for (var image in sortedImages) {
         final originalPosition = image['position'] as int;
+        final placeholder = image['placeholder'] as String;
         final bytes = await File(image['path']).readAsBytes();
         contentImagesBase64.add({
           'image': base64Encode(bytes),
-          'position': originalPosition - offset,
+          'position': originalPosition,
+          'placeholder': placeholder,
         });
-        offset += 8; // Length of '\n[IMAGE]\n'
+      }
+
+      // Remove all image placeholders from the content
+      for (var image in sortedImages) {
+        final placeholder = image['placeholder'] as String;
+        finalContent = finalContent.replaceAll(placeholder, '');
       }
 
       // Create the document data
@@ -251,9 +262,8 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
           ),
         );
       }
-    } catch (e, stackTrace) {
-      print('Error in _createNews: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
+      print('Error creating news: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

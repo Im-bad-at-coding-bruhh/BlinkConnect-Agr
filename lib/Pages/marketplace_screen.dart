@@ -17,6 +17,8 @@ import '../Services/negotiation_service.dart';
 import '../Models/cart_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'dart:convert';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -995,19 +997,32 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           top: Radius.circular(12),
                         ),
                       ),
-                      child: product.images.isNotEmpty
-                          ? Image.network(
-                              product.images.first,
-                              height: 120,
-                              fit: BoxFit.contain,
-                            )
-                          : const Center(
-                              child: Icon(
-                                Icons.image_not_supported,
+                      child: Container(
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: product.images.isNotEmpty
+                              ? DecorationImage(
+                                  image: MemoryImage(
+                                    base64Decode(product.images.first),
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          color: product.images.isEmpty
+                              ? (isDarkMode ? Colors.white10 : Colors.black12)
+                              : null,
+                        ),
+                        child: product.images.isEmpty
+                            ? Icon(
+                                Icons.image_not_supported_outlined,
                                 size: 48,
-                                color: Colors.grey,
-                              ),
-                            ),
+                                color: isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              )
+                            : null,
+                      ),
                     ),
                   ),
                   Padding(
