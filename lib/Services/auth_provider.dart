@@ -59,7 +59,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> register(String email, String password,
-      {bool isFarmer = false, String? username}) async {
+      {bool isFarmer = false, String? username, String? region}) async {
     try {
       _isLoading = true;
       _error = null;
@@ -70,6 +70,7 @@ class AuthProvider with ChangeNotifier {
         password,
         isFarmer: isFarmer,
         username: username,
+        region: region,
       );
     } catch (e) {
       _error = e.toString();

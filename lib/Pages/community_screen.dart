@@ -688,6 +688,16 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
+  String _cleanContent(String content, List<dynamic> images) {
+    String cleanContent = content;
+    for (var image in images) {
+      if (image['placeholder'] != null) {
+        cleanContent = cleanContent.replaceAll(image['placeholder'], '');
+      }
+    }
+    return cleanContent;
+  }
+
   Widget _buildAnnouncementCard(
       Map<String, dynamic> announcement, bool isDarkMode) {
     return FutureBuilder<bool>(
@@ -696,6 +706,12 @@ class _CommunityScreenState extends State<CommunityScreen>
         final bool isAdmin = snapshot.data ?? false;
         final bool isOlderThanMonth =
             _isOlderThanMonth(announcement['createdAt']);
+
+        // Only clean the content for the summary display
+        final cleanContent = _cleanContent(
+          announcement['content'] ?? '',
+          announcement['contentImages'] ?? [],
+        );
 
         return Container(
           margin: const EdgeInsets.only(bottom: 24),
@@ -789,12 +805,14 @@ class _CommunityScreenState extends State<CommunityScreen>
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    announcement['summary'] ?? announcement['content'],
+                    announcement['summary'] ?? cleanContent,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       height: 1.5,
                       color: isDarkMode ? Colors.white70 : Colors.black87,
                     ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
 

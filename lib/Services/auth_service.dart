@@ -95,6 +95,7 @@ class AuthService {
     String password, {
     bool isFarmer = false,
     String? username,
+    String? region,
   }) async {
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -110,6 +111,7 @@ class AuthService {
         'username': username ??
             email.split('@')[0], // Use email prefix if username not provided
         'createdAt': FieldValue.serverTimestamp(),
+        'region': region ?? 'Unknown', // Add region field
       });
 
       return userCredential;

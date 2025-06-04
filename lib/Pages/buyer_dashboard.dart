@@ -12,6 +12,8 @@ import '/Pages/negotiation_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '/Services/negotiation_service.dart';
 import '../Models/cart_model.dart';
+import '/Services/sales_analytics_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -36,11 +38,16 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   Timer? _hoverTimer;
   bool _showQuickInfo = false;
   Map<String, dynamic>? _hoveredProduct;
+  final SalesAnalyticsService _salesAnalytics = SalesAnalyticsService();
+  List<Map<String, dynamic>> _topSellingCrops = [];
+  List<Map<String, dynamic>> _seasonalCrops = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _loadCrops();
   }
 
   @override
@@ -48,6 +55,44 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     super.didChangeDependencies();
     _screenSize = MediaQuery.of(context).size;
     _isSmallScreen = _screenSize.width < 600;
+  }
+
+  Future<void> _loadCrops() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Get user's region from their profile
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .get();
+
+      final userRegion = userDoc.data()?['region'] ?? 'default';
+
+      // Load top selling crops
+      final topSelling = await _salesAnalytics.getTopSellingProducts(
+        region: userRegion,
+        category: 'crops',
+      );
+
+      // Load seasonal crops
+      final seasonal = await _salesAnalytics.getSeasonalCrops(
+        region: userRegion,
+      );
+
+      setState(() {
+        _topSellingCrops = topSelling;
+        _seasonalCrops = seasonal;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading crops: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _onItemTapped(int index) {
@@ -390,20 +435,33 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  height: 220,
-                  constraints: const BoxConstraints(maxWidth: double.infinity),
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    shrinkWrap: true,
-                    physics: const ClampingScrollPhysics(),
-                    itemCount: _topSellingCrops.length,
-                    itemBuilder: (context, index) {
-                      final crop = _topSellingCrops[index];
-                      return _buildCropCard(isDarkMode, crop);
-                    },
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_topSellingCrops.isEmpty)
+                  Center(
+                    child: Text(
+                      'No top selling crops available',
+                      style: GoogleFonts.poppins(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    height: 220,
+                    constraints:
+                        const BoxConstraints(maxWidth: double.infinity),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: _topSellingCrops.length,
+                      itemBuilder: (context, index) {
+                        final crop = _topSellingCrops[index];
+                        return _buildCropCard(isDarkMode, crop);
+                      },
+                    ),
                   ),
-                ),
                 const SizedBox(height: 24),
 
                 // Seasonal Crops Section
@@ -416,20 +474,33 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  height: 220,
-                  constraints: const BoxConstraints(maxWidth: double.infinity),
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    shrinkWrap: true,
-                    physics: const ClampingScrollPhysics(),
-                    itemCount: _seasonalCrops.length,
-                    itemBuilder: (context, index) {
-                      final crop = _seasonalCrops[index];
-                      return _buildCropCard(isDarkMode, crop);
-                    },
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_seasonalCrops.isEmpty)
+                  Center(
+                    child: Text(
+                      'No seasonal crops available',
+                      style: GoogleFonts.poppins(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    height: 220,
+                    constraints:
+                        const BoxConstraints(maxWidth: double.infinity),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: _seasonalCrops.length,
+                      itemBuilder: (context, index) {
+                        final crop = _seasonalCrops[index];
+                        return _buildCropCard(isDarkMode, crop);
+                      },
+                    ),
                   ),
-                ),
                 const SizedBox(height: 24),
 
                 // Special Offers Section
@@ -908,105 +979,6 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
       ),
     );
   }
-
-  final List<Map<String, dynamic>> _topSellingCrops = [
-    {
-      'name': 'Organic Apples 🍎',
-      'price': 2.99,
-      'image': 'assets/images/apple.png',
-      'seller': 'Green Farm',
-      'rating': 4.8,
-      'sold': '1.2k',
-      'insecticides': 'Organic',
-      'fertilizers': 'Natural',
-      'weight': '500 kg',
-      'description':
-          'Fresh organic apples grown using sustainable farming methods.',
-      'farmerInfo':
-          'Family-owned farm with 20 years of experience in organic farming.',
-    },
-    {
-      'name': 'Fresh Strawberries 🍓',
-      'price': 4.99,
-      'image': 'assets/images/strawberry.png',
-      'seller': 'Berry Fields',
-      'rating': 4.7,
-      'sold': '950',
-      'insecticides': 'Minimal',
-      'fertilizers': 'Organic',
-      'weight': '300 kg',
-      'description': 'Sweet and juicy strawberries picked at peak ripeness.',
-      'farmerInfo': 'Specialized berry farm with modern greenhouse facilities.',
-    },
-    {
-      'name': 'Sweet Corn 🌽',
-      'price': 3.49,
-      'image': 'assets/images/corn.png',
-      'seller': 'Sunrise Farms',
-      'rating': 4.6,
-      'sold': '800',
-      'insecticides': 'None',
-      'fertilizers': 'Natural',
-      'weight': '1000 kg',
-      'description': 'Sweet and tender corn grown in rich soil.',
-      'farmerInfo': 'Multi-generational farm with sustainable practices.',
-    },
-    {
-      'name': 'Organic Tomatoes 🍅',
-      'price': 3.99,
-      'image': 'assets/images/tomato.png',
-      'seller': 'Red Farms',
-      'rating': 4.5,
-      'sold': '750',
-      'insecticides': 'Organic',
-      'fertilizers': 'Natural',
-      'weight': '600 kg',
-      'description': 'Vine-ripened organic tomatoes with rich flavor.',
-      'farmerInfo': 'Certified organic farm with eco-friendly practices.',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _seasonalCrops = [
-    {
-      'name': 'Summer Berries 🫐',
-      'price': 5.99,
-      'image': 'assets/images/blueberry.png',
-      'seller': 'Berry Fields',
-      'rating': 4.9,
-      'season': 'Summer',
-      'insecticides': 'Minimal',
-      'fertilizers': 'Organic',
-      'weight': '400 kg',
-      'description': 'Fresh summer berries with perfect sweetness.',
-      'farmerInfo': 'Specialized berry farm with modern greenhouse facilities.',
-    },
-    {
-      'name': 'Fresh Peaches 🍑',
-      'price': 4.49,
-      'image': 'assets/images/peach.png',
-      'seller': 'Orchard Farm',
-      'rating': 4.7,
-      'season': 'Summer',
-      'insecticides': 'None',
-      'fertilizers': 'Natural',
-      'weight': '800 kg',
-      'description': 'Juicy peaches from our family orchard.',
-      'farmerInfo': 'Family-owned orchard with 30 years of experience.',
-    },
-    {
-      'name': 'Sweet Watermelon 🍉',
-      'price': 6.99,
-      'image': 'assets/images/watermelon.png',
-      'seller': 'Valley Farm',
-      'rating': 4.8,
-      'season': 'Summer',
-      'insecticides': 'None',
-      'fertilizers': 'Natural',
-      'weight': '1200 kg',
-      'description': 'Sweet and refreshing summer watermelons.',
-      'farmerInfo': 'Large-scale farm with sustainable irrigation systems.',
-    },
-  ];
 
   Widget _buildSpecialOfferCard(bool isDarkMode) {
     return Container(

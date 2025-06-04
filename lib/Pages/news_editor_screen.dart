@@ -124,8 +124,9 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
 
       // Get the current cursor position
       final cursorPosition = _contentController.selection.baseOffset;
+      // Add double line breaks before and after the image placeholder
       final imagePlaceholder =
-          '\n[IMAGE_${DateTime.now().millisecondsSinceEpoch}]\n';
+          '\n\n[IMAGE_${DateTime.now().millisecondsSinceEpoch}]\n\n';
 
       if (cursorPosition == -1) {
         // If no cursor position, append to the end
@@ -214,26 +215,57 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
       final List<Map<String, dynamic>> contentImagesBase64 = [];
       String finalContent = _contentController.text;
 
+      // Debug print
+      print('Number of content images: ${_contentImages.length}');
+      for (var img in _contentImages) {
+        print('Image position: ${img['position']}, path: ${img['path']}');
+      }
+
       // Sort images by position in descending order to maintain correct positions
       final sortedImages = List<Map<String, dynamic>>.from(_contentImages)
         ..sort((a, b) => (b['position'] ?? 0).compareTo(a['position'] ?? 0));
 
       // Process each image
       for (var image in sortedImages) {
-        final originalPosition = image['position'] as int;
-        final placeholder = image['placeholder'] as String;
-        final bytes = await File(image['path']).readAsBytes();
-        contentImagesBase64.add({
-          'image': base64Encode(bytes),
-          'position': originalPosition,
-          'placeholder': placeholder,
-        });
+        try {
+          final originalPosition = image['position'] as int;
+          final placeholder = image['placeholder'] as String;
+          final file = File(image['path']);
+
+          if (!await file.exists()) {
+            print('File does not exist: ${image['path']}');
+            continue;
+          }
+
+          final bytes = await file.readAsBytes();
+          if (bytes.isEmpty) {
+            print('File is empty: ${image['path']}');
+            continue;
+          }
+
+          final base64Image = base64Encode(bytes);
+          contentImagesBase64.add({
+            'image': base64Image,
+            'position': originalPosition,
+            'placeholder': placeholder,
+          });
+        } catch (e) {
+          print('Error processing image: $e');
+          print('Image data: $image');
+        }
       }
 
       // Remove all image placeholders from the content
       for (var image in sortedImages) {
         final placeholder = image['placeholder'] as String;
         finalContent = finalContent.replaceAll(placeholder, '');
+      }
+
+      // Debug print
+      print('Final number of processed images: ${contentImagesBase64.length}');
+      for (var img in contentImagesBase64) {
+        print(
+            'Processed image position: ${img['position']}, has image: ${img['image'] != null}');
       }
 
       // Create the document data
@@ -435,16 +467,23 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
                 TextField(
                   controller: _contentController,
                   maxLines: 10,
+                  textAlignVertical: TextAlignVertical.top,
                   decoration: InputDecoration(
                     hintText:
-                        'Write your news article here...\n\nTip: Place your cursor where you want to insert an image, then click the image button below.',
+                        'Write your news article here...\n\nTip: Press Enter twice to create a new paragraph.\nTip: Place your cursor where you want to insert an image, then click the image button below.',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
+                    alignLabelWithHint: true,
+                    contentPadding: const EdgeInsets.all(16),
                   ),
                   style: GoogleFonts.poppins(
                     color: widget.isDarkMode ? Colors.white : Colors.black87,
+                    height: 1.6,
+                    fontSize: 16,
                   ),
+                  keyboardType: TextInputType.multiline,
+                  textCapitalization: TextCapitalization.sentences,
                 ),
                 Positioned(
                   right: 8,
