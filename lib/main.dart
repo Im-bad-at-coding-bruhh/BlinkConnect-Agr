@@ -7,6 +7,7 @@ import 'Services/product_provider.dart';
 import 'Pages/splash_screen.dart';
 import 'Services/auth_provider.dart';
 import 'Pages/user_provider.dart';
+import 'Services/invoice_provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => InvoiceProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

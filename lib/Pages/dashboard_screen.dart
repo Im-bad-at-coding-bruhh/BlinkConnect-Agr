@@ -12,8 +12,11 @@ import '../Services/product_provider.dart';
 import '../Models/product_model.dart';
 import '../Services/auth_provider.dart' as app_auth;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'negotiation_screen.dart';
+import '../Services/invoice_provider.dart';
+import '../Models/invoice_model.dart';
 
 class DashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -53,12 +56,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'December',
   ];
   User? _currentUser;
+  String _username = '';
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _currentUser = FirebaseAuth.instance.currentUser;
+    _loadUsername();
     print('Debug - Current User: $_currentUser'); // Debug print
     print('Debug - Display Name: ${_currentUser?.displayName}'); // Debug print
     // Set system UI overlay style for status bar
@@ -69,21 +74,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
 
-    // Load products when dashboard initializes
+    // Load products and invoices when dashboard initializes
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final productProvider =
           Provider.of<ProductProvider>(context, listen: false);
+      final invoiceProvider =
+          Provider.of<InvoiceProvider>(context, listen: false);
       try {
         print('Dashboard: Starting to load products...'); // Debug print
         await productProvider.loadFarmerProducts();
-        print('Dashboard: Products loaded successfully'); // Debug print
+        if (_currentUser != null) {
+          await invoiceProvider.loadFarmerInvoices(_currentUser!.uid);
+        }
+        print(
+            'Dashboard: Products and invoices loaded successfully'); // Debug print
         if (mounted) {
           setState(() {});
         }
       } catch (e) {
-        print('Dashboard: Error loading products: $e'); // Debug print
+        print('Dashboard: Error loading data: $e'); // Debug print
       }
     });
+  }
+
+  Future<void> _loadUsername() async {
+    if (_currentUser != null) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            _username = userDoc.data()?['username'] ?? 'Dashboard';
+          });
+        }
+      } catch (e) {
+        print('Error loading username: $e');
+      }
+    }
   }
 
   @override
@@ -321,7 +351,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             }
           },
           farmerId: authProvider.user?.uid ?? '',
-          username: authProvider.user?.displayName ?? '',
+          username: authProvider.user?.displayName ??
+              authProvider.user?.email?.split('@')[0] ??
+              'Farmer',
         );
       },
     );
@@ -455,7 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: isDarkMode ? Colors.black : Colors.white,
         elevation: 0,
         title: Text(
-          'Dashboard',
+          _username.isNotEmpty ? _username : 'Dashboard',
           style: GoogleFonts.poppins(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -848,6 +880,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildMobileMonthlyCard(bool isDarkMode) {
+    final invoiceProvider = Provider.of<InvoiceProvider>(context);
+    final totalAmount = invoiceProvider.getTotalAmount();
+    final paidAmount = invoiceProvider.getTotalAmountByStatus('Paid');
+    final pendingAmount = invoiceProvider.getTotalAmountByStatus('Pending');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -874,7 +911,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '\$ 500',
+                    '\$${paidAmount.toStringAsFixed(2)}',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 32,
@@ -908,81 +945,129 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildAmountInfo('Total', totalAmount, isDarkMode),
+              _buildAmountInfo('Pending', pendingAmount, isDarkMode),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMobileDailySpends(bool isDarkMode) {
-    final invoices = [
-      {
-        'customerName': 'John Smith',
-        'amount': 365.89,
-        'date': 'Today',
-        'status': 'Paid',
-        'color': const Color(0xFF4CAF50),
-      },
-      {
-        'customerName': 'Sarah Johnson',
-        'amount': 165.99,
-        'date': '26 Jan, 2023',
-        'status': 'Pending',
-        'color': const Color(0xFFFFB74D),
-      },
-      {
-        'customerName': 'Mike Wilson',
-        'amount': 265.09,
-        'date': '15 Jan, 2023',
-        'status': 'Unpaid',
-        'color': const Color(0xFFFF5252),
-      },
-    ];
-
+  Widget _buildAmountInfo(String label, double amount, bool isDarkMode) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'INVOICES',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1,
-                color: isDarkMode ? Colors.white60 : Colors.grey[600],
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FarmerProfileScreen(
-                      isFarmer: widget.isFarmer,
-                      isVerified: widget.isVerified,
-                      initialIndex: 3,
-                      initialTabIndex: 2, // Sales Report tab
-                    ),
-                  ),
-                );
-              },
-              child: Text(
-                'See All',
-                style: GoogleFonts.poppins(
-                  color: const Color(0xFF6C5DD3),
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 12,
+          ),
         ),
-        const SizedBox(height: 12),
-        ...invoices.map((invoice) => _buildInvoiceItem(invoice, isDarkMode)),
+        const SizedBox(height: 4),
+        Text(
+          '\$${amount.toStringAsFixed(2)}',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildInvoiceItem(Map<String, dynamic> invoice, bool isDarkMode) {
+  Widget _buildMobileDailySpends(bool isDarkMode) {
+    return Consumer<InvoiceProvider>(
+      builder: (context, invoiceProvider, child) {
+        if (invoiceProvider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final invoices = invoiceProvider.invoices;
+        if (invoices.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.receipt_long_outlined,
+                  size: 48,
+                  color: isDarkMode ? Colors.white38 : Colors.black26,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No Invoices Yet',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'RECENT INVOICES',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
+                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FarmerProfileScreen(
+                          isFarmer: widget.isFarmer,
+                          isVerified: widget.isVerified,
+                          initialIndex: 3,
+                          initialTabIndex: 2, // Sales Report tab
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'See All',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF6C5DD3),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...invoices
+                .take(3)
+                .map((invoice) => _buildInvoiceItem(invoice, isDarkMode)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInvoiceItem(Invoice invoice, bool isDarkMode) {
+    final bool isPaid = invoice.status == 'Paid';
+    final bool isPending = invoice.status == 'Pending';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1006,7 +1091,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  invoice['customerName'],
+                  invoice.customerName,
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -1015,7 +1100,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '\$${invoice['amount']}',
+                  '\$${invoice.amount.toStringAsFixed(2)}',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     color: isDarkMode ? Colors.white60 : Colors.grey[600],
@@ -1028,7 +1113,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                invoice['date'],
+                invoice.date.toString().split(' ')[0],
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: isDarkMode ? Colors.white38 : Colors.grey[400],
@@ -1038,14 +1123,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: invoice['color'].withOpacity(0.1),
+                  color: isPaid
+                      ? Colors.green.withOpacity(0.1)
+                      : isPending
+                          ? Colors.orange.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  invoice['status'],
+                  invoice.status,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: invoice['color'],
+                    color: isPaid
+                        ? Colors.green
+                        : isPending
+                            ? Colors.orange
+                            : Colors.red,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1371,235 +1464,147 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildInvoicesList(bool isDarkMode) {
-    // Sample invoices
-    final invoices = [
-      {
-        'name': 'Sarah Johnson',
-        'amount': '\$1,200.00',
-        'date': '01 June 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Mark Wilson',
-        'amount': '\$3,400.00',
-        'date': '28 May 2023',
-        'status': 'Pending',
-      },
-      {
-        'name': 'James Smith',
-        'amount': '\$2,300.45',
-        'date': '15 May 2023',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'Emily Brown',
-        'amount': '\$1,800.20',
-        'date': '10 May 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'David Jones',
-        'amount': '\$950.75',
-        'date': '05 May 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Lisa Moore',
-        'amount': '\$2,100.50',
-        'date': '30 April 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Robert Taylor',
-        'amount': '\$1,750.00',
-        'date': '25 April 2023',
-        'status': 'Pending',
-      },
-      {
-        'name': 'Michael Clark',
-        'amount': '\$3,200.00',
-        'date': '20 April 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Jennifer Adams',
-        'amount': '\$890.30',
-        'date': '15 April 2023',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'William White',
-        'amount': '\$1,500.00',
-        'date': '10 April 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Jessica Scott',
-        'amount': '\$2,400.00',
-        'date': '05 April 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Thomas Green',
-        'amount': '\$1,100.25',
-        'date': '30 March 2023',
-        'status': 'Pending',
-      },
-      {
-        'name': 'Daniel Hall',
-        'amount': '\$3,000.00',
-        'date': '25 March 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Christopher Lee',
-        'amount': '\$1,350.75',
-        'date': '20 March 2023',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'Susan Baker',
-        'amount': '\$2,700.00',
-        'date': '15 March 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Matthew Young',
-        'amount': '\$950.50',
-        'date': '10 March 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Karen Hill',
-        'amount': '\$1,800.00',
-        'date': '05 March 2023',
-        'status': 'Pending',
-      },
-      {
-        'name': 'Joshua King',
-        'amount': '\$2,200.30',
-        'date': '28 February 2023',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Amanda Wright',
-        'amount': '\$1,600.00',
-        'date': '20 February 2023',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'Kevin Turner',
-        'amount': '\$3,100.75',
-        'date': '15 February 2023',
-        'status': 'Paid',
-      },
-    ];
+    return Consumer<InvoiceProvider>(
+      builder: (context, invoiceProvider, child) {
+        if (invoiceProvider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
 
-    return Container(
-      height: 400,
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: invoices.length,
-        itemBuilder: (context, index) {
-          final invoice = invoices[index];
-          final bool isPaid = invoice['status'] == 'Paid';
-          final bool isPending = invoice['status'] == 'Pending';
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
-              ),
-            ),
-            child: Row(
+        final invoices = invoiceProvider.invoices;
+        if (invoices.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.person, color: Colors.white),
-                  ),
+                Icon(
+                  Icons.receipt_long_outlined,
+                  size: 48,
+                  color: isDarkMode ? Colors.white38 : Colors.black26,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        invoice['name'] ?? '',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        invoice['date'] ?? '',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: isDarkMode ? Colors.white70 : Colors.black54,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 16),
+                Text(
+                  'No Invoices Yet',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.black87,
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      invoice['amount'] ?? '',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isPaid
-                            ? Colors.green.withOpacity(0.2)
-                            : isPending
-                                ? Colors.orange.withOpacity(0.2)
-                                : Colors.red.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        invoice['status'] ?? '',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isPaid
-                              ? Colors.green
-                              : isPending
-                                  ? Colors.orange
-                                  : Colors.red,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
           );
-        },
-      ),
+        }
+
+        return Container(
+          height: 400,
+          child: ListView.builder(
+            shrinkWrap: true,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: invoices.length,
+            itemBuilder: (context, index) {
+              final invoice = invoices[index];
+              final bool isPaid = invoice.status == 'Paid';
+              final bool isPending = invoice.status == 'Pending';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? Colors.black.withOpacity(0.2)
+                      : Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.05),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            invoice.customerName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            invoice.date.toString().split(' ')[0],
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${invoice.amount.toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isPaid
+                                ? Colors.green.withOpacity(0.2)
+                                : isPending
+                                    ? Colors.orange.withOpacity(0.2)
+                                    : Colors.red.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            invoice.status,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: isPaid
+                                  ? Colors.green
+                                  : isPending
+                                      ? Colors.orange
+                                      : Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

@@ -53,4 +53,30 @@ class CartItem {
       negotiationMessage: map['negotiationMessage']?.toString() ?? '',
     );
   }
+
+  CartItem copyWith({
+    String? id,
+    String? productId,
+    String? productName,
+    int? quantity,
+    double? originalPrice,
+    double? negotiatedPrice,
+    String? negotiationId,
+    DateTime? addedAt,
+    String? status,
+    String? negotiationMessage,
+  }) {
+    return CartItem(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      quantity: quantity ?? this.quantity,
+      originalPrice: originalPrice ?? this.originalPrice,
+      negotiatedPrice: negotiatedPrice ?? this.negotiatedPrice,
+      negotiationId: negotiationId ?? this.negotiationId,
+      addedAt: addedAt ?? this.addedAt,
+      status: status ?? this.status,
+      negotiationMessage: negotiationMessage ?? this.negotiationMessage,
+    );
+  }
 }

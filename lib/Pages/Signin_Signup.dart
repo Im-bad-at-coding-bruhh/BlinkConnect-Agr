@@ -5,7 +5,10 @@ import 'package:provider/provider.dart';
 import 'dashboard_screen.dart';
 import 'buyer_dashboard.dart';
 import '../Services/auth_provider.dart';
+import '../Services/location_service.dart';
 import '../Widgets/loading_animation.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // Custom painter for wave pattern on the left side
 class WavePattern extends CustomPainter {
@@ -82,6 +85,9 @@ class _AuthScreenState extends State<AuthScreen>
   bool _confirmPasswordVisible = false;
   bool _isFarmer = false;
   bool _isLoading = false;
+  bool _isLoadingLocation = false;
+  String _userRegion = 'Unknown';
+  final LocationService _locationService = LocationService();
 
   // Helper method to validate and clean email
   String? _validateAndCleanEmail(String email) {
@@ -115,6 +121,120 @@ class _AuthScreenState extends State<AuthScreen>
     Future.delayed(const Duration(milliseconds: 200), () {
       _animationController.forward();
     });
+
+    // Request location if in sign up mode
+    if (!isSignIn) {
+      _initializeLocation();
+    }
+  }
+
+  Future<void> _initializeLocation() async {
+    if (!mounted) return;
+
+    print('Starting location initialization...');
+    setState(() {
+      _isLoadingLocation = true;
+    });
+
+    try {
+      // First check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print('Location services enabled: $serviceEnabled');
+
+      if (!serviceEnabled) {
+        print('Location services are disabled, requesting to enable...');
+        // This will show the native dialog to enable location services
+        serviceEnabled = await Geolocator.openLocationSettings();
+        print('User enabled location services: $serviceEnabled');
+
+        if (!serviceEnabled) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Location services are required for sign up'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          setState(() {
+            _isLoadingLocation = false;
+          });
+          return;
+        }
+      }
+
+      // Now check and request permission
+      print('Checking location permission...');
+      LocationPermission permission = await Geolocator.checkPermission();
+      print('Current permission status: $permission');
+
+      if (permission == LocationPermission.denied) {
+        print('Permission denied, requesting permission...');
+        permission = await Geolocator.requestPermission();
+        print('Permission after request: $permission');
+
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Location permission is required for sign up'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          setState(() {
+            _isLoadingLocation = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        print('Permission permanently denied');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Location permission is permanently denied. Please enable it in settings.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        setState(() {
+          _isLoadingLocation = false;
+        });
+        return;
+      }
+
+      print('Getting current position...');
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      print('Got position: ${position.latitude}, ${position.longitude}');
+
+      if (!mounted) return;
+
+      final region = await _locationService.getContinentFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      print('Got region: $region');
+
+      if (mounted) {
+        setState(() {
+          _userRegion = region;
+          _isLoadingLocation = false;
+        });
+      }
+    } catch (e) {
+      print('Error in location process: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
+    }
   }
 
   @override
@@ -136,6 +256,12 @@ class _AuthScreenState extends State<AuthScreen>
       _confirmPasswordController.clear();
       _usernameController.clear();
       _phoneController.clear();
+      _userRegion = 'Unknown';
+
+      // Request location when switching to sign up mode
+      if (!isSignIn) {
+        _initializeLocation();
+      }
     });
   }
 
@@ -252,6 +378,7 @@ class _AuthScreenState extends State<AuthScreen>
         _passwordController.text,
         isFarmer: _isFarmer,
         username: _usernameController.text,
+        region: _userRegion,
       );
 
       if (authProvider.error != null) {
@@ -263,46 +390,23 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
-      // Get user profile from Firestore
-      final userProfile = await authProvider.getUserProfile();
-      if (userProfile == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to get user profile')),
-          );
-        }
-        return;
-      }
-
-      // Check user_type from Firestore
-      final String userType = userProfile['user_type'] ?? 'buyer';
-      final bool isActive = userProfile['isActive'] == true;
-      final bool isFarmer = userType == 'farmer';
-
       if (!mounted) return;
 
-      // Navigate to appropriate dashboard based on user type
+      // Navigate to appropriate dashboard
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => isFarmer
-              ? DashboardScreen(
-                  isFarmer: isFarmer,
-                  isVerified: isActive,
-                )
-              : BuyerDashboardScreen(
-                  isFarmer: isFarmer,
-                  isVerified: isActive,
-                ),
+          builder: (context) => _isFarmer
+              ? DashboardScreen(isFarmer: true, isVerified: false)
+              : BuyerDashboardScreen(isFarmer: false, isVerified: false),
         ),
         (route) => false,
       );
     } catch (e) {
-      print('SignUp error: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('An error occurred during sign up: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

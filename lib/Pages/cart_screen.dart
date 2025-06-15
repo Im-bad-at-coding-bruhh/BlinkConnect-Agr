@@ -6,6 +6,10 @@ import '../Services/cart_service.dart';
 import 'theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'buyer_dashboard.dart';
+import 'test_transaction_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class CartScreen extends StatelessWidget {
   final bool isFarmer;
@@ -16,6 +20,113 @@ class CartScreen extends StatelessWidget {
     required this.isFarmer,
     required this.isVerified,
   }) : super(key: key);
+
+  Future<void> _handleCheckout(
+      BuildContext context, List<CartItem> cartItems) async {
+    final cartService = CartService();
+    final firestore = FirebaseFirestore.instance;
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to checkout')),
+      );
+      return;
+    }
+
+    try {
+      // Get user details
+      final userDoc =
+          await firestore.collection('users').doc(currentUser.uid).get();
+      final userData = userDoc.data();
+      if (userData == null) {
+        throw Exception('User data not found');
+      }
+
+      // Calculate total amount
+      double totalAmount = 0;
+      for (var item in cartItems) {
+        totalAmount += item.negotiatedPrice * item.quantity;
+      }
+
+      // Navigate to test transaction screen
+      if (context.mounted) {
+        // Get the farmer ID from the first product
+        final firstProductDoc = await firestore
+            .collection('products')
+            .doc(cartItems[0].productId)
+            .get();
+        final productData = firstProductDoc.data();
+        if (productData == null) {
+          throw Exception('Product data not found');
+        }
+        final farmerId = productData['farmerId'] as String;
+
+        // Debug logging
+        debugPrint('Product ID: ${cartItems[0].productId}');
+        debugPrint('Product Data: $productData');
+        debugPrint('Farmer ID: $farmerId');
+
+        if (farmerId.isEmpty) {
+          throw Exception('Farmer ID is empty');
+        }
+
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TestTransactionScreen(
+              customerName: userData['name'] ?? 'Unknown',
+              customerId: currentUser.uid,
+              amount: totalAmount,
+              productName: cartItems.length == 1
+                  ? cartItems[0].productName
+                  : '${cartItems.length} items',
+              farmerId: farmerId,
+            ),
+          ),
+        );
+
+        // Update product quantities after successful transaction
+        for (var item in cartItems) {
+          final productRef =
+              firestore.collection('products').doc(item.productId);
+          final productDoc = await productRef.get();
+
+          if (productDoc.exists) {
+            final productData = productDoc.data();
+            if (productData != null) {
+              final currentQuantity =
+                  (productData['quantity'] as num).toDouble();
+              final newQuantity = currentQuantity - item.quantity;
+
+              if (newQuantity <= 0) {
+                // Delete product if out of stock
+                await productRef.delete();
+              } else {
+                // Update quantity
+                await productRef.update({'quantity': newQuantity});
+              }
+            }
+          }
+        }
+
+        // Clear the cart after successful transaction
+        await cartService.clearCart();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Purchase completed successfully')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error during checkout: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -375,14 +486,7 @@ class CartScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: Implement checkout functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Checkout functionality coming soon!')),
-                          );
-                        },
+                        onPressed: () => _handleCheckout(context, cartItems),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6C5DD3),
                           padding: const EdgeInsets.symmetric(vertical: 16),

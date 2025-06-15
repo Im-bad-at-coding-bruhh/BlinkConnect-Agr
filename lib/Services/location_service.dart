@@ -1,62 +1,55 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'dart:async';
 
 class LocationService {
+  bool _isDisposed = false;
+
+  void dispose() {
+    print('LocationService: Disposing...');
+    _isDisposed = true;
+  }
+
   // Get user's current position
-  Future<Position> getCurrentPosition() async {
-    print('Checking location services...');
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Check if location services are enabled
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    print('Location services enabled: $serviceEnabled');
-
-    if (!serviceEnabled) {
-      print('Location services are disabled, requesting to enable...');
-      // Request to enable location services
-      serviceEnabled = await Geolocator.openLocationSettings();
-      if (!serviceEnabled) {
-        throw Exception(
-            'Location services are disabled. Please enable location services in your device settings.');
-      }
+  Future<Position?> getCurrentLocation() async {
+    if (_isDisposed) {
+      print('LocationService: Service is disposed, skipping location request');
+      return null;
     }
 
-    // Check location permission
-    permission = await Geolocator.checkPermission();
-    print('Current permission status: $permission');
-
-    if (permission == LocationPermission.denied) {
-      print('Requesting location permission...');
-      permission = await Geolocator.requestPermission();
-      print('Permission after request: $permission');
-
-      if (permission == LocationPermission.denied) {
-        throw Exception(
-            'Location permissions are denied. Please enable location permissions in your device settings.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      print('Location permission permanently denied, opening app settings...');
-      await Geolocator.openAppSettings();
-      throw Exception(
-          'Location permissions are permanently denied. Please enable location permissions in your device settings.');
-    }
-
-    print('Getting current position...');
-    // Get the current position
+    print('LocationService: Getting current location...');
     try {
-      final position = await Geolocator.getCurrentPosition(
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        print('Location services are disabled');
+        return null;
+      }
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          print('Location permissions are denied');
+          return null;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        print('Location permissions are permanently denied');
+        return null;
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
       );
-      print('Got position: ${position.latitude}, ${position.longitude}');
+      print('Latitude: ${position.latitude}, Longitude: ${position.longitude}');
       return position;
     } catch (e) {
-      print('Error getting position: $e');
-      throw Exception(
-          'Could not get your location. Please try again or select your region manually.');
+      print('Error getting location: $e');
+      return null;
     }
   }
 
@@ -65,25 +58,15 @@ class LocationService {
       double latitude, double longitude) async {
     print('Getting continent for coordinates: $latitude, $longitude');
     try {
-      // Get placemarks from coordinates
       List<Placemark> placemarks =
           await placemarkFromCoordinates(latitude, longitude);
-      print('Got placemarks: ${placemarks.length}');
-
       if (placemarks.isNotEmpty) {
         final Placemark place = placemarks[0];
         final String? country = place.country;
-        print('Detected country: $country');
-
-        // Map country to continent
         if (country != null) {
-          final continent = _getContinentFromCountry(country);
-          print('Mapped to continent: $continent');
-          return continent;
+          return _getContinentFromCountry(country);
         }
       }
-
-      print('Could not determine continent, returning Unknown');
       return 'Unknown';
     } catch (e) {
       print('Error getting continent: $e');
@@ -169,5 +152,53 @@ class LocationService {
     };
 
     return countryToContinent[country] ?? 'Unknown';
+  }
+
+  Future<bool> requestLocationPermission() async {
+    if (_isDisposed) {
+      print(
+          'LocationService: Service is disposed, skipping permission request');
+      return false;
+    }
+
+    print('LocationService: Starting permission request...');
+    try {
+      // Check if location services are enabled
+      print('LocationService: Checking if location services are enabled...');
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print('LocationService: Location services enabled: $serviceEnabled');
+
+      if (!serviceEnabled) {
+        print('LocationService: Location services are disabled');
+        // Request to enable location services
+        serviceEnabled = await Geolocator.openAppSettings();
+        if (!serviceEnabled) {
+          print('LocationService: User did not enable location services');
+          return false;
+        }
+      }
+
+      // Request location permission using Geolocator
+      print('LocationService: Requesting location permission...');
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          print('LocationService: Location permission denied');
+          return false;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        print('LocationService: Location permission permanently denied');
+        return false;
+      }
+
+      print('LocationService: Location permission granted');
+      return true;
+    } catch (e) {
+      print('LocationService: Error requesting location permission: $e');
+      return false;
+    }
   }
 }

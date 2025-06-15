@@ -67,8 +67,10 @@ class AuthService {
         'user_type': data['user_type'] ?? 'buyer',
         'username':
             data['username'] ?? currentUser!.email?.split('@')[0] ?? 'user',
+        'region': data['region'] ?? 'Unknown', // Add region field
       };
 
+      print('getUserProfile: Returning profile data: $profileData');
       return profileData;
     } catch (e) {
       print('getUserProfile error: $e');
@@ -213,7 +215,7 @@ class AuthService {
       await _firestore
           .collection('users')
           .doc(currentUser!.uid)
-          .update({'name': newUsername});
+          .update({'username': newUsername});
     } catch (e) {
       throw 'Failed to update username. Please try again.';
     }

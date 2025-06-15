@@ -141,17 +141,49 @@ class _AddProductFormState extends State<AddProductForm> {
       });
 
       try {
+        // Get user data from Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.farmerId)
+            .get();
+
+        if (!userDoc.exists) {
+          throw 'User profile not found';
+        }
+
+        final userData = userDoc.data();
+        if (userData == null) {
+          throw 'User data is null';
+        }
+
+        print('Raw user data from Firestore: $userData');
+
+        // Get username and region from user data
+        final username = userData['username'] as String?;
+        final region = userData['region'] as String?;
+
+        print('Extracted username: $username');
+        print('Extracted region: $region');
+
+        if (username == null) {
+          throw 'Username not found in user profile';
+        }
+
+        if (region == null) {
+          throw 'Region not found in user profile';
+        }
+
         final now = DateTime.now();
         final product = Product(
           id: '', // This will be set by Firestore
           farmerId: widget.farmerId,
-          farmerName: widget.username,
+          farmerName: username,
           productName: _nameController.text,
           category: _selectedCategory,
           description: _descriptionController.text,
           price: double.parse(_priceController.text),
           currentPrice: double.parse(_priceController.text),
-          region: 'Default', // Set a default region
+          region: region,
           status: 'available',
           createdAt: now,
           updatedAt: now,
@@ -166,6 +198,7 @@ class _AddProductFormState extends State<AddProductForm> {
         widget.onProductAdded(product);
         Navigator.of(context).pop();
       } catch (e) {
+        print('Error creating product: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error creating product: $e'),

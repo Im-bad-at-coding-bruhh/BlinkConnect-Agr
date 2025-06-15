@@ -565,11 +565,15 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                                       .user
                                       ?.uid ??
                                   '',
-                          username:
+                          username: Provider.of<AuthProvider>(context,
+                                      listen: false)
+                                  .user
+                                  ?.displayName ??
                               Provider.of<AuthProvider>(context, listen: false)
-                                      .user
-                                      ?.displayName ??
-                                  '',
+                                  .user
+                                  ?.email
+                                  ?.split('@')[0] ??
+                              'Farmer',
                         ),
                       ),
                     );

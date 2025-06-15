@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import 'theme_provider.dart';
 import 'buyer_dashboard.dart';
 import 'community_screen.dart';
@@ -14,11 +15,11 @@ import 'cart_screen.dart';
 import '../Services/product_provider.dart';
 import '../Models/product_model.dart';
 import '../Services/negotiation_service.dart';
-import '../Models/cart_model.dart';
+import '../Models/cart_model.dart' as cart_model;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:io';
-import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
+import 'product_details_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   final bool isFarmer;
@@ -190,60 +191,52 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     });
   }
 
-  void _addToCart(Product product, int quantity) {
+  Future<void> _addToCart(Product product, int quantity) async {
+    if (quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a valid quantity')),
+      );
+      return;
+    }
+
+    if (product.price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid product price')),
+      );
+      return;
+    }
+
     try {
-      if (quantity <= 0) {
-        throw ArgumentError('Quantity must be greater than 0');
-      }
-
-      if (product.price <= 0) {
-        throw ArgumentError('Price must be greater than 0');
-      }
-
       final cartService = Provider.of<CartService>(context, listen: false);
 
-      final cartItem = CartItem(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      final cartItem = cart_model.CartItem(
+        id: '', // Will be set by Firestore
         productId: product.id,
         productName: product.productName,
         quantity: quantity,
-        originalPrice: product.price,
-        negotiatedPrice: product.price,
+        originalPrice: product.price.toDouble(),
+        negotiatedPrice: product.price.toDouble(),
         negotiationId: '',
         addedAt: DateTime.now(),
         status: 'pending',
+        negotiationMessage: '',
       );
 
-      cartService.addToCart(cartItem);
+      await cartService.addToCart(cartItem);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${product.productName} (${quantity}kg) added to cart'),
-          duration: const Duration(seconds: 2),
-          action: SnackBarAction(
-            label: 'View Cart',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartScreen(
-                    isFarmer: widget.isFarmer,
-                    isVerified: widget.isVerified,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item added to cart successfully')),
+        );
+      }
     } catch (e) {
       debugPrint('Error adding to cart: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to add item to cart: ${e.toString()}'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Failed to add item to cart: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -1143,316 +1136,31 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   void _showProductDetails(Product product) {
-    final TextEditingController quantityController = TextEditingController(
-      text: '1',
-    );
-    double originalTotalPrice = product.price * 1; // Default quantity of 1
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text(product.productName),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Seller: ${product.farmerName}'),
-                  Text('Price: \$${product.price}/kg'),
-                  const SizedBox(height: 8),
-                  const Text('Product Description:'),
-                  Text(product.description),
-                  const SizedBox(height: 16),
-
-                  // Quantity Selection
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Quantity (kg): '),
-                      SizedBox(
-                        width: 60,
-                        child: TextField(
-                          controller: quantityController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
-                            ),
-                          ),
-                          onChanged: (value) {
-                            if (value.isEmpty) {
-                              setState(() {
-                                quantityController.text = '1';
-                                originalTotalPrice = product.price;
-                              });
-                            } else {
-                              setState(() {
-                                originalTotalPrice =
-                                    product.price * double.parse(value);
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Total Price Display
-                  Center(
-                    child: Text(
-                      'Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-              if (product.isNegotiable) ...[
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    if (quantityController.text.isEmpty) {
-                      quantityController.text = '1';
-                    }
-                    _showNegotiationDialog(
-                      product,
-                      double.parse(quantityController.text),
-                      originalTotalPrice,
-                    );
-                  },
-                  child: const Text('Negotiate'),
-                ),
-              ],
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  final quantity = int.tryParse(quantityController.text) ?? 1;
-                  _addToCart(product, quantity);
-                  Navigator.pop(context);
-                },
-                child: const Text('Add to Cart'),
-              ),
-            ],
-          );
-        },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailsScreen(
+          product: {
+            'id': product.id,
+            'name': product.productName,
+            'description': product.description,
+            'price': product.price,
+            'seller': product.farmerName,
+            'sellerId': product.farmerId,
+            'rating': 4.5, // You might want to add this to your Product model
+            'images': product.images, // Pass all images
+            'isNegotiable': product.isNegotiable,
+            'quantity': product.quantity,
+            'unit': product.unit,
+            'region': product.region,
+            'fertilizerType': product.fertilizerType,
+            'pesticideType': product.pesticideType,
+          },
+          isFarmer: widget.isFarmer,
+          isVerified: widget.isVerified,
+        ),
       ),
     );
-  }
-
-  void _showNegotiationDialog(
-    Product product,
-    double quantity,
-    double originalTotalPrice,
-  ) {
-    final TextEditingController bidPriceController = TextEditingController();
-    final ValueNotifier<double> pricePerKgNotifier = ValueNotifier<double>(0.0);
-    final double minBid = originalTotalPrice * 0.5;
-    final double maxBid = originalTotalPrice;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Make Your Offer'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Product: ${product.productName}'),
-            Text('Quantity: $quantity kg'),
-            Text(
-              'Original Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
-            ),
-            Text(
-              'Valid bid range: \$${minBid.toStringAsFixed(2)} - \$${maxBid.toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Enter your bid price for the total quantity:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: bidPriceController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                prefixText: '\$',
-                hintText: 'Enter your bid price',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  final bidAmount = double.tryParse(value);
-                  if (bidAmount != null) {
-                    pricePerKgNotifier.value = bidAmount / quantity;
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-            ValueListenableBuilder<double>(
-              valueListenable: pricePerKgNotifier,
-              builder: (context, pricePerKg, _) {
-                return Center(
-                  child: Text(
-                    'Price per kg: \$${pricePerKg.toStringAsFixed(2)}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (bidPriceController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter your bid price'),
-                  ),
-                );
-                return;
-              }
-
-              final bidAmount = double.tryParse(bidPriceController.text);
-              if (bidAmount == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a valid number'),
-                  ),
-                );
-                return;
-              }
-
-              if (bidAmount < minBid) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Bid must be at least \$${minBid.toStringAsFixed(2)}',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              if (bidAmount > maxBid) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Bid must not exceed \$${maxBid.toStringAsFixed(2)}',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              // Show confirmation dialog
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Confirm Bid'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Product: ${product.productName}'),
-                      Text('Quantity: $quantity kg'),
-                      Text(
-                        'Your Bid: \$${bidAmount.toStringAsFixed(2)}',
-                      ),
-                      Text(
-                        'Price per kg: \$${(bidAmount / quantity).toStringAsFixed(2)}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'This bid will be sent to the farmer for review. You will be notified when they respond.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        _submitBid(
-                          product: product,
-                          quantity: quantity,
-                          bidAmount: bidAmount,
-                          originalPrice: originalTotalPrice,
-                        );
-                        Navigator.pop(context); // Close confirmation dialog
-                        Navigator.pop(context); // Close negotiation dialog
-                        Navigator.pop(context); // Close product details dialog
-                      },
-                      child: const Text('Send Bid'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: const Text('Submit Bid'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _submitBid({
-    required Product product,
-    required double quantity,
-    required double bidAmount,
-    required double originalPrice,
-  }) {
-    final negotiationService = NegotiationService();
-
-    negotiationService
-        .createBid(
-      productId: product.id,
-      sellerId: product.farmerId,
-      originalPrice: originalPrice,
-      bidAmount: bidAmount,
-      quantity: quantity,
-      productName: product.productName,
-    )
-        .then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Bid of \$${bidAmount.toStringAsFixed(2)} sent successfully!',
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sending bid: $error'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    });
   }
 
   // Bottom navigation bar for small screens

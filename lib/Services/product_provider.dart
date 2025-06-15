@@ -4,12 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../Models/product_model.dart';
 import '../Services/product_service.dart';
 import '../Services/auth_service.dart';
+import '../Services/auth_provider.dart' as app_auth;
 
 class ProductProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ProductService _productService = ProductService();
   final AuthService _authService = AuthService();
+  final app_auth.AuthProvider _authProvider = app_auth.AuthProvider();
   List<Product> _products = [];
   List<Product> _farmerProducts = [];
   bool _isLoading = false;
@@ -283,17 +285,53 @@ class ProductProvider with ChangeNotifier {
         throw 'No user logged in';
       }
 
+      print('Current user ID: ${currentUser.uid}');
+      print('Current user email: ${currentUser.email}');
+
+      // Get user data directly from Firestore
+      final userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
+      if (!userDoc.exists) {
+        throw 'User profile not found';
+      }
+
+      final userData = userDoc.data();
+      if (userData == null) {
+        throw 'User data is null';
+      }
+
+      print('Raw user data from Firestore: $userData');
+
+      // Get username and region from user data
+      final farmerName = userData['username'];
+      final region = userData['region'];
+
+      print('Extracted username: $farmerName');
+      print('Extracted region: $region');
+
+      if (farmerName == null) {
+        print('Username is null, using email prefix as fallback');
+        final emailPrefix = currentUser.email?.split('@')[0] ?? 'user';
+        print('Using email prefix: $emailPrefix');
+        throw 'Username not found in user profile';
+      }
+
+      if (region == null) {
+        print('Region is null, using Unknown as fallback');
+        throw 'Region not found in user profile';
+      }
+
+      print('Using farmer name: $farmerName');
+      print('Using region: $region');
+
       final product = await _productService.createProduct(
         farmerId: currentUser.uid,
-        farmerName: currentUser.displayName ??
-            currentUser.email?.split('@')[0] ??
-            'Farmer',
+        farmerName: farmerName,
         productName: productName,
         category: category,
         description: description,
         price: price,
-        region:
-            'Default Region', // This will be updated with IP-based region later
+        region: region,
         images: images,
         quantity: quantity,
         unit: unit,
@@ -308,6 +346,7 @@ class ProductProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      print('Error creating product: $e');
       _error = e.toString();
       _isLoading = false;
       notifyListeners();

@@ -14,6 +14,7 @@ import '/Services/negotiation_service.dart';
 import '../Models/cart_model.dart';
 import '/Services/sales_analytics_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '/Pages/product_details_screen.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -42,12 +43,18 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   List<Map<String, dynamic>> _topSellingCrops = [];
   List<Map<String, dynamic>> _seasonalCrops = [];
   bool _isLoading = true;
+  User? _currentUser;
+  String _username = '';
+  List<Map<String, dynamic>> _specialOffers = [];
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _currentUser = FirebaseAuth.instance.currentUser;
+    _loadUsername();
     _loadCrops();
+    _loadSpecialOffers();
   }
 
   @override
@@ -55,6 +62,25 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     super.didChangeDependencies();
     _screenSize = MediaQuery.of(context).size;
     _isSmallScreen = _screenSize.width < 600;
+  }
+
+  Future<void> _loadUsername() async {
+    if (_currentUser != null) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            _username = userDoc.data()?['username'] ?? 'Dashboard';
+          });
+        }
+      } catch (e) {
+        print('Error loading username: $e');
+      }
+    }
   }
 
   Future<void> _loadCrops() async {
@@ -92,6 +118,29 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadSpecialOffers() async {
+    try {
+      // Get user's region from their profile
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .get();
+
+      final userRegion = userDoc.data()?['region'] ?? 'default';
+
+      // Load special offers
+      final offers = await _salesAnalytics.getSpecialOffers(
+        region: userRegion,
+      );
+
+      setState(() {
+        _specialOffers = offers;
+      });
+    } catch (e) {
+      print('Error loading special offers: $e');
     }
   }
 
@@ -147,9 +196,44 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
+    _isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF111122) : Colors.white,
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        elevation: 0,
+        title: Text(
+          _username,
+          style: GoogleFonts.poppins(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NegotiationScreen(),
+                ),
+              );
+            },
+            icon: Icon(Icons.gavel, color: const Color(0xFF6C5DD3)),
+            label: Text(
+              'View Bids',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF6C5DD3),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: _buildBody(isDarkMode),
       bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDarkMode) : null,
     );
@@ -158,17 +242,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   Widget _buildBody(bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: _isSmallScreen
-              ? isDarkMode
-                  ? [const Color(0xFF111122), const Color(0xFF111122)]
-                  : [Colors.white, Colors.white]
-              : isDarkMode
-                  ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                  : [Colors.white, Colors.white],
-        ),
+        color: isDarkMode ? Colors.black : Colors.white,
       ),
       child: Row(
         children: [
@@ -179,20 +253,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: _isSmallScreen
-                      ? isDarkMode
-                          ? [
-                              const Color(0xFF111122),
-                              const Color(0xFF111122),
-                            ]
-                          : [Colors.white, Colors.white]
-                      : isDarkMode
-                          ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                          : [Colors.white, Colors.white],
-                ),
+                color: isDarkMode ? Colors.black : Colors.white,
               ),
               child: Column(
                 children: [Expanded(child: _buildMainContent(isDarkMode))],
@@ -312,7 +373,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 },
                 icon: Icon(
                   Icons.dashboard_outlined,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  color: _selectedIndex == 0
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
               ),
@@ -331,7 +396,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 },
                 icon: Icon(
                   Icons.shopping_basket_outlined,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  color: _selectedIndex == 1
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
               ),
@@ -349,7 +418,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 },
                 icon: Icon(
                   Icons.people_outline,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  color: _selectedIndex == 2
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
               ),
@@ -367,7 +440,11 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 },
                 icon: Icon(
                   Icons.person_outline,
-                  color: isDarkMode ? Colors.white54 : Colors.grey[400],
+                  color: _selectedIndex == 3
+                      ? const Color(0xFF6C5DD3)
+                      : isDarkMode
+                          ? Colors.white54
+                          : Colors.grey[400],
                   size: 24,
                 ),
               ),
@@ -379,147 +456,126 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   Widget _buildMainContent(bool isDarkMode) {
-    return Column(
-      children: [
-        // Dashboard Header
-        Container(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            MediaQuery.of(context).padding.top + 16,
-            24,
-            16,
-          ),
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-            border: Border(
-              bottom: BorderSide(
-                color: isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
-                width: 1,
-              ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Selling Crops Section
+          Text(
+            'Top Selling Crops',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black87,
             ),
           ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.dashboard_outlined,
-                size: 28,
-                color: const Color(0xFF6C5DD3),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Dashboard',
+          const SizedBox(height: 16),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_topSellingCrops.isEmpty)
+            Center(
+              child: Text(
+                'No top selling crops available',
                 style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : Colors.black87,
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
                 ),
               ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Selling Crops Section
-                Text(
-                  'Top Selling Crops',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else if (_topSellingCrops.isEmpty)
-                  Center(
-                    child: Text(
-                      'No top selling crops available',
-                      style: GoogleFonts.poppins(
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    height: 220,
-                    constraints:
-                        const BoxConstraints(maxWidth: double.infinity),
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      shrinkWrap: true,
-                      physics: const ClampingScrollPhysics(),
-                      itemCount: _topSellingCrops.length,
-                      itemBuilder: (context, index) {
-                        final crop = _topSellingCrops[index];
-                        return _buildCropCard(isDarkMode, crop);
-                      },
-                    ),
-                  ),
-                const SizedBox(height: 24),
+            )
+          else
+            Container(
+              height: 220,
+              constraints: const BoxConstraints(maxWidth: double.infinity),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                itemCount: _topSellingCrops.length,
+                itemBuilder: (context, index) {
+                  final crop = _topSellingCrops[index];
+                  return _buildCropCard(isDarkMode, crop);
+                },
+              ),
+            ),
+          const SizedBox(height: 24),
 
-                // Seasonal Crops Section
-                Text(
-                  'Crops in Season',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else if (_seasonalCrops.isEmpty)
-                  Center(
-                    child: Text(
-                      'No seasonal crops available',
-                      style: GoogleFonts.poppins(
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    height: 220,
-                    constraints:
-                        const BoxConstraints(maxWidth: double.infinity),
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      shrinkWrap: true,
-                      physics: const ClampingScrollPhysics(),
-                      itemCount: _seasonalCrops.length,
-                      itemBuilder: (context, index) {
-                        final crop = _seasonalCrops[index];
-                        return _buildCropCard(isDarkMode, crop);
-                      },
-                    ),
-                  ),
-                const SizedBox(height: 24),
-
-                // Special Offers Section
-                Text(
-                  'Special Offers',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildSpecialOfferCard(isDarkMode),
-                const SizedBox(height: 24),
-              ],
+          // Seasonal Crops Section
+          Text(
+            'Crops in Season',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black87,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_seasonalCrops.isEmpty)
+            Center(
+              child: Text(
+                'No seasonal crops available',
+                style: GoogleFonts.poppins(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            )
+          else
+            Container(
+              height: 220,
+              constraints: const BoxConstraints(maxWidth: double.infinity),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                itemCount: _seasonalCrops.length,
+                itemBuilder: (context, index) {
+                  final crop = _seasonalCrops[index];
+                  return _buildCropCard(isDarkMode, crop);
+                },
+              ),
+            ),
+          const SizedBox(height: 24),
+
+          // Special Offers Section
+          Text(
+            'Special Offers',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_specialOffers.isEmpty)
+            Center(
+              child: Text(
+                'No special offers available',
+                style: GoogleFonts.poppins(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            )
+          else
+            Container(
+              height: 220,
+              constraints: const BoxConstraints(maxWidth: double.infinity),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                itemCount: _specialOffers.length,
+                itemBuilder: (context, index) {
+                  final offer = _specialOffers[index];
+                  return _buildSpecialOfferCard(offer);
+                },
+              ),
+            ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
@@ -790,278 +846,223 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   void _showProductDetails(Map<String, dynamic> product) {
-    final TextEditingController quantityController =
-        TextEditingController(text: '1');
-    double originalTotalPrice = product['price'] * 1; // Default quantity of 1
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailsScreen(
+          product: product,
+          isFarmer: widget.isFarmer,
+          isVerified: widget.isVerified,
+        ),
+      ),
+    );
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text(product['name']),
-            content: SingleChildScrollView(
+  Widget _buildSpecialOfferCard(Map<String, dynamic> offer) {
+    final isDarkMode =
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    return MouseRegion(
+      onEnter: (_) => _startHoverTimer(offer),
+      onExit: (_) => _cancelHoverTimer(),
+      child: GestureDetector(
+        onTap: () => _showProductDetails(offer),
+        child: Stack(
+          children: [
+            Container(
+              width: 150,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color:
+                    isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05),
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Seller: ${product['seller']}'),
-                  Text('Price: \$${product['price']}/kg'),
-                  Text('Rating: ${product['rating']}'),
-                  const SizedBox(height: 8),
-                  const Text('Product Description:'),
-                  Text(
-                    product['description'] ?? 'No description available',
+                  // Product image
+                  Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.white.withOpacity(0.3),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        offer['image'],
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Quantity Selection
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Quantity (kg): '),
-                      SizedBox(
-                        width: 60,
-                        child: TextField(
-                          controller: quantityController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          offer['name'],
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              '\$${offer['discountedPrice'].toStringAsFixed(2)}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF6C5DD3),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '\$${offer['originalPrice'].toStringAsFixed(2)}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                decoration: TextDecoration.lineThrough,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${offer['discountPercentage'].toStringAsFixed(0)}% OFF',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF6C5DD3),
                             ),
                           ),
-                          onChanged: (value) {
-                            if (value.isEmpty) {
-                              setState(() {
-                                quantityController.text = '1';
-                                originalTotalPrice = product['price'];
-                              });
-                            } else {
-                              setState(() {
-                                originalTotalPrice =
-                                    product['price'] * double.parse(value);
-                              });
-                            }
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Total Price Display
-                  Center(
-                    child: Text(
-                      'Total Price: \$${originalTotalPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(color: Colors.grey),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person,
+                              size: 14,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                offer['seller'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.star, size: 14, color: Colors.amber),
+                            const SizedBox(width: 4),
+                            Text(
+                              offer['rating'].toString(),
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  // Create a new negotiation first
-                  final negotiationService = NegotiationService();
-                  try {
-                    await negotiationService.createBid(
-                      productId: product['id'] ?? '',
-                      sellerId: product['sellerId'] ?? '',
-                      originalPrice: (product['price'] as num).toDouble(),
-                      bidAmount: (product['price'] as num).toDouble(),
-                      quantity: (int.tryParse(quantityController.text) ?? 1)
-                          .toDouble(),
-                      productName: product['name'],
-                    );
-                    if (mounted) {
-                      Navigator.pop(context); // Close the dialog
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NegotiationScreen(),
-                        ),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Negotiation started successfully'),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to start negotiation: $e'),
-                        ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6C5DD3),
-                ),
-                child: const Text('Negotiate'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final quantity = int.tryParse(quantityController.text) ?? 1;
-                  if (quantity > 0) {
-                    try {
-                      final cartService = Provider.of<CartService>(
-                        context,
-                        listen: false,
-                      );
-                      final cartItem = CartItem(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        productId: product['id'] ?? '',
-                        productName: product['name'] ?? '',
-                        quantity: quantity,
-                        originalPrice: product['price'] ?? 0.0,
-                        negotiatedPrice: product['price'] ?? 0.0,
-                        negotiationId: '',
-                        addedAt: DateTime.now(),
-                        status: 'pending',
-                      );
-                      await cartService.addToCart(cartItem);
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              '${product['name']} (${quantity}kg) added to cart'),
-                          duration: const Duration(seconds: 2),
-                          action: SnackBarAction(
-                            label: 'View Cart',
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CartScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  ),
-                                ),
-                              );
-                            },
+            if (_showQuickInfo && _hoveredProduct == offer)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Quick Info',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
-                      );
-                    } catch (e) {
-                      debugPrint('Error adding to cart: $e');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to add item to cart'),
-                          duration: Duration(seconds: 2),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Region: ${offer['region'] ?? 'N/A'}',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
                         ),
-                      );
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter a valid quantity'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Add to Cart'),
+                        Text(
+                          'Original Price: \$${offer['originalPrice'].toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          'Discount: ${offer['discountPercentage'].toStringAsFixed(0)}%',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          'Final Price: \$${offer['discountedPrice'].toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSpecialOfferCard(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? Colors.black.withOpacity(0.2)
-            : Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
+          ],
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6C5DD3).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.local_offer_outlined,
-              color: Color(0xFF6C5DD3),
-              size: 40,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Buy More, Save More!',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Get 20% off on orders above \$50. Limited time offer!',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MarketplaceScreen(
-                          isFarmer: widget.isFarmer,
-                          isVerified: widget.isVerified,
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C5DD3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Shop Now',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
