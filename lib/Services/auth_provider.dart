@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import 'auth_service.dart';
 import '../Pages/user_provider.dart';
 import '../main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   firebase_auth.User? _user;
   bool _isLoading = false;
   String? _error;
+  bool _isAdmin = false;
 
   AuthProvider() {
     _init();
@@ -19,6 +21,7 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
+  bool get isAdmin => _isAdmin;
 
   void _init() {
     _authService.authStateChanges.listen((firebase_auth.User? user) async {
@@ -36,6 +39,13 @@ class AuthProvider with ChangeNotifier {
             email: profile['email'] as String,
             role: profile['user_type'] as String,
           ));
+
+          // Check admin status
+          final adminDoc = await FirebaseFirestore.instance
+              .collection('admins')
+              .doc(user.uid)
+              .get();
+          _isAdmin = adminDoc.exists;
         }
       }
       notifyListeners();
@@ -49,6 +59,16 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
 
       await _authService.signInWithEmailAndPassword(email, password);
+
+      // Check admin status after successful sign in
+      if (_user != null) {
+        final adminDoc = await FirebaseFirestore.instance
+            .collection('admins')
+            .doc(_user!.uid)
+            .get();
+        _isAdmin = adminDoc.exists;
+        notifyListeners();
+      }
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -198,6 +218,16 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
 
       await _authService.signInWithGoogle();
+
+      // Check admin status after successful Google sign in
+      if (_user != null) {
+        final adminDoc = await FirebaseFirestore.instance
+            .collection('admins')
+            .doc(_user!.uid)
+            .get();
+        _isAdmin = adminDoc.exists;
+        notifyListeners();
+      }
     } catch (e) {
       _error = e.toString();
       notifyListeners();

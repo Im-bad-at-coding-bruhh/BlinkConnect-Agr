@@ -53,13 +53,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   String _selectedRegion = 'All';
   final List<String> _regions = const [
     'All',
-    'Asia',
-    'Africa',
     'North America',
     'South America',
-    'Antarctica',
     'Europe',
+    'Asia',
+    'Africa',
     'Australia',
+    'Antarctica',
   ];
 
   // Controllers for price inputs
@@ -213,7 +213,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         id: '', // Will be set by Firestore
         productId: product.id,
         productName: product.productName,
-        quantity: quantity,
+        farmerName: product.farmerName,
+        unit: product.unit,
+        quantity: quantity.toDouble(),
         originalPrice: product.price.toDouble(),
         negotiatedPrice: product.price.toDouble(),
         negotiationId: '',
@@ -244,7 +246,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   List<Product> _getFilteredProducts(List<Product> products) {
     final String searchQuery = _searchController.text.toLowerCase();
     final bool hasSearchQuery = searchQuery.isNotEmpty;
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     print('Filtering ${products.length} products'); // Debug print
     print('Search query: $searchQuery'); // Debug print
@@ -255,6 +257,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     print('Current user ID: $currentUserId'); // Debug print
 
     final filtered = products.where((product) {
+      // Filter out products that shouldn't be shown in marketplace
+      if (!product.shouldShowInMarketplace) {
+        print(
+            'Filtered out product not for marketplace: ${product.productName}'); // Debug print
+        return false;
+      }
+
       // Filter out current farmer's products
       if (widget.isFarmer && product.farmerId == currentUserId) {
         print(
@@ -276,9 +285,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         return false;
       }
 
-      // Region filter
-      if (_selectedRegion != 'All' && product.region != _selectedRegion) {
-        print('Filtered out by region: ${product.productName}'); // Debug print
+      // Region filter - case insensitive comparison
+      if (_selectedRegion != 'All' &&
+          product.region.toLowerCase() != _selectedRegion.toLowerCase()) {
+        print(
+            'Filtered out by region: ${product.productName} (${product.region} != $_selectedRegion)'); // Debug print
         return false;
       }
 
@@ -286,7 +297,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       if (hasSearchQuery) {
         final String name = product.productName.toLowerCase();
         final String seller = product.farmerName.toLowerCase();
-        if (!name.contains(searchQuery) && !seller.contains(searchQuery)) {
+        final String description = product.description.toLowerCase();
+        if (!name.contains(searchQuery) &&
+            !seller.contains(searchQuery) &&
+            !description.contains(searchQuery)) {
           print(
               'Filtered out by search: ${product.productName}'); // Debug print
           return false;
@@ -1129,6 +1143,30 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   ),
                 ),
               ),
+            // Re-stocked Badge
+            if (product.isRestocked)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'RE-STOCKED',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1155,6 +1193,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             'region': product.region,
             'fertilizerType': product.fertilizerType,
             'pesticideType': product.pesticideType,
+            'category': product.category,
+            'ripeningMethod': product.ripeningMethod,
+            'preservationMethod': product.preservationMethod,
+            'dryingMethod': product.dryingMethod,
+            'storageType': product.storageType,
+            'isWeedControlUsed': product.isWeedControlUsed,
           },
           isFarmer: widget.isFarmer,
           isVerified: widget.isVerified,

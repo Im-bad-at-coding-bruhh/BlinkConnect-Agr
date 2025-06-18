@@ -29,16 +29,35 @@ class SalesAnalyticsService {
   Future<void> updateProductSales({
     required String productId,
     required String productName,
-    required String region,
+    required String farmerId,
+    required String farmerName,
     required String category,
+    required double quantity,
+    required String unit,
     required double saleAmount,
-    required int quantity,
   }) async {
     try {
+      // Validate required parameters
+      if (productId.isEmpty ||
+          productName.isEmpty ||
+          farmerId.isEmpty ||
+          farmerName.isEmpty ||
+          category.isEmpty ||
+          unit.isEmpty) {
+        print('Error updating sales analytics: Missing required parameters');
+        return;
+      }
+
+      if (quantity <= 0 || saleAmount <= 0) {
+        print(
+            'Error updating sales analytics: Invalid quantity or sale amount');
+        return;
+      }
+
       final docRef = _firestore
           .collection('sales_analytics')
           .doc(_currentYearMonth)
-          .collection(region)
+          .collection('categories')
           .doc(category);
 
       await _firestore.runTransaction((transaction) async {
@@ -47,58 +66,90 @@ class SalesAnalyticsService {
         if (!doc.exists) {
           // Create new document if it doesn't exist
           transaction.set(docRef, {
-            'products': [
+            'sales': [
               {
-                'productId': productId,
-                'name': productName,
+                'farmerId': farmerId,
+                'farmerName': farmerName,
                 'totalSales': saleAmount,
-                'quantitySold': quantity,
+                'totalWeight': _convertToKg(quantity, unit),
                 'lastUpdated': FieldValue.serverTimestamp(),
               }
             ]
           });
         } else {
           // Update existing document
-          final products =
-              List<Map<String, dynamic>>.from(doc.data()?['products'] ?? []);
+          final data = doc.data();
+          if (data == null) {
+            print('Error updating sales analytics: Document data is null');
+            return;
+          }
 
-          // Find if product already exists
-          final productIndex =
-              products.indexWhere((p) => p['productId'] == productId);
+          final sales = List<Map<String, dynamic>>.from(data['sales'] ?? []);
 
-          if (productIndex >= 0) {
-            // Update existing product
-            products[productIndex]['totalSales'] =
-                (products[productIndex]['totalSales'] ?? 0) + saleAmount;
-            products[productIndex]['quantitySold'] =
-                (products[productIndex]['quantitySold'] ?? 0) + quantity;
-            products[productIndex]['lastUpdated'] =
-                FieldValue.serverTimestamp();
+          // Find if farmer already has sales
+          final farmerIndex =
+              sales.indexWhere((sale) => sale['farmerId'] == farmerId);
+
+          if (farmerIndex != -1) {
+            // Update existing farmer's sales
+            final currentSales = sales[farmerIndex]['totalSales'] ?? 0.0;
+            final currentWeight = sales[farmerIndex]['totalWeight'] ?? 0.0;
+
+            sales[farmerIndex]['totalSales'] = currentSales + saleAmount;
+            sales[farmerIndex]['totalWeight'] =
+                currentWeight + _convertToKg(quantity, unit);
+            sales[farmerIndex]['lastUpdated'] = FieldValue.serverTimestamp();
           } else {
-            // Add new product
-            products.add({
-              'productId': productId,
-              'name': productName,
+            // Add new farmer's sales
+            sales.add({
+              'farmerId': farmerId,
+              'farmerName': farmerName,
               'totalSales': saleAmount,
-              'quantitySold': quantity,
+              'totalWeight': _convertToKg(quantity, unit),
               'lastUpdated': FieldValue.serverTimestamp(),
             });
           }
 
-          // Sort products by total sales
-          products.sort(
-              (a, b) => (b['totalSales'] ?? 0).compareTo(a['totalSales'] ?? 0));
+          // Sort sales by total weight
+          sales.sort((a, b) {
+            final weightA = (a['totalWeight'] as num?)?.toDouble() ?? 0.0;
+            final weightB = (b['totalWeight'] as num?)?.toDouble() ?? 0.0;
+            return weightB.compareTo(weightA);
+          });
 
-          // Keep only top 20 products
-          final topProducts = products.take(20).toList();
-
-          transaction.update(docRef, {'products': topProducts});
+          transaction.update(docRef, {'sales': sales});
         }
       });
     } catch (e) {
-      print('Error updating product sales: $e');
+      print('Error updating sales analytics: $e');
       rethrow;
     }
+  }
+
+  // Get leaderboard data for a category
+  Stream<List<Map<String, dynamic>>> getCategoryLeaderboard(String category) {
+    return _firestore
+        .collection('sales_analytics')
+        .doc(_currentYearMonth)
+        .collection('categories')
+        .doc(category)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) return [];
+
+      final sales = List<Map<String, dynamic>>.from(doc.data()?['sales'] ?? []);
+      return sales.take(5).toList(); // Return top 5 farmers
+    });
+  }
+
+  // Get all categories with sales data
+  Stream<List<String>> getCategoriesWithSales() {
+    return _firestore
+        .collection('sales_analytics')
+        .doc(_currentYearMonth)
+        .collection('categories')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
   }
 
   // Get top selling products for a region (continent) and category

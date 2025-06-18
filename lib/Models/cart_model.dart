@@ -4,7 +4,9 @@ class CartItem {
   final String id;
   final String productId;
   final String productName;
-  final int quantity;
+  final String farmerName;
+  final String unit;
+  final double quantity;
   final double originalPrice;
   final double negotiatedPrice;
   final String negotiationId;
@@ -16,6 +18,8 @@ class CartItem {
     required this.id,
     required this.productId,
     required this.productName,
+    required this.farmerName,
+    required this.unit,
     required this.quantity,
     required this.originalPrice,
     required this.negotiatedPrice,
@@ -29,6 +33,8 @@ class CartItem {
     return {
       'productId': productId,
       'productName': productName,
+      'farmerName': farmerName,
+      'unit': unit,
       'quantity': quantity,
       'originalPrice': originalPrice,
       'negotiatedPrice': negotiatedPrice,
@@ -42,15 +48,19 @@ class CartItem {
   factory CartItem.fromMap(String id, Map<String, dynamic> map) {
     return CartItem(
       id: id,
-      productId: map['productId']?.toString() ?? '',
-      productName: map['productName']?.toString() ?? '',
-      quantity: (map['quantity'] as num?)?.toInt() ?? 0,
-      originalPrice: (map['originalPrice'] as num?)?.toDouble() ?? 0.0,
-      negotiatedPrice: (map['negotiatedPrice'] as num?)?.toDouble() ?? 0.0,
-      negotiationId: map['negotiationId']?.toString() ?? '',
-      addedAt: (map['addedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      status: map['status']?.toString() ?? 'pending',
-      negotiationMessage: map['negotiationMessage']?.toString() ?? '',
+      productId: map['productId'] ?? '',
+      productName: map['productName'] ?? '',
+      farmerName: map['farmerName'] ?? '',
+      unit: map['unit'] ?? 'kg',
+      quantity: (map['quantity'] ?? 0.0).toDouble(),
+      originalPrice: (map['originalPrice'] ?? 0.0).toDouble(),
+      negotiatedPrice: (map['negotiatedPrice'] ?? 0.0).toDouble(),
+      negotiationId: map['negotiationId'] ?? '',
+      addedAt: map['addedAt'] is Timestamp
+          ? (map['addedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      status: map['status'] ?? 'pending',
+      negotiationMessage: map['negotiationMessage'] ?? '',
     );
   }
 
@@ -58,7 +68,9 @@ class CartItem {
     String? id,
     String? productId,
     String? productName,
-    int? quantity,
+    String? farmerName,
+    String? unit,
+    double? quantity,
     double? originalPrice,
     double? negotiatedPrice,
     String? negotiationId,
@@ -70,6 +82,8 @@ class CartItem {
       id: id ?? this.id,
       productId: productId ?? this.productId,
       productName: productName ?? this.productName,
+      farmerName: farmerName ?? this.farmerName,
+      unit: unit ?? this.unit,
       quantity: quantity ?? this.quantity,
       originalPrice: originalPrice ?? this.originalPrice,
       negotiatedPrice: negotiatedPrice ?? this.negotiatedPrice,

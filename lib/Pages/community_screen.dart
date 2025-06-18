@@ -16,6 +16,8 @@ import 'farmer_profile_screen.dart';
 import 'theme_provider.dart';
 import 'news_editor_screen.dart';
 import 'news_article_screen.dart';
+import '../Services/auth_provider.dart' as app_auth;
+import '../Services/sales_analytics_service.dart';
 
 class CommunityScreen extends StatefulWidget {
   final bool isFarmer;
@@ -304,7 +306,15 @@ class _CommunityScreenState extends State<CommunityScreen>
 
   String _selectedCategory = 'All';
   String _selectedMonth = 'April';
-  final List<String> _categories = ['All', 'Crops', 'Vegetables', 'Fruits'];
+  final List<String> _categories = [
+    'Vegetables',
+    'Fruits',
+    'Dairy',
+    'Meat',
+    'Poultry',
+    'Seafood',
+    'Seeds',
+  ];
   final List<String> _months = [
     'January',
     'February',
@@ -426,37 +436,15 @@ class _CommunityScreenState extends State<CommunityScreen>
       body: _buildBody(isDarkMode),
       bottomNavigationBar:
           _isSmallScreen ? _buildModernBottomBar(isDarkMode) : null,
-      floatingActionButton: FutureBuilder<bool>(
-        future: AdminService().isAdmin(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const FloatingActionButton(
-              onPressed: null,
-              backgroundColor: Colors.grey,
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            print('Error checking admin status: ${snapshot.error}');
-            return const SizedBox.shrink();
-          }
-
-          if (snapshot.data == true) {
+      floatingActionButton: Consumer<app_auth.AuthProvider>(
+        builder: (context, authProvider, child) {
+          if (authProvider.isAdmin) {
             return FloatingActionButton(
               onPressed: _showCreateNewsDialog,
               backgroundColor: const Color(0xFF6C5DD3),
               child: const Icon(Icons.add, color: Colors.white),
             );
           }
-
           return const SizedBox.shrink();
         },
       ),
@@ -893,90 +881,159 @@ class _CommunityScreenState extends State<CommunityScreen>
   }
 
   Widget _buildLeaderboardTab(bool isDarkMode) {
-    // Get the data for the selected month and category
-    final monthData = _leaderboardDataByMonth[_selectedMonth] ?? {};
-    final List<Map<String, dynamic>> leaderboardItems =
-        monthData[_selectedCategory] ?? [];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Month Selector
-          _buildMonthSelector(isDarkMode),
-          const SizedBox(height: 16),
-
-          // Category Filter
-          Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
+    return StreamBuilder<List<String>>(
+      stream: SalesAnalyticsService().getCategoriesWithSales(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: GoogleFonts.poppins(
+                color: Colors.red,
+              ),
             ),
-            child: Row(
-              children: _categories.map((category) {
-                final bool isSelected = _selectedCategory == category;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                    child: Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF6C5DD3)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          category,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.w400,
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final categories = snapshot.data!;
+        if (categories.isEmpty) {
+          return Center(
+            child: Text(
+              'No sales data available yet',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Month Selector
+              _buildMonthSelector(isDarkMode),
+              const SizedBox(height: 16),
+
+              // Category Filter
+              Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? Colors.black.withOpacity(0.2)
+                      : Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: _categories.map((category) {
+                    final bool isSelected = _selectedCategory == category;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = category;
+                          });
+                        },
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
                             color: isSelected
-                                ? Colors.white
-                                : isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black87,
+                                ? const Color(0xFF6C5DD3)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              category,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: isSelected
+                                    ? Colors.white
+                                    : isDarkMode
+                                        ? Colors.white70
+                                        : Colors.black87,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Leaderboard Cards
-          if (leaderboardItems.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Text(
-                  'No data available for ${_selectedMonth} - ${_selectedCategory}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
+                    );
+                  }).toList(),
                 ),
               ),
-            )
-          else
-            ...leaderboardItems
-                .map((item) => _buildLeaderboardCard(item, isDarkMode))
-                .toList(),
-        ],
-      ),
+              const SizedBox(height: 24),
+
+              // Leaderboard Cards
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: SalesAnalyticsService()
+                    .getCategoryLeaderboard(_selectedCategory),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Error: ${snapshot.error}',
+                        style: GoogleFonts.poppins(
+                          color: Colors.red,
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  final leaderboardItems = snapshot.data!;
+                  if (leaderboardItems.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No data available for ${_selectedCategory}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: leaderboardItems.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      return _buildLeaderboardCard(
+                        {
+                          'rank': index + 1,
+                          'name': item['farmerName'],
+                          'revenue':
+                              '\$${item['totalSales'].toStringAsFixed(2)}',
+                          'status': 'verified',
+                          'growth':
+                              '${((item['totalWeight'] / 1000) * 100).toStringAsFixed(1)}%',
+                          'avatar': item['farmerName'][0],
+                        },
+                        isDarkMode,
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

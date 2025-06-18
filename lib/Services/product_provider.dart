@@ -168,28 +168,35 @@ class ProductProvider with ChangeNotifier {
   Future<void> updateProduct(Product product) async {
     try {
       _isLoading = true;
-      _error = null;
       notifyListeners();
 
-      await _firestore
-          .collection('products')
-          .doc(product.id)
-          .update(product.toMap());
+      await _productService.updateProduct(product);
 
-      // Get the updated product from Firestore
-      final doc = await _firestore.collection('products').doc(product.id).get();
-      final updatedProduct = Product.fromFirestore(doc);
+      // If the product was restocked, change status to available
+      if (product.status == 'restocked') {
+        await _productService.changeRestockedToAvailable(product.id);
+        // Update the product status locally
+        product = product.copyWith(status: 'available');
+      }
 
-      final index = _products.indexWhere((p) => p.id == product.id);
-      if (index != -1) {
-        _products[index] = updatedProduct;
+      // Update the product in the local lists
+      final productIndex = _products.indexWhere((p) => p.id == product.id);
+      if (productIndex != -1) {
+        _products[productIndex] = product;
+      }
+
+      final farmerProductIndex =
+          _farmerProducts.indexWhere((p) => p.id == product.id);
+      if (farmerProductIndex != -1) {
+        _farmerProducts[farmerProductIndex] = product;
       }
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _isLoading = false;
+      print('Error updating product: $e');
       _error = e.toString();
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -274,6 +281,21 @@ class ProductProvider with ChangeNotifier {
     required bool isNegotiable,
     required String fertilizerType,
     required String pesticideType,
+    required String ripeningMethod,
+    required String preservationMethod,
+    required String dryingMethod,
+    required String storageType,
+    required bool isWeedControlUsed,
+    required String animalFeedType,
+    required String milkCoolingMethod,
+    required bool isAntibioticsUsed,
+    required String milkingMethod,
+    required String slaughterMethod,
+    required String rearingSystem,
+    required String seedType,
+    required bool isChemicallyTreated,
+    required bool isCertified,
+    required String seedStorageMethod,
   }) async {
     _isLoading = true;
     _error = null;
@@ -338,6 +360,21 @@ class ProductProvider with ChangeNotifier {
         isNegotiable: isNegotiable,
         fertilizerType: fertilizerType,
         pesticideType: pesticideType,
+        ripeningMethod: ripeningMethod,
+        preservationMethod: preservationMethod,
+        dryingMethod: dryingMethod,
+        storageType: storageType,
+        isWeedControlUsed: isWeedControlUsed,
+        animalFeedType: animalFeedType,
+        milkCoolingMethod: milkCoolingMethod,
+        isAntibioticsUsed: isAntibioticsUsed,
+        milkingMethod: milkingMethod,
+        slaughterMethod: slaughterMethod,
+        rearingSystem: rearingSystem,
+        seedType: seedType,
+        isChemicallyTreated: isChemicallyTreated,
+        isCertified: isCertified,
+        seedStorageMethod: seedStorageMethod,
       );
 
       // Add the new product to the local lists
@@ -364,5 +401,39 @@ class ProductProvider with ChangeNotifier {
             .map((doc) =>
                 Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
             .toList());
+  }
+
+  Future<void> reactivateProduct(String productId,
+      {double newQuantity = 1}) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      await _productService.reactivateProduct(productId, newQuantity);
+      await loadFarmerProducts();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      print('Error reactivating product: $e');
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Change restocked status to available
+  Future<void> changeRestockedToAvailable(String productId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      await _productService.changeRestockedToAvailable(productId);
+      await loadFarmerProducts();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      print('Error changing restocked status: $e');
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

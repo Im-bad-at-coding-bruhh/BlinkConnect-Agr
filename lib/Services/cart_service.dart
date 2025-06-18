@@ -117,7 +117,7 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  Future<void> updateCartItemQuantity(String itemId, int quantity) async {
+  Future<void> updateCartItemQuantity(String itemId, double quantity) async {
     if (_auth.currentUser == null) {
       throw Exception('User must be logged in to update cart');
     }

@@ -126,6 +126,8 @@ class NegotiationService {
     required double bidAmount,
     required double quantity,
     required String productName,
+    required String farmerName,
+    required String unit,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -147,9 +149,11 @@ class NegotiationService {
         sellerId: sellerId,
         buyerId: user.uid,
         buyerName: user.displayName ?? user.email?.split('@')[0] ?? 'Buyer',
+        farmerName: farmerName,
+        unit: unit,
         originalPrice: originalPrice,
         bidAmount: bidAmount,
-        quantity: quantity,
+        quantity: quantity.toDouble(),
         productName: productName,
         status: 'pending',
         timestamp: DateTime.now(),
@@ -312,7 +316,9 @@ class NegotiationService {
           id: '',
           productId: acceptedBid.productId,
           productName: acceptedBid.productName,
-          quantity: acceptedBid.quantity.toInt(),
+          farmerName: acceptedBid.farmerName,
+          unit: acceptedBid.unit,
+          quantity: acceptedBid.quantity,
           originalPrice: acceptedBid.originalPrice,
           negotiatedPrice: counterAmount ?? acceptedBid.bidAmount,
           negotiationId: acceptedBid.id,

@@ -13,6 +13,10 @@ class TestTransactionScreen extends StatefulWidget {
   final double amount;
   final String productName;
   final String farmerId;
+  final String farmerName;
+  final String productId;
+  final double quantity;
+  final String unit;
 
   const TestTransactionScreen({
     Key? key,
@@ -21,6 +25,10 @@ class TestTransactionScreen extends StatefulWidget {
     required this.amount,
     required this.productName,
     required this.farmerId,
+    required this.farmerName,
+    required this.productId,
+    required this.quantity,
+    required this.unit,
   }) : super(key: key);
 
   @override
@@ -56,110 +64,118 @@ class _TestTransactionScreenState extends State<TestTransactionScreen> {
             Icons.arrow_back,
             color: isDarkMode ? Colors.white : Colors.black87,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => _showBackConfirmation(),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Transaction Details
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+      body: WillPopScope(
+        onWillPop: () async {
+          _showBackConfirmation();
+          return false; // Prevent default back behavior
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Transaction Details
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Transaction Details',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDetailRow('Product', widget.productName, isDarkMode),
+                    _buildDetailRow('Amount',
+                        '\$${widget.amount.toStringAsFixed(2)}', isDarkMode),
+                    _buildDetailRow(
+                        'Customer', widget.customerName, isDarkMode),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Transaction Details',
+              const SizedBox(height: 24),
+
+              // Status Selection
+              Text(
+                'Select Transaction Status',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedStatus,
+                    isExpanded: true,
+                    dropdownColor: isDarkMode ? Colors.grey[900] : Colors.white,
                     style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
                       color: isDarkMode ? Colors.white : Colors.black87,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDetailRow('Product', widget.productName, isDarkMode),
-                  _buildDetailRow('Amount',
-                      '\$${widget.amount.toStringAsFixed(2)}', isDarkMode),
-                  _buildDetailRow('Customer', widget.customerName, isDarkMode),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Status Selection
-            Text(
-              'Select Transaction Status',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedStatus,
-                  isExpanded: true,
-                  dropdownColor: isDarkMode ? Colors.grey[900] : Colors.white,
-                  style: GoogleFonts.poppins(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                  items: _statuses.map((String status) {
-                    return DropdownMenuItem<String>(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedStatus = newValue;
-                      });
-                    }
-                  },
-                ),
-              ),
-            ),
-            const Spacer(),
-
-            // Create Invoice Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed:
-                    _isLoading ? null : () => _createInvoice(widget.farmerId),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6C5DD3),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    items: _statuses.map((String status) {
+                      return DropdownMenuItem<String>(
+                        value: status,
+                        child: Text(status),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          _selectedStatus = newValue;
+                        });
+                      }
+                    },
                   ),
                 ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'Create Invoice',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+              ),
+              const Spacer(),
+
+              // Create Invoice Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed:
+                      _isLoading ? null : () => _createInvoice(widget.farmerId),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C5DD3),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'Create Invoice',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -200,6 +216,7 @@ class _TestTransactionScreenState extends State<TestTransactionScreen> {
       // Debug logging
       debugPrint('Creating invoice with farmer ID: $farmerId');
       debugPrint('Customer ID: ${widget.customerId}');
+      debugPrint('Customer Name: ${widget.customerName}');
       debugPrint('Amount: ${widget.amount}');
 
       final invoice = Invoice(
@@ -207,10 +224,14 @@ class _TestTransactionScreenState extends State<TestTransactionScreen> {
         customerName: widget.customerName,
         customerId: widget.customerId,
         farmerId: widget.farmerId,
+        farmerName: widget.farmerName,
+        productId: widget.productId,
+        productName: widget.productName,
+        quantity: widget.quantity,
+        unit: widget.unit,
         amount: widget.amount,
-        date: DateTime.now(),
         status: _selectedStatus,
-        paymentMethod: 'Test Payment',
+        createdAt: DateTime.now(),
       );
 
       // Debug logging
@@ -228,7 +249,7 @@ class _TestTransactionScreenState extends State<TestTransactionScreen> {
         ),
       );
 
-      Navigator.pop(context);
+      Navigator.pop(context, _selectedStatus); // Return the payment status
     } catch (e) {
       if (!mounted) return;
 
@@ -245,5 +266,32 @@ class _TestTransactionScreenState extends State<TestTransactionScreen> {
         });
       }
     }
+  }
+
+  void _showBackConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Confirm Back'),
+          content: Text('Are you sure you want to go back?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(
+                  context), // Just close dialog, don't navigate back
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(
+                    context, false); // Go back to previous screen with false
+              },
+              child: Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

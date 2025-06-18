@@ -41,18 +41,103 @@ class _AddProductFormState extends State<AddProductForm> {
   String _selectedFertilizerType = 'None';
   String _selectedPesticideType = 'None';
   String _selectedCategory = 'Vegetables';
+  String _selectedRipeningMethod = 'Natural';
+  String _selectedPreservationMethod = 'None';
+  String _selectedDryingMethod = 'Sun Dried';
+  String _selectedStorageType = 'Sack';
+  bool _isWeedControlUsed = false;
+  // Dairy specific fields
+  String _selectedAnimalFeedType = 'Natural (Grass-fed)';
+  String _selectedMilkCoolingMethod = 'Chilled';
+  bool _isAntibioticsUsed = false;
+  String _selectedMilkingMethod = 'Manual';
+  // Meat specific fields
+  String _selectedSlaughterMethod = 'Manual';
+  String _selectedRearingSystem = 'Free-range';
+  // Seeds specific fields
+  String _selectedSeedType = 'Open-pollinated';
+  bool _isChemicallyTreated = false;
+  bool _isCertified = false;
+  String _selectedSeedStorageMethod = 'Airtight';
   final ImagePicker _picker = ImagePicker();
+
+  // Poultry specific fields
+  String _selectedPoultryFeedType = 'Natural (Free-range)';
+  String _selectedPoultryRearingSystem = 'Free-range';
+  bool _isPoultryAntibioticsUsed = false;
+  bool _isGrowthBoostersUsed = false;
+  String _selectedPoultrySlaughterMethod = 'Manual';
+  bool _isPoultryVaccinated = false;
+
+  // Seafood specific fields
+  String _selectedSeafoodSource = 'Wild-caught';
+  String _selectedSeafoodFeedingType = 'Natural';
+  bool _isSeafoodAntibioticsUsed = false;
+  bool _isWaterQualityManaged = false;
+  String _selectedSeafoodPreservationMethod = 'Fresh';
+  String _selectedSeafoodHarvestMethod = 'Traditional';
 
   final List<String> _units = ['kg', 'pound', 'gram'];
   final List<String> _fertilizerTypes = [
     'None',
-    'Organic',
-    'Chemical',
+    'Natural',
+    'Artificial',
   ];
   final List<String> _pesticideTypes = [
     'None',
-    'Organic',
-    'Chemical',
+    'Used',
+    'Not Used',
+  ];
+  final List<String> _ripeningMethods = [
+    'Natural',
+    'Artificial',
+  ];
+  final List<String> _preservationMethods = [
+    'None',
+    'Wax Coating',
+    'Cold-Stored',
+  ];
+  final List<String> _dryingMethods = [
+    'Sun Dried',
+    'Mechanically Dried',
+  ];
+  final List<String> _storageTypes = [
+    'Hermetic',
+    'Sack',
+    'Silo',
+    'Not Stored',
+  ];
+  final List<String> _animalFeedTypes = [
+    'Natural (Grass-fed)',
+    'Mixed Feed',
+    'Artificial/Processed Feed',
+  ];
+  final List<String> _milkCoolingMethods = [
+    'Chilled',
+    'Not Chilled',
+  ];
+  final List<String> _milkingMethods = [
+    'Manual',
+    'Machine',
+  ];
+  final List<String> _slaughterMethods = [
+    'Manual',
+    'Mechanized',
+  ];
+  final List<String> _rearingSystems = [
+    'Free-range',
+    'Confined',
+    'Semi-free',
+  ];
+  final List<String> _seedTypes = [
+    'Open-pollinated',
+    'Hybrid',
+    'GMO',
+  ];
+  final List<String> _seedStorageMethods = [
+    'Airtight',
+    'Sack',
+    'Cold Storage',
   ];
   final List<String> _categories = [
     'Vegetables',
@@ -62,7 +147,51 @@ class _AddProductFormState extends State<AddProductForm> {
     'Meat',
     'Poultry',
     'Seafood',
+    'Seeds',
     'Other',
+  ];
+
+  final List<String> _poultryFeedTypes = [
+    'Natural (Free-range)',
+    'Mixed Feed',
+    'Commercial Feed',
+  ];
+
+  final List<String> _poultryRearingSystems = [
+    'Free-range',
+    'Cage',
+    'Barn',
+    'Organic',
+  ];
+
+  final List<String> _poultrySlaughterMethods = [
+    'Manual',
+    'Mechanized',
+    'Halal',
+  ];
+
+  final List<String> _seafoodSources = [
+    'Wild-caught',
+    'Farmed',
+  ];
+
+  final List<String> _seafoodFeedingTypes = [
+    'Natural',
+    'Commercial Feed',
+    'Mixed Feed',
+  ];
+
+  final List<String> _seafoodPreservationMethods = [
+    'Fresh',
+    'Frozen',
+    'Dried',
+    'Smoked',
+  ];
+
+  final List<String> _seafoodHarvestMethods = [
+    'Traditional',
+    'Modern',
+    'Sustainable',
   ];
 
   @override
@@ -187,12 +316,88 @@ class _AddProductFormState extends State<AddProductForm> {
           status: 'available',
           createdAt: now,
           updatedAt: now,
-          images: _selectedImages, // Use the base64 strings directly
+          images: _selectedImages,
           quantity: double.parse(_quantityController.text),
           unit: _selectedUnit,
           isNegotiable: _isNegotiable,
-          fertilizerType: _selectedFertilizerType,
-          pesticideType: _selectedPesticideType,
+          fertilizerType: _selectedCategory == 'Dairy' ||
+                  _selectedCategory == 'Meat' ||
+                  _selectedCategory == 'Poultry' ||
+                  _selectedCategory == 'Seafood'
+              ? 'N/A'
+              : _selectedFertilizerType,
+          pesticideType: _selectedCategory == 'Dairy' ||
+                  _selectedCategory == 'Meat' ||
+                  _selectedCategory == 'Poultry' ||
+                  _selectedCategory == 'Seafood'
+              ? 'N/A'
+              : _selectedPesticideType,
+          ripeningMethod:
+              _selectedCategory == 'Fruits' ? _selectedRipeningMethod : 'N/A',
+          preservationMethod: _selectedCategory == 'Fruits'
+              ? _selectedPreservationMethod
+              : 'N/A',
+          dryingMethod:
+              _selectedCategory == 'Grains' ? _selectedDryingMethod : 'N/A',
+          storageType:
+              _selectedCategory == 'Grains' ? _selectedStorageType : 'N/A',
+          isWeedControlUsed:
+              _selectedCategory == 'Grains' ? _isWeedControlUsed : false,
+          animalFeedType:
+              _selectedCategory == 'Dairy' || _selectedCategory == 'Meat'
+                  ? _selectedAnimalFeedType
+                  : 'N/A',
+          milkCoolingMethod:
+              _selectedCategory == 'Dairy' ? _selectedMilkCoolingMethod : 'N/A',
+          isAntibioticsUsed:
+              _selectedCategory == 'Dairy' || _selectedCategory == 'Meat'
+                  ? _isAntibioticsUsed
+                  : false,
+          milkingMethod:
+              _selectedCategory == 'Dairy' ? _selectedMilkingMethod : 'N/A',
+          slaughterMethod:
+              _selectedCategory == 'Meat' ? _selectedSlaughterMethod : 'N/A',
+          rearingSystem:
+              _selectedCategory == 'Meat' ? _selectedRearingSystem : 'N/A',
+          seedType: _selectedCategory == 'Seeds' ? _selectedSeedType : 'N/A',
+          isChemicallyTreated:
+              _selectedCategory == 'Seeds' ? _isChemicallyTreated : false,
+          isCertified: false, // Removed certified field for Seeds
+          seedStorageMethod:
+              _selectedCategory == 'Seeds' ? _selectedSeedStorageMethod : 'N/A',
+          // Poultry specific fields
+          poultryFeedType:
+              _selectedCategory == 'Poultry' ? _selectedPoultryFeedType : 'N/A',
+          poultryRearingSystem: _selectedCategory == 'Poultry'
+              ? _selectedPoultryRearingSystem
+              : 'N/A',
+          isPoultryAntibioticsUsed: _selectedCategory == 'Poultry'
+              ? _isPoultryAntibioticsUsed
+              : false,
+          isGrowthBoostersUsed:
+              _selectedCategory == 'Poultry' ? _isGrowthBoostersUsed : false,
+          poultrySlaughterMethod: _selectedCategory == 'Poultry'
+              ? _selectedPoultrySlaughterMethod
+              : 'N/A',
+          isPoultryVaccinated:
+              _selectedCategory == 'Poultry' ? _isPoultryVaccinated : false,
+          // Seafood specific fields
+          seafoodSource:
+              _selectedCategory == 'Seafood' ? _selectedSeafoodSource : 'N/A',
+          seafoodFeedingType: _selectedCategory == 'Seafood'
+              ? _selectedSeafoodFeedingType
+              : 'N/A',
+          isSeafoodAntibioticsUsed: _selectedCategory == 'Seafood'
+              ? _isSeafoodAntibioticsUsed
+              : false,
+          isWaterQualityManaged:
+              _selectedCategory == 'Seafood' ? _isWaterQualityManaged : false,
+          seafoodPreservationMethod: _selectedCategory == 'Seafood'
+              ? _selectedSeafoodPreservationMethod
+              : 'N/A',
+          seafoodHarvestMethod: _selectedCategory == 'Seafood'
+              ? _selectedSeafoodHarvestMethod
+              : 'N/A',
         );
 
         widget.onProductAdded(product);
@@ -539,92 +744,1040 @@ class _AddProductFormState extends State<AddProductForm> {
                           }
                         },
                       ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedFertilizerType,
-                        decoration: InputDecoration(
-                          labelText: 'Fertilizer Type',
-                          labelStyle: GoogleFonts.poppins(
-                            color: widget.isDarkMode
-                                ? Colors.white70
-                                : Colors.black54,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
+                      if (_selectedCategory == 'Fruits') ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedRipeningMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Ripening Method',
+                            labelStyle: GoogleFonts.poppins(
                               color: widget.isDarkMode
-                                  ? Colors.white30
-                                  : Colors.black26,
+                                  ? Colors.white70
+                                  : Colors.black54,
                             ),
-                          ),
-                        ),
-                        items: _fertilizerTypes.map((type) {
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(
-                              type,
-                              style: GoogleFonts.poppins(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
                                 color: widget.isDarkMode
-                                    ? Colors.white
-                                    : Colors.black87,
+                                    ? Colors.white30
+                                    : Colors.black26,
                               ),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedFertilizerType = value;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedPesticideType,
-                        decoration: InputDecoration(
-                          labelText: 'Pesticide Type',
-                          labelStyle: GoogleFonts.poppins(
-                            color: widget.isDarkMode
-                                ? Colors.white70
-                                : Colors.black54,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: widget.isDarkMode
-                                  ? Colors.white30
-                                  : Colors.black26,
-                            ),
-                          ),
+                          items: _ripeningMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedRipeningMethod = value;
+                              });
+                            }
+                          },
                         ),
-                        items: _pesticideTypes.map((type) {
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(
-                              type,
-                              style: GoogleFonts.poppins(
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedPreservationMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Preservation Method',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
                                 color: widget.isDarkMode
-                                    ? Colors.white
-                                    : Colors.black87,
+                                    ? Colors.white30
+                                    : Colors.black26,
                               ),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
+                          ),
+                          items: _preservationMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedPreservationMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                      if (_selectedCategory == 'Grains') ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedDryingMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Post-Harvest Drying',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _dryingMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedDryingMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedStorageType,
+                          decoration: InputDecoration(
+                            labelText: 'Storage Type',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _storageTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedStorageType = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Weed Control Used',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isWeedControlUsed,
+                          onChanged: (value) {
                             setState(() {
-                              _selectedPesticideType = value;
+                              _isWeedControlUsed = value;
                             });
-                          }
-                        },
-                      ),
+                          },
+                        ),
+                      ],
+                      if (_selectedCategory == 'Dairy') ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedAnimalFeedType,
+                          decoration: InputDecoration(
+                            labelText: 'Animal Feed Type',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _animalFeedTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedAnimalFeedType = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedMilkCoolingMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Milk Cooling/Preservation',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _milkCoolingMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedMilkCoolingMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Antibiotics Used',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isAntibioticsUsed,
+                          onChanged: (value) {
+                            setState(() {
+                              _isAntibioticsUsed = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedMilkingMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Milking Method',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _milkingMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedMilkingMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                      if (_selectedCategory == 'Meat') ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedAnimalFeedType,
+                          decoration: InputDecoration(
+                            labelText: 'Animal Feed Type',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _animalFeedTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedAnimalFeedType = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Antibiotic Use',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isAntibioticsUsed,
+                          onChanged: (value) {
+                            setState(() {
+                              _isAntibioticsUsed = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedSlaughterMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Slaughter Method',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _slaughterMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedSlaughterMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedRearingSystem,
+                          decoration: InputDecoration(
+                            labelText: 'Rearing System',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _rearingSystems.map((system) {
+                            return DropdownMenuItem(
+                              value: system,
+                              child: Text(
+                                system,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedRearingSystem = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                      if (_selectedCategory == 'Seeds') ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedSeedType,
+                          decoration: InputDecoration(
+                            labelText: 'Seed Type',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _seedTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedSeedType = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Chemically Treated',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isChemicallyTreated,
+                          onChanged: (value) {
+                            setState(() {
+                              _isChemicallyTreated = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedSeedStorageMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Storage Method',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _seedStorageMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedSeedStorageMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                      if (_selectedCategory == 'Poultry') ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedPoultryFeedType,
+                          decoration: InputDecoration(
+                            labelText: 'Feed Type',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _poultryFeedTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedPoultryFeedType = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedPoultryRearingSystem,
+                          decoration: InputDecoration(
+                            labelText: 'Rearing System',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _poultryRearingSystems.map((system) {
+                            return DropdownMenuItem(
+                              value: system,
+                              child: Text(
+                                system,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedPoultryRearingSystem = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Antibiotics Used',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isPoultryAntibioticsUsed,
+                          onChanged: (value) {
+                            setState(() {
+                              _isPoultryAntibioticsUsed = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Growth Boosters Used',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isGrowthBoostersUsed,
+                          onChanged: (value) {
+                            setState(() {
+                              _isGrowthBoostersUsed = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedPoultrySlaughterMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Slaughter Method',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _poultrySlaughterMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedPoultrySlaughterMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Vaccinated',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isPoultryVaccinated,
+                          onChanged: (value) {
+                            setState(() {
+                              _isPoultryVaccinated = value;
+                            });
+                          },
+                        ),
+                      ],
+                      if (_selectedCategory == 'Seafood') ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedSeafoodSource,
+                          decoration: InputDecoration(
+                            labelText: 'Source',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _seafoodSources.map((source) {
+                            return DropdownMenuItem(
+                              value: source,
+                              child: Text(
+                                source,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedSeafoodSource = value;
+                              });
+                            }
+                          },
+                        ),
+                        if (_selectedSeafoodSource == 'Farmed') ...[
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _selectedSeafoodFeedingType,
+                            decoration: InputDecoration(
+                              labelText: 'Feeding Type',
+                              labelStyle: GoogleFonts.poppins(
+                                color: widget.isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: widget.isDarkMode
+                                      ? Colors.white30
+                                      : Colors.black26,
+                                ),
+                              ),
+                            ),
+                            items: _seafoodFeedingTypes.map((type) {
+                              return DropdownMenuItem(
+                                value: type,
+                                child: Text(
+                                  type,
+                                  style: GoogleFonts.poppins(
+                                    color: widget.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedSeafoodFeedingType = value;
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Antibiotics Used',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isSeafoodAntibioticsUsed,
+                          onChanged: (value) {
+                            setState(() {
+                              _isSeafoodAntibioticsUsed = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: Text(
+                            'Water Quality Managed',
+                            style: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                          value: _isWaterQualityManaged,
+                          onChanged: (value) {
+                            setState(() {
+                              _isWaterQualityManaged = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedSeafoodPreservationMethod,
+                          decoration: InputDecoration(
+                            labelText: 'Preservation Method',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _seafoodPreservationMethods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(
+                                method,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedSeafoodPreservationMethod = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      if (_selectedCategory != 'Dairy' &&
+                          _selectedCategory != 'Meat' &&
+                          _selectedCategory != 'Poultry' &&
+                          _selectedCategory != 'Seafood') ...[
+                        DropdownButtonFormField<String>(
+                          value: _selectedFertilizerType,
+                          decoration: InputDecoration(
+                            labelText: 'Fertilizer Type',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _fertilizerTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedFertilizerType = value;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedPesticideType,
+                          decoration: InputDecoration(
+                            labelText: 'Pesticide Type',
+                            labelStyle: GoogleFonts.poppins(
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: widget.isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              ),
+                            ),
+                          ),
+                          items: _pesticideTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(
+                                type,
+                                style: GoogleFonts.poppins(
+                                  color: widget.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedPesticideType = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       SwitchListTile(
                         title: Text(

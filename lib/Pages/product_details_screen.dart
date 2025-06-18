@@ -53,7 +53,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         _totalPrice = widget.product['price'];
       });
     } else {
-      final quantity = int.tryParse(value);
+      final quantity = double.tryParse(value);
       if (quantity != null && quantity > 0) {
         // Check if quantity exceeds available stock
         if (quantity > widget.product['quantity']) {
@@ -89,6 +89,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         bidAmount: (widget.product['price'] as num).toDouble(),
         quantity: (int.tryParse(_quantityController.text) ?? 1).toDouble(),
         productName: widget.product['name'],
+        farmerName: widget.product['farmerName'] ?? '',
+        unit: widget.product['unit'] ?? 'kg',
       );
       if (mounted) {
         Navigator.pop(context);
@@ -114,7 +116,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Future<void> _addToCart() async {
     setState(() => _isLoading = true);
     try {
-      final quantity = int.tryParse(_quantityController.text) ?? 1;
+      final quantity = double.tryParse(_quantityController.text) ?? 1.0;
       if (quantity > 0) {
         // Check if product exists in Firestore first
         try {
@@ -132,6 +134,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             id: '', // Will be set by Firestore
             productId: widget.product['id'] ?? '',
             productName: widget.product['name'] ?? '',
+            farmerName: widget.product['farmerName'] ?? '',
+            unit: widget.product['unit'] ?? 'kg',
             quantity: quantity,
             originalPrice: (widget.product['price'] as num).toDouble(),
             negotiatedPrice: (widget.product['price'] as num).toDouble(),
@@ -145,7 +149,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                    '${widget.product['name']} (${quantity}kg) added to cart'),
+                    '${widget.product['name']} (${quantity.toStringAsFixed(2)}kg) added to cart'),
                 duration: const Duration(seconds: 2),
                 action: SnackBarAction(
                   label: 'View Cart',
@@ -373,6 +377,112 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 widget.product['pesticideType'],
                                 Icons.pest_control_outlined,
                               ),
+                              if (widget.product['category'] == 'Fruits') ...[
+                                _buildDetailRow(
+                                  'Ripening Method',
+                                  widget.product['ripeningMethod'],
+                                  Icons.trending_up_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Preservation Method',
+                                  widget.product['preservationMethod'],
+                                  Icons.icecream_outlined,
+                                ),
+                              ],
+                              if (widget.product['category'] == 'Grains') ...[
+                                _buildDetailRow(
+                                  'Post-Harvest Drying',
+                                  widget.product['dryingMethod'] ?? 'N/A',
+                                  Icons.dry_cleaning_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Storage Type',
+                                  widget.product['storageType'] ?? 'N/A',
+                                  Icons.warehouse_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Weed Control Used',
+                                  (widget.product['isWeedControlUsed'] ?? false)
+                                      ? 'Yes'
+                                      : 'No',
+                                  Icons.pest_control_outlined,
+                                ),
+                              ],
+                              if (widget.product['category'] == 'Dairy') ...[
+                                _buildDetailRow(
+                                  'Animal Feed Type',
+                                  widget.product['animalFeedType'] ?? 'N/A',
+                                  Icons.eco_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Milk Cooling/Preservation',
+                                  widget.product['milkCoolingMethod'] ?? 'N/A',
+                                  Icons.icecream_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Antibiotics Used',
+                                  (widget.product['isAntibioticsUsed'] ?? false)
+                                      ? 'Yes'
+                                      : 'No',
+                                  Icons.pest_control_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Milking Method',
+                                  widget.product['milkingMethod'] ?? 'N/A',
+                                  Icons.icecream_outlined,
+                                ),
+                              ],
+                              if (widget.product['category'] == 'Meat') ...[
+                                _buildDetailRow(
+                                  'Animal Feed Type',
+                                  widget.product['animalFeedType'] ?? 'N/A',
+                                  Icons.eco_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Antibiotic Use',
+                                  (widget.product['isAntibioticsUsed'] ?? false)
+                                      ? 'Yes'
+                                      : 'No',
+                                  Icons.pest_control_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Slaughter Method',
+                                  widget.product['slaughterMethod'] ?? 'N/A',
+                                  Icons.pest_control_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Rearing System',
+                                  widget.product['rearingSystem'] ?? 'N/A',
+                                  Icons.warehouse_outlined,
+                                ),
+                              ],
+                              if (widget.product['category'] == 'Seeds') ...[
+                                _buildDetailRow(
+                                  'Seed Type',
+                                  widget.product['seedType'] ?? 'N/A',
+                                  Icons.eco_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Treated with chemicals',
+                                  (widget.product['isChemicallyTreated'] ??
+                                          false)
+                                      ? 'Yes'
+                                      : 'No',
+                                  Icons.pest_control_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Certified',
+                                  (widget.product['isCertified'] ?? false)
+                                      ? 'Yes'
+                                      : 'No',
+                                  Icons.eco_outlined,
+                                ),
+                                _buildDetailRow(
+                                  'Storage Method',
+                                  widget.product['seedStorageMethod'] ?? 'N/A',
+                                  Icons.warehouse_outlined,
+                                ),
+                              ],
                               _buildDetailRow(
                                 'Available Quantity',
                                 '${widget.product['quantity']} ${widget.product['unit']}',
@@ -442,12 +552,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 children: [
                                   IconButton(
                                     onPressed: () {
-                                      final currentQty = int.tryParse(
+                                      final currentQty = double.tryParse(
                                               _quantityController.text) ??
-                                          1;
-                                      if (currentQty > 1) {
+                                          1.0;
+                                      if (currentQty > 1.0) {
                                         _quantityController.text =
-                                            (currentQty - 1).toString();
+                                            (currentQty - 1.0).toString();
                                         _updateTotalPrice(
                                             _quantityController.text);
                                       }
@@ -490,7 +600,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                         if (value.isEmpty) {
                                           _updateTotalPrice('');
                                         } else {
-                                          final quantity = int.tryParse(value);
+                                          final quantity =
+                                              double.tryParse(value);
                                           if (quantity != null &&
                                               quantity > 0) {
                                             _updateTotalPrice(value);
@@ -501,10 +612,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   ),
                                   IconButton(
                                     onPressed: () {
-                                      final currentQty = int.tryParse(
+                                      final currentQty = double.tryParse(
                                               _quantityController.text) ??
-                                          1;
-                                      final newQty = currentQty + 1;
+                                          1.0;
+                                      final newQty = currentQty + 1.0;
                                       if (newQty <=
                                           widget.product['quantity']) {
                                         _quantityController.text =

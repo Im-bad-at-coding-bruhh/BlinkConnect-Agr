@@ -19,6 +19,38 @@ class Product {
   final bool isNegotiable;
   final String fertilizerType;
   final String pesticideType;
+  final String ripeningMethod;
+  final String preservationMethod;
+  final String dryingMethod;
+  final String storageType;
+  final bool isWeedControlUsed;
+  // Dairy specific fields
+  final String animalFeedType;
+  final String milkCoolingMethod;
+  final bool isAntibioticsUsed;
+  final String milkingMethod;
+  // Meat specific fields
+  final String slaughterMethod;
+  final String rearingSystem;
+  // Seeds specific fields
+  final String seedType;
+  final bool isChemicallyTreated;
+  final bool isCertified;
+  final String seedStorageMethod;
+  // Poultry specific fields
+  final String poultryFeedType;
+  final String poultryRearingSystem;
+  final bool isPoultryAntibioticsUsed;
+  final bool isGrowthBoostersUsed;
+  final String poultrySlaughterMethod;
+  final bool isPoultryVaccinated;
+  // Seafood specific fields
+  final String seafoodSource;
+  final String seafoodFeedingType;
+  final bool isSeafoodAntibioticsUsed;
+  final bool isWaterQualityManaged;
+  final String seafoodPreservationMethod;
+  final String seafoodHarvestMethod;
 
   Product({
     required this.id,
@@ -39,7 +71,53 @@ class Product {
     required this.isNegotiable,
     required this.fertilizerType,
     required this.pesticideType,
+    required this.ripeningMethod,
+    required this.preservationMethod,
+    required this.dryingMethod,
+    required this.storageType,
+    required this.isWeedControlUsed,
+    required this.animalFeedType,
+    required this.milkCoolingMethod,
+    required this.isAntibioticsUsed,
+    required this.milkingMethod,
+    required this.slaughterMethod,
+    required this.rearingSystem,
+    required this.seedType,
+    required this.isChemicallyTreated,
+    required this.isCertified,
+    required this.seedStorageMethod,
+    required this.poultryFeedType,
+    required this.poultryRearingSystem,
+    required this.isPoultryAntibioticsUsed,
+    required this.isGrowthBoostersUsed,
+    required this.poultrySlaughterMethod,
+    required this.isPoultryVaccinated,
+    required this.seafoodSource,
+    required this.seafoodFeedingType,
+    required this.isSeafoodAntibioticsUsed,
+    required this.isWaterQualityManaged,
+    required this.seafoodPreservationMethod,
+    required this.seafoodHarvestMethod,
   });
+
+  // Helper method to check if product is sold out
+  bool get isSoldOut => quantity <= 0 || status == 'sold_out';
+
+  // Helper method to check if product was recently restocked
+  bool get isRestocked => status == 'restocked';
+
+  // Helper method to get display status
+  String get displayStatus {
+    if (isSoldOut) return 'Sold Out';
+    if (isRestocked) return 'Re-stocked';
+    if (status == 'available') return 'Available';
+    if (status == 'inactive') return 'Inactive';
+    return status;
+  }
+
+  // Helper method to check if product should be shown in marketplace
+  bool get shouldShowInMarketplace =>
+      (status == 'available' || status == 'restocked') && !isSoldOut;
 
   // Convert Product to Map
   Map<String, dynamic> toMap() {
@@ -61,6 +139,33 @@ class Product {
       'isNegotiable': isNegotiable,
       'fertilizerType': fertilizerType,
       'pesticideType': pesticideType,
+      'ripeningMethod': ripeningMethod,
+      'preservationMethod': preservationMethod,
+      'dryingMethod': dryingMethod,
+      'storageType': storageType,
+      'isWeedControlUsed': isWeedControlUsed,
+      'animalFeedType': animalFeedType,
+      'milkCoolingMethod': milkCoolingMethod,
+      'isAntibioticsUsed': isAntibioticsUsed,
+      'milkingMethod': milkingMethod,
+      'slaughterMethod': slaughterMethod,
+      'rearingSystem': rearingSystem,
+      'seedType': seedType,
+      'isChemicallyTreated': isChemicallyTreated,
+      'isCertified': isCertified,
+      'seedStorageMethod': seedStorageMethod,
+      'poultryFeedType': poultryFeedType,
+      'poultryRearingSystem': poultryRearingSystem,
+      'isPoultryAntibioticsUsed': isPoultryAntibioticsUsed,
+      'isGrowthBoostersUsed': isGrowthBoostersUsed,
+      'poultrySlaughterMethod': poultrySlaughterMethod,
+      'isPoultryVaccinated': isPoultryVaccinated,
+      'seafoodSource': seafoodSource,
+      'seafoodFeedingType': seafoodFeedingType,
+      'isSeafoodAntibioticsUsed': isSeafoodAntibioticsUsed,
+      'isWaterQualityManaged': isWaterQualityManaged,
+      'seafoodPreservationMethod': seafoodPreservationMethod,
+      'seafoodHarvestMethod': seafoodHarvestMethod,
     };
   }
 
@@ -91,6 +196,33 @@ class Product {
         isNegotiable: map['isNegotiable'] ?? false,
         fertilizerType: map['fertilizerType'] ?? '',
         pesticideType: map['pesticideType'] ?? '',
+        ripeningMethod: map['ripeningMethod'] ?? 'N/A',
+        preservationMethod: map['preservationMethod'] ?? 'N/A',
+        dryingMethod: map['dryingMethod'] ?? 'N/A',
+        storageType: map['storageType'] ?? 'N/A',
+        isWeedControlUsed: map['isWeedControlUsed'] ?? false,
+        animalFeedType: map['animalFeedType'] ?? 'N/A',
+        milkCoolingMethod: map['milkCoolingMethod'] ?? 'N/A',
+        isAntibioticsUsed: map['isAntibioticsUsed'] ?? false,
+        milkingMethod: map['milkingMethod'] ?? 'N/A',
+        slaughterMethod: map['slaughterMethod'] ?? 'N/A',
+        rearingSystem: map['rearingSystem'] ?? 'N/A',
+        seedType: map['seedType'] ?? 'N/A',
+        isChemicallyTreated: map['isChemicallyTreated'] ?? false,
+        isCertified: map['isCertified'] ?? false,
+        seedStorageMethod: map['seedStorageMethod'] ?? 'N/A',
+        poultryFeedType: map['poultryFeedType'] ?? 'N/A',
+        poultryRearingSystem: map['poultryRearingSystem'] ?? 'N/A',
+        isPoultryAntibioticsUsed: map['isPoultryAntibioticsUsed'] ?? false,
+        isGrowthBoostersUsed: map['isGrowthBoostersUsed'] ?? false,
+        poultrySlaughterMethod: map['poultrySlaughterMethod'] ?? 'N/A',
+        isPoultryVaccinated: map['isPoultryVaccinated'] ?? false,
+        seafoodSource: map['seafoodSource'] ?? 'N/A',
+        seafoodFeedingType: map['seafoodFeedingType'] ?? 'N/A',
+        isSeafoodAntibioticsUsed: map['isSeafoodAntibioticsUsed'] ?? false,
+        isWaterQualityManaged: map['isWaterQualityManaged'] ?? false,
+        seafoodPreservationMethod: map['seafoodPreservationMethod'] ?? 'N/A',
+        seafoodHarvestMethod: map['seafoodHarvestMethod'] ?? 'N/A',
       );
     } catch (e) {
       print('Error converting map to product: $e'); // Debug print
@@ -124,6 +256,33 @@ class Product {
     bool? isNegotiable,
     String? fertilizerType,
     String? pesticideType,
+    String? ripeningMethod,
+    String? preservationMethod,
+    String? dryingMethod,
+    String? storageType,
+    bool? isWeedControlUsed,
+    String? animalFeedType,
+    String? milkCoolingMethod,
+    bool? isAntibioticsUsed,
+    String? milkingMethod,
+    String? slaughterMethod,
+    String? rearingSystem,
+    String? seedType,
+    bool? isChemicallyTreated,
+    bool? isCertified,
+    String? seedStorageMethod,
+    String? poultryFeedType,
+    String? poultryRearingSystem,
+    bool? isPoultryAntibioticsUsed,
+    bool? isGrowthBoostersUsed,
+    String? poultrySlaughterMethod,
+    bool? isPoultryVaccinated,
+    String? seafoodSource,
+    String? seafoodFeedingType,
+    bool? isSeafoodAntibioticsUsed,
+    bool? isWaterQualityManaged,
+    String? seafoodPreservationMethod,
+    String? seafoodHarvestMethod,
   }) {
     return Product(
       id: id ?? this.id,
@@ -144,6 +303,38 @@ class Product {
       isNegotiable: isNegotiable ?? this.isNegotiable,
       fertilizerType: fertilizerType ?? this.fertilizerType,
       pesticideType: pesticideType ?? this.pesticideType,
+      ripeningMethod: ripeningMethod ?? this.ripeningMethod,
+      preservationMethod: preservationMethod ?? this.preservationMethod,
+      dryingMethod: dryingMethod ?? this.dryingMethod,
+      storageType: storageType ?? this.storageType,
+      isWeedControlUsed: isWeedControlUsed ?? this.isWeedControlUsed,
+      animalFeedType: animalFeedType ?? this.animalFeedType,
+      milkCoolingMethod: milkCoolingMethod ?? this.milkCoolingMethod,
+      isAntibioticsUsed: isAntibioticsUsed ?? this.isAntibioticsUsed,
+      milkingMethod: milkingMethod ?? this.milkingMethod,
+      slaughterMethod: slaughterMethod ?? this.slaughterMethod,
+      rearingSystem: rearingSystem ?? this.rearingSystem,
+      seedType: seedType ?? this.seedType,
+      isChemicallyTreated: isChemicallyTreated ?? this.isChemicallyTreated,
+      isCertified: isCertified ?? this.isCertified,
+      seedStorageMethod: seedStorageMethod ?? this.seedStorageMethod,
+      poultryFeedType: poultryFeedType ?? this.poultryFeedType,
+      poultryRearingSystem: poultryRearingSystem ?? this.poultryRearingSystem,
+      isPoultryAntibioticsUsed:
+          isPoultryAntibioticsUsed ?? this.isPoultryAntibioticsUsed,
+      isGrowthBoostersUsed: isGrowthBoostersUsed ?? this.isGrowthBoostersUsed,
+      poultrySlaughterMethod:
+          poultrySlaughterMethod ?? this.poultrySlaughterMethod,
+      isPoultryVaccinated: isPoultryVaccinated ?? this.isPoultryVaccinated,
+      seafoodSource: seafoodSource ?? this.seafoodSource,
+      seafoodFeedingType: seafoodFeedingType ?? this.seafoodFeedingType,
+      isSeafoodAntibioticsUsed:
+          isSeafoodAntibioticsUsed ?? this.isSeafoodAntibioticsUsed,
+      isWaterQualityManaged:
+          isWaterQualityManaged ?? this.isWaterQualityManaged,
+      seafoodPreservationMethod:
+          seafoodPreservationMethod ?? this.seafoodPreservationMethod,
+      seafoodHarvestMethod: seafoodHarvestMethod ?? this.seafoodHarvestMethod,
     );
   }
 }

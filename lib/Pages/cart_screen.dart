@@ -43,6 +43,27 @@ class CartScreen extends StatelessWidget {
         throw Exception('User data not found');
       }
 
+      // Debug logging for user data
+      debugPrint('User data: $userData');
+      debugPrint('Username: ${userData['username']}');
+      debugPrint('Name: ${userData['name']}');
+
+      // Get customer name with fallback logic
+      String customerName = 'Unknown';
+      if (userData['username'] != null &&
+          userData['username'].toString().isNotEmpty) {
+        customerName = userData['username'].toString();
+      } else if (userData['name'] != null &&
+          userData['name'].toString().isNotEmpty) {
+        customerName = userData['name'].toString();
+      } else if (userData['email'] != null) {
+        // Use email prefix as last resort
+        final email = userData['email'].toString();
+        customerName = email.split('@')[0];
+      }
+
+      debugPrint('Final customer name: $customerName');
+
       // Calculate total amount
       double totalAmount = 0;
       for (var item in cartItems) {
@@ -71,52 +92,61 @@ class CartScreen extends StatelessWidget {
           throw Exception('Farmer ID is empty');
         }
 
-        await Navigator.push(
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TestTransactionScreen(
-              customerName: userData['name'] ?? 'Unknown',
+              customerName: customerName,
               customerId: currentUser.uid,
               amount: totalAmount,
               productName: cartItems.length == 1
                   ? cartItems[0].productName
                   : '${cartItems.length} items',
               farmerId: farmerId,
+              farmerName: cartItems[0].farmerName,
+              productId: cartItems[0].productId,
+              quantity: cartItems[0].quantity.toDouble(),
+              unit: cartItems[0].unit,
             ),
           ),
         );
 
-        // Update product quantities after successful transaction
-        for (var item in cartItems) {
-          final productRef =
-              firestore.collection('products').doc(item.productId);
-          final productDoc = await productRef.get();
-
-          if (productDoc.exists) {
-            final productData = productDoc.data();
-            if (productData != null) {
-              final currentQuantity =
-                  (productData['quantity'] as num).toDouble();
-              final newQuantity = currentQuantity - item.quantity;
-
-              if (newQuantity <= 0) {
-                // Delete product if out of stock
-                await productRef.delete();
-              } else {
-                // Update quantity
-                await productRef.update({'quantity': newQuantity});
-              }
-            }
+        // Only update products and clear cart if transaction was completed
+        if (result == 'Paid') {
+          // Update product quantities after successful transaction
+          for (var item in cartItems) {
+            await _updateProductStock(item, 'Paid');
           }
-        }
 
-        // Clear the cart after successful transaction
-        await cartService.clearCart();
+          // Clear the cart after successful transaction
+          await cartService.clearCart();
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Purchase completed successfully')),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Purchase completed successfully')),
+            );
+          }
+        } else if (result == 'Pending') {
+          // For pending transactions, we don't update stock yet
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Transaction pending. Stock will be updated when payment is confirmed.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        } else if (result == 'Unpaid') {
+          // For unpaid transactions, we don't update stock
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Transaction failed. No stock was deducted.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     } catch (e) {
@@ -125,6 +155,54 @@ class CartScreen extends StatelessWidget {
           SnackBar(content: Text('Error during checkout: $e')),
         );
       }
+    }
+  }
+
+  // Helper method to update product stock with transaction safety
+  Future<void> _updateProductStock(CartItem item, String paymentStatus) async {
+    final firestore = FirebaseFirestore.instance;
+
+    try {
+      // Use a transaction to ensure data consistency
+      await firestore.runTransaction((transaction) async {
+        final productRef = firestore.collection('products').doc(item.productId);
+        final productDoc = await transaction.get(productRef);
+
+        if (!productDoc.exists) {
+          throw Exception('Product not found');
+        }
+
+        final productData = productDoc.data();
+        if (productData == null) {
+          throw Exception('Product data is null');
+        }
+
+        final currentQuantity = (productData['quantity'] as num).toDouble();
+
+        // Only deduct stock if payment was successful
+        if (paymentStatus == 'Paid') {
+          final newQuantity = currentQuantity - item.quantity.toDouble();
+
+          if (newQuantity <= 0) {
+            // Mark product as sold out
+            transaction.update(productRef, {
+              'quantity': 0,
+              'status': 'sold_out',
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          } else {
+            // Update quantity
+            transaction.update(productRef, {
+              'quantity': newQuantity,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+        // For 'Pending' or 'Unpaid' status, we don't update stock
+      });
+    } catch (e) {
+      debugPrint('Error updating product stock: $e');
+      rethrow;
     }
   }
 
@@ -302,12 +380,12 @@ class CartScreen extends StatelessWidget {
                                   icon: const Icon(Icons.remove_circle_outline,
                                       color: Color(0xFF6C5DD3)),
                                   onPressed: () async {
-                                    if (item.quantity > 1) {
+                                    if (item.quantity > 1.0) {
                                       try {
                                         await cartService
                                             .updateCartItemQuantity(
                                           item.id,
-                                          item.quantity - 1,
+                                          item.quantity - 1.0,
                                         );
                                       } catch (e) {
                                         if (context.mounted) {
@@ -347,7 +425,8 @@ class CartScreen extends StatelessWidget {
                                       ),
                                     ),
                                     onSubmitted: (value) async {
-                                      final newQuantity = int.tryParse(value);
+                                      final newQuantity =
+                                          double.tryParse(value);
                                       if (newQuantity != null &&
                                           newQuantity > 0) {
                                         try {
@@ -376,7 +455,7 @@ class CartScreen extends StatelessWidget {
                                     try {
                                       await cartService.updateCartItemQuantity(
                                         item.id,
-                                        item.quantity + 1,
+                                        item.quantity + 1.0,
                                       );
                                     } catch (e) {
                                       if (context.mounted) {

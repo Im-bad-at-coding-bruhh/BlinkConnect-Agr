@@ -49,6 +49,19 @@ class ProductService {
             .toList());
   }
 
+  // Get farmer's sold out products
+  Stream<List<Product>> getFarmerSoldOutProducts(String farmerId) {
+    return _productsCollection
+        .where('farmerId', isEqualTo: farmerId)
+        .where('status', isEqualTo: 'sold_out')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) =>
+                Product.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
   // Create a new product
   Future<Product> createProduct({
     required String farmerId,
@@ -64,48 +77,69 @@ class ProductService {
     required bool isNegotiable,
     required String fertilizerType,
     required String pesticideType,
+    required String ripeningMethod,
+    required String preservationMethod,
+    required String dryingMethod,
+    required String storageType,
+    required bool isWeedControlUsed,
+    required String animalFeedType,
+    required String milkCoolingMethod,
+    required bool isAntibioticsUsed,
+    required String milkingMethod,
+    required String slaughterMethod,
+    required String rearingSystem,
+    required String seedType,
+    required bool isChemicallyTreated,
+    required bool isCertified,
+    required String seedStorageMethod,
   }) async {
     try {
-      final now = DateTime.now();
-      final product = Product(
-        id: '', // Will be set by Firestore
-        farmerId: farmerId,
-        farmerName: farmerName,
-        productName: productName,
-        category: category,
-        description: description,
-        price: price,
-        currentPrice: price,
-        region: region,
-        status: 'available',
-        createdAt: now,
-        updatedAt: now,
-        images: images,
-        quantity: quantity,
-        unit: unit,
-        isNegotiable: isNegotiable,
-        fertilizerType: fertilizerType,
-        pesticideType: pesticideType,
-      );
+      final docRef = await _firestore.collection('products').add({
+        'farmerId': farmerId,
+        'farmerName': farmerName,
+        'productName': productName,
+        'category': category,
+        'description': description,
+        'price': price,
+        'currentPrice': price,
+        'region': region,
+        'status': 'available',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'images': images,
+        'quantity': quantity,
+        'unit': unit,
+        'isNegotiable': isNegotiable,
+        'fertilizerType': fertilizerType,
+        'pesticideType': pesticideType,
+        'ripeningMethod': ripeningMethod,
+        'preservationMethod': preservationMethod,
+        'dryingMethod': dryingMethod,
+        'storageType': storageType,
+        'isWeedControlUsed': isWeedControlUsed,
+        'animalFeedType': animalFeedType,
+        'milkCoolingMethod': milkCoolingMethod,
+        'isAntibioticsUsed': isAntibioticsUsed,
+        'milkingMethod': milkingMethod,
+        'slaughterMethod': slaughterMethod,
+        'rearingSystem': rearingSystem,
+        'seedType': seedType,
+        'isChemicallyTreated': isChemicallyTreated,
+        'isCertified': isCertified,
+        'seedStorageMethod': seedStorageMethod,
+      });
 
-      final docRef = await _productsCollection.add(product.toMap());
-      return product.copyWith(id: docRef.id);
+      final doc = await docRef.get();
+      return Product.fromMap(doc.id, doc.data() as Map<String, dynamic>);
     } catch (e) {
-      throw 'Failed to create product: $e';
+      print('Error creating product: $e');
+      rethrow;
     }
   }
 
   // Update a product
-  Future<void> updateProduct(
-      String productId, Map<String, dynamic> data) async {
-    try {
-      await _productsCollection.doc(productId).update({
-        ...data,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      throw 'Failed to update product: $e';
-    }
+  Future<void> updateProduct(Product product) async {
+    await _productsCollection.doc(product.id).update(product.toMap());
   }
 
   // Delete a product
@@ -114,6 +148,49 @@ class ProductService {
       await _productsCollection.doc(productId).delete();
     } catch (e) {
       throw 'Failed to delete product: $e';
+    }
+  }
+
+  // Reactivate a sold out product (when farmer gets more stock)
+  Future<void> reactivateProduct(String productId, double newQuantity) async {
+    try {
+      await _productsCollection.doc(productId).update({
+        'quantity': newQuantity,
+        'status': 'restocked',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Schedule status change to 'available' after 24 hours
+      Future.delayed(const Duration(hours: 24), () async {
+        try {
+          final doc = await _productsCollection.doc(productId).get();
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data != null && data['status'] == 'restocked') {
+              await _productsCollection.doc(productId).update({
+                'status': 'available',
+                'updatedAt': FieldValue.serverTimestamp(),
+              });
+            }
+          }
+        } catch (e) {
+          print('Error auto-changing restocked status: $e');
+        }
+      });
+    } catch (e) {
+      throw 'Failed to reactivate product: $e';
+    }
+  }
+
+  // Change restocked status to available (called when farmer updates product)
+  Future<void> changeRestockedToAvailable(String productId) async {
+    try {
+      await _productsCollection.doc(productId).update({
+        'status': 'available',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw 'Failed to update product status: $e';
     }
   }
 

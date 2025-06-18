@@ -52,6 +52,8 @@ class Negotiation {
   final String sellerId;
   final String buyerId;
   final String buyerName;
+  final String farmerName;
+  final String unit;
   final double originalPrice;
   final double bidAmount;
   final double quantity;
@@ -66,6 +68,8 @@ class Negotiation {
     required this.sellerId,
     required this.buyerId,
     required this.buyerName,
+    required this.farmerName,
+    required this.unit,
     required this.originalPrice,
     required this.bidAmount,
     required this.quantity,
@@ -83,6 +87,8 @@ class Negotiation {
       sellerId: map['sellerId']?.toString() ?? '',
       buyerId: map['buyerId']?.toString() ?? '',
       buyerName: map['buyerName']?.toString() ?? '',
+      farmerName: map['farmerName']?.toString() ?? '',
+      unit: map['unit']?.toString() ?? 'kg',
       originalPrice: (map['originalPrice'] as num?)?.toDouble() ?? 0.0,
       bidAmount: (map['bidAmount'] as num?)?.toDouble() ?? 0.0,
       quantity: (map['quantity'] as num?)?.toDouble() ?? 0.0,
@@ -108,6 +114,8 @@ class Negotiation {
       'sellerId': sellerId,
       'buyerId': buyerId,
       'buyerName': buyerName,
+      'farmerName': farmerName,
+      'unit': unit,
       'originalPrice': originalPrice,
       'bidAmount': bidAmount,
       'quantity': quantity,
@@ -125,6 +133,8 @@ class Negotiation {
     String? sellerId,
     String? buyerId,
     String? buyerName,
+    String? farmerName,
+    String? unit,
     double? originalPrice,
     double? bidAmount,
     double? quantity,
@@ -139,6 +149,8 @@ class Negotiation {
       sellerId: sellerId ?? this.sellerId,
       buyerId: buyerId ?? this.buyerId,
       buyerName: buyerName ?? this.buyerName,
+      farmerName: farmerName ?? this.farmerName,
+      unit: unit ?? this.unit,
       originalPrice: originalPrice ?? this.originalPrice,
       bidAmount: bidAmount ?? this.bidAmount,
       quantity: quantity ?? this.quantity,
