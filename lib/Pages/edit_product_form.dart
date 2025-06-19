@@ -404,10 +404,17 @@ class _EditProductFormState extends State<EditProductForm> {
                             });
 
                             try {
+                              final wasSoldOut =
+                                  widget.product.status == 'sold_out';
+                              final newQuantity =
+                                  double.parse(_quantityController.text);
+                              final newStatus = wasSoldOut && newQuantity > 0
+                                  ? 'restocked'
+                                  : widget.product.status;
+
                               final updatedProduct = widget.product.copyWith(
                                 description: _descriptionController.text,
-                                quantity:
-                                    double.parse(_quantityController.text),
+                                quantity: newQuantity,
                                 price: double.parse(_priceController.text),
                                 currentPrice:
                                     double.parse(_priceController.text),
@@ -417,6 +424,7 @@ class _EditProductFormState extends State<EditProductForm> {
                                 pesticideType: _selectedPesticideType,
                                 ripeningMethod: _selectedRipeningMethod,
                                 preservationMethod: _selectedPreservationMethod,
+                                status: newStatus,
                               );
 
                               await widget.onProductUpdated(updatedProduct);

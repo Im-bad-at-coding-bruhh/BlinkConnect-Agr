@@ -432,7 +432,7 @@ class _CommunityScreenState extends State<CommunityScreen>
     final isDarkMode = themeProvider.isDarkMode;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: _buildBody(isDarkMode),
       bottomNavigationBar:
           _isSmallScreen ? _buildModernBottomBar(isDarkMode) : null,
@@ -456,22 +456,14 @@ class _CommunityScreenState extends State<CommunityScreen>
       color: isDarkMode ? Colors.black : Colors.white,
       child: Row(
         children: [
-          // Side bar for larger screens
           if (!_isSmallScreen) _buildSidebar(isDarkMode),
-
-          // Main content area
           Expanded(
             child: Container(
               color: isDarkMode ? Colors.black : Colors.white,
               child: Column(
                 children: [
-                  // Community Header
-                  _buildHeader(isDarkMode),
-
-                  // Tab Bar
+                  const SizedBox(height: 32),
                   _buildTabBar(isDarkMode),
-
-                  // Main Content
                   Expanded(
                     child: TabBarView(
                       controller: _tabController,
@@ -566,42 +558,7 @@ class _CommunityScreenState extends State<CommunityScreen>
   }
 
   Widget _buildHeader(bool isDarkMode) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        MediaQuery.of(context).padding.top + 16,
-        24,
-        16,
-      ),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.05),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.people_rounded,
-            size: 28,
-            color: const Color(0xFF6C5DD3),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Community',
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildTabBar(bool isDarkMode) {

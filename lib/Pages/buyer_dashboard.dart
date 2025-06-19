@@ -15,6 +15,7 @@ import '../Models/cart_model.dart';
 import '/Services/sales_analytics_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/Pages/product_details_screen.dart';
+import 'dart:convert';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -97,11 +98,28 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
 
       final userRegion = userDoc.data()?['region'] ?? 'default';
 
-      // Load top selling crops
-      final topSelling = await _salesAnalytics.getTopSellingProducts(
-        region: userRegion,
-        category: 'crops',
-      );
+      // Define all crop-related categories
+      final cropCategories = [
+        'Fruits',
+        'Vegetables',
+        'Grains',
+        'Seeds',
+        // Add more if needed
+      ];
+
+      // Aggregate top selling crops from all categories
+      List<Map<String, dynamic>> allTopSelling = [];
+      for (final category in cropCategories) {
+        final topSelling = await _salesAnalytics.getTopSellingProducts(
+          region: userRegion,
+          category: category,
+        );
+        allTopSelling.addAll(topSelling);
+      }
+      // Sort and take top 10 overall
+      allTopSelling.sort((a, b) =>
+          (b['totalQuantity'] as num).compareTo(a['totalQuantity'] as num));
+      allTopSelling = allTopSelling.take(10).toList();
 
       // Load seasonal crops
       final seasonal = await _salesAnalytics.getSeasonalCrops(
@@ -109,7 +127,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
       );
 
       setState(() {
-        _topSellingCrops = topSelling;
+        _topSellingCrops = allTopSelling;
         _seasonalCrops = seasonal;
         _isLoading = false;
       });
@@ -603,7 +621,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Product image
+                  // Product image (base64 like in marketplace)
                   Container(
                     height: 100,
                     decoration: BoxDecoration(
@@ -614,18 +632,27 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                         top: Radius.circular(12),
                       ),
                     ),
-                    child: PageView.builder(
-                      itemCount: 3,
-                      itemBuilder: (context, index) {
-                        return Center(
-                          child: Image.asset(
-                            crop['image'],
-                            height: 80,
-                            fit: BoxFit.contain,
+                    child: crop['image'] != null &&
+                            crop['image'] is String &&
+                            crop['image'].isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12)),
+                            child: Image.memory(
+                              base64Decode(crop['image']),
+                              height: 100,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 48,
+                              color:
+                                  isDarkMode ? Colors.white30 : Colors.black26,
+                            ),
                           ),
-                        );
-                      },
-                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(8),
@@ -635,7 +662,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                         Text(
                           crop['name'],
                           style: GoogleFonts.poppins(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: isDarkMode ? Colors.white : Colors.black87,
                           ),
@@ -644,45 +671,43 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '\$${crop['price'].toStringAsFixed(2)}',
+                          crop['price'] != null
+                              ? '\$24${crop['price'].toStringAsFixed(2)}'
+                              : '',
                           style: GoogleFonts.poppins(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: const Color(0xFF6C5DD3),
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Icon(
                               Icons.person,
-                              size: 14,
+                              size: 16,
                               color:
                                   isDarkMode ? Colors.white70 : Colors.black54,
                             ),
                             const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                crop['seller'],
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  color: isDarkMode
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              crop['seller'] ?? '',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
                             Icon(Icons.star, size: 14, color: Colors.amber),
                             const SizedBox(width: 4),
                             Text(
-                              crop['rating'].toString(),
+                              crop['rating']?.toString() ?? '0',
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 color: isDarkMode
@@ -725,27 +750,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                             fontSize: 12,
                           ),
                         ),
-                        Text(
-                          'Insecticides: ${crop['insecticides'] ?? 'N/A'}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          'Fertilizers: ${crop['fertilizers'] ?? 'N/A'}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          'Available Weight: ${crop['weight'] ?? 'N/A'}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
+                        // Add more quick info fields as needed
                       ],
                     ),
                   ),

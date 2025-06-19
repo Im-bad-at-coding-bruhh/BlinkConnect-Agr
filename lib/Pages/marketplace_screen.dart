@@ -467,7 +467,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       valueListenable: darkModeNotifier,
       builder: (context, isDark, _) {
         return Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: isDark ? Colors.black : Colors.white,
           body: _buildBody(isDark),
           bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDark) : null,
         );

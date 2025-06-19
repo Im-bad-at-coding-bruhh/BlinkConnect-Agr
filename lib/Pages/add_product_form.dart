@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:convert';
 import '../Models/product_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 
 class AddProductForm extends StatefulWidget {
   final bool isDarkMode;
@@ -303,103 +304,81 @@ class _AddProductFormState extends State<AddProductForm> {
         }
 
         final now = DateTime.now();
-        final product = Product(
-          id: '', // This will be set by Firestore
-          farmerId: widget.farmerId,
-          farmerName: username,
-          productName: _nameController.text,
-          category: _selectedCategory,
-          description: _descriptionController.text,
-          price: double.parse(_priceController.text),
-          currentPrice: double.parse(_priceController.text),
-          region: region,
-          status: 'available',
-          createdAt: now,
-          updatedAt: now,
-          images: _selectedImages,
-          quantity: double.parse(_quantityController.text),
-          unit: _selectedUnit,
-          isNegotiable: _isNegotiable,
-          fertilizerType: _selectedCategory == 'Dairy' ||
-                  _selectedCategory == 'Meat' ||
-                  _selectedCategory == 'Poultry' ||
-                  _selectedCategory == 'Seafood'
-              ? 'N/A'
-              : _selectedFertilizerType,
-          pesticideType: _selectedCategory == 'Dairy' ||
-                  _selectedCategory == 'Meat' ||
-                  _selectedCategory == 'Poultry' ||
-                  _selectedCategory == 'Seafood'
-              ? 'N/A'
-              : _selectedPesticideType,
-          ripeningMethod:
-              _selectedCategory == 'Fruits' ? _selectedRipeningMethod : 'N/A',
-          preservationMethod: _selectedCategory == 'Fruits'
-              ? _selectedPreservationMethod
-              : 'N/A',
-          dryingMethod:
-              _selectedCategory == 'Grains' ? _selectedDryingMethod : 'N/A',
-          storageType:
-              _selectedCategory == 'Grains' ? _selectedStorageType : 'N/A',
-          isWeedControlUsed:
-              _selectedCategory == 'Grains' ? _isWeedControlUsed : false,
-          animalFeedType:
-              _selectedCategory == 'Dairy' || _selectedCategory == 'Meat'
-                  ? _selectedAnimalFeedType
-                  : 'N/A',
-          milkCoolingMethod:
-              _selectedCategory == 'Dairy' ? _selectedMilkCoolingMethod : 'N/A',
-          isAntibioticsUsed:
-              _selectedCategory == 'Dairy' || _selectedCategory == 'Meat'
-                  ? _isAntibioticsUsed
-                  : false,
-          milkingMethod:
-              _selectedCategory == 'Dairy' ? _selectedMilkingMethod : 'N/A',
-          slaughterMethod:
-              _selectedCategory == 'Meat' ? _selectedSlaughterMethod : 'N/A',
-          rearingSystem:
-              _selectedCategory == 'Meat' ? _selectedRearingSystem : 'N/A',
-          seedType: _selectedCategory == 'Seeds' ? _selectedSeedType : 'N/A',
-          isChemicallyTreated:
-              _selectedCategory == 'Seeds' ? _isChemicallyTreated : false,
-          isCertified: false, // Removed certified field for Seeds
-          seedStorageMethod:
-              _selectedCategory == 'Seeds' ? _selectedSeedStorageMethod : 'N/A',
-          // Poultry specific fields
-          poultryFeedType:
-              _selectedCategory == 'Poultry' ? _selectedPoultryFeedType : 'N/A',
-          poultryRearingSystem: _selectedCategory == 'Poultry'
-              ? _selectedPoultryRearingSystem
-              : 'N/A',
-          isPoultryAntibioticsUsed: _selectedCategory == 'Poultry'
-              ? _isPoultryAntibioticsUsed
-              : false,
-          isGrowthBoostersUsed:
-              _selectedCategory == 'Poultry' ? _isGrowthBoostersUsed : false,
-          poultrySlaughterMethod: _selectedCategory == 'Poultry'
-              ? _selectedPoultrySlaughterMethod
-              : 'N/A',
-          isPoultryVaccinated:
-              _selectedCategory == 'Poultry' ? _isPoultryVaccinated : false,
-          // Seafood specific fields
-          seafoodSource:
-              _selectedCategory == 'Seafood' ? _selectedSeafoodSource : 'N/A',
-          seafoodFeedingType: _selectedCategory == 'Seafood'
-              ? _selectedSeafoodFeedingType
-              : 'N/A',
-          isSeafoodAntibioticsUsed: _selectedCategory == 'Seafood'
-              ? _isSeafoodAntibioticsUsed
-              : false,
-          isWaterQualityManaged:
-              _selectedCategory == 'Seafood' ? _isWaterQualityManaged : false,
-          seafoodPreservationMethod: _selectedCategory == 'Seafood'
-              ? _selectedSeafoodPreservationMethod
-              : 'N/A',
-          seafoodHarvestMethod: _selectedCategory == 'Seafood'
-              ? _selectedSeafoodHarvestMethod
-              : 'N/A',
-        );
-
+        // Build product data map dynamically based on category
+        final Map<String, dynamic> productData = {
+          'id': '',
+          'farmerId': widget.farmerId,
+          'farmerName': username,
+          'productName': _nameController.text,
+          'category': _selectedCategory,
+          'description': _descriptionController.text,
+          'price': double.parse(_priceController.text),
+          'currentPrice': double.parse(_priceController.text),
+          'region': region,
+          'status': 'available',
+          'createdAt': now,
+          'updatedAt': now,
+          'images': _selectedImages,
+          'quantity': double.parse(_quantityController.text),
+          'unit': _selectedUnit,
+          'isNegotiable': _isNegotiable,
+        };
+        // Add category-specific fields
+        if (_selectedCategory == 'Fruits') {
+          productData['ripeningMethod'] = _selectedRipeningMethod;
+          productData['preservationMethod'] = _selectedPreservationMethod;
+        }
+        if (_selectedCategory == 'Grains') {
+          productData['dryingMethod'] = _selectedDryingMethod;
+          productData['storageType'] = _selectedStorageType;
+          productData['isWeedControlUsed'] = _isWeedControlUsed;
+        }
+        if (_selectedCategory == 'Dairy') {
+          productData['animalFeedType'] = _selectedAnimalFeedType;
+          productData['milkCoolingMethod'] = _selectedMilkCoolingMethod;
+          productData['isAntibioticsUsed'] = _isAntibioticsUsed;
+          productData['milkingMethod'] = _selectedMilkingMethod;
+        }
+        if (_selectedCategory == 'Meat') {
+          productData['animalFeedType'] = _selectedAnimalFeedType;
+          productData['isAntibioticsUsed'] = _isAntibioticsUsed;
+          productData['slaughterMethod'] = _selectedSlaughterMethod;
+          productData['rearingSystem'] = _selectedRearingSystem;
+        }
+        if (_selectedCategory == 'Seeds') {
+          productData['seedType'] = _selectedSeedType;
+          productData['isChemicallyTreated'] = _isChemicallyTreated;
+          productData['isCertified'] = _isCertified;
+          productData['seedStorageMethod'] = _selectedSeedStorageMethod;
+        }
+        if (_selectedCategory == 'Poultry') {
+          productData['poultryFeedType'] = _selectedPoultryFeedType;
+          productData['poultryRearingSystem'] = _selectedPoultryRearingSystem;
+          productData['isPoultryAntibioticsUsed'] = _isPoultryAntibioticsUsed;
+          productData['isGrowthBoostersUsed'] = _isGrowthBoostersUsed;
+          productData['poultrySlaughterMethod'] =
+              _selectedPoultrySlaughterMethod;
+          productData['isPoultryVaccinated'] = _isPoultryVaccinated;
+        }
+        if (_selectedCategory == 'Seafood') {
+          productData['seafoodSource'] = _selectedSeafoodSource;
+          if (_selectedSeafoodSource == 'Farmed') {
+            productData['seafoodFeedingType'] = _selectedSeafoodFeedingType;
+          }
+          productData['isSeafoodAntibioticsUsed'] = _isSeafoodAntibioticsUsed;
+          productData['isWaterQualityManaged'] = _isWaterQualityManaged;
+          productData['seafoodPreservationMethod'] =
+              _selectedSeafoodPreservationMethod;
+          productData['seafoodHarvestMethod'] = _selectedSeafoodHarvestMethod;
+        }
+        // Add fertilizer/pesticide for relevant categories
+        if (!['Dairy', 'Meat', 'Poultry', 'Seafood']
+            .contains(_selectedCategory)) {
+          productData['fertilizerType'] = _selectedFertilizerType;
+          productData['pesticideType'] = _selectedPesticideType;
+        }
+        // Create product object
+        final product = Product.fromMap('', productData);
         widget.onProductAdded(product);
         Navigator.of(context).pop();
       } catch (e) {
@@ -644,6 +623,9 @@ class _AddProductFormState extends State<AddProductForm> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         style: GoogleFonts.poppins(
                           color:
                               widget.isDarkMode ? Colors.white : Colors.black87,
@@ -652,8 +634,9 @@ class _AddProductFormState extends State<AddProductForm> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter a quantity';
                           }
-                          if (double.tryParse(value) == null) {
-                            return 'Please enter a valid number';
+                          final intValue = int.tryParse(value);
+                          if (intValue == null || intValue <= 0) {
+                            return 'Please enter a valid whole number';
                           }
                           return null;
                         },

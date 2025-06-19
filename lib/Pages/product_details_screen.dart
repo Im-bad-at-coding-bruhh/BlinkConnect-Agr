@@ -457,31 +457,90 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 ),
                               ],
                               if (widget.product['category'] == 'Seeds') ...[
-                                _buildDetailRow(
-                                  'Seed Type',
-                                  widget.product['seedType'] ?? 'N/A',
-                                  Icons.eco_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Treated with chemicals',
-                                  (widget.product['isChemicallyTreated'] ??
-                                          false)
-                                      ? 'Yes'
-                                      : 'No',
-                                  Icons.pest_control_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Certified',
-                                  (widget.product['isCertified'] ?? false)
-                                      ? 'Yes'
-                                      : 'No',
-                                  Icons.eco_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Storage Method',
-                                  widget.product['seedStorageMethod'] ?? 'N/A',
-                                  Icons.warehouse_outlined,
-                                ),
+                                if ((widget.product['seedType'] ?? 'N/A') !=
+                                        'N/A' &&
+                                    (widget.product['seedType'] ?? '')
+                                        .toString()
+                                        .isNotEmpty)
+                                  _buildDetailRow(
+                                      'Seed Type',
+                                      widget.product['seedType'],
+                                      Icons.eco_outlined),
+                                if (widget.product['isChemicallyTreated'] ==
+                                    true)
+                                  _buildDetailRow('Treated with chemicals',
+                                      'Yes', Icons.pest_control_outlined),
+                                if (widget.product['isCertified'] == true)
+                                  _buildDetailRow(
+                                      'Certified', 'Yes', Icons.eco_outlined),
+                                if ((widget.product['seedStorageMethod'] ??
+                                            'N/A') !=
+                                        'N/A' &&
+                                    (widget.product['seedStorageMethod'] ?? '')
+                                        .toString()
+                                        .isNotEmpty)
+                                  _buildDetailRow(
+                                      'Storage Method',
+                                      widget.product['seedStorageMethod'],
+                                      Icons.warehouse_outlined),
+                              ],
+                              if (widget.product['category'] == 'Seafood') ...[
+                                if ((widget.product['seafoodSource'] ??
+                                            'N/A') !=
+                                        'N/A' &&
+                                    (widget.product['seafoodSource'] ?? '')
+                                        .toString()
+                                        .isNotEmpty)
+                                  _buildDetailRow(
+                                      'Source',
+                                      widget.product['seafoodSource'],
+                                      Icons.water),
+                                if (widget.product['seafoodSource'] ==
+                                        'Farmed' &&
+                                    (widget.product['seafoodFeedingType'] ?? '')
+                                        .toString()
+                                        .isNotEmpty &&
+                                    (widget.product['seafoodFeedingType'] ??
+                                            'N/A') !=
+                                        'N/A')
+                                  _buildDetailRow(
+                                      'Feeding Type',
+                                      widget.product['seafoodFeedingType'],
+                                      Icons.rice_bowl),
+                                if (widget
+                                        .product['isSeafoodAntibioticsUsed'] ==
+                                    true)
+                                  _buildDetailRow('Antibiotics Used', 'Yes',
+                                      Icons.pest_control_outlined),
+                                if (widget.product['isWaterQualityManaged'] ==
+                                    true)
+                                  _buildDetailRow('Water Quality Managed',
+                                      'Yes', Icons.water_drop),
+                                if ((widget.product[
+                                                'seafoodPreservationMethod'] ??
+                                            'N/A') !=
+                                        'N/A' &&
+                                    (widget.product[
+                                                'seafoodPreservationMethod'] ??
+                                            '')
+                                        .toString()
+                                        .isNotEmpty)
+                                  _buildDetailRow(
+                                      'Preservation Method',
+                                      widget
+                                          .product['seafoodPreservationMethod'],
+                                      Icons.icecream_outlined),
+                                if ((widget.product['seafoodHarvestMethod'] ??
+                                            'N/A') !=
+                                        'N/A' &&
+                                    (widget.product['seafoodHarvestMethod'] ??
+                                            '')
+                                        .toString()
+                                        .isNotEmpty)
+                                  _buildDetailRow(
+                                      'Harvest Method',
+                                      widget.product['seafoodHarvestMethod'],
+                                      Icons.agriculture),
                               ],
                               _buildDetailRow(
                                 'Available Quantity',
@@ -680,29 +739,31 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         // Action Buttons
                         Row(
                           children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _startNegotiation,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6C5DD3),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                            if (widget.product['isNegotiable'] == true) ...[
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _startNegotiation,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6C5DD3),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                ),
-                                icon: const Icon(Icons.gavel,
-                                    color: Colors.white),
-                                label: Text(
-                                  'Negotiate',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
+                                  icon: const Icon(Icons.gavel,
+                                      color: Colors.white),
+                                  label: Text(
+                                    'Negotiate',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
+                              const SizedBox(width: 16),
+                            ],
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: _addToCart,

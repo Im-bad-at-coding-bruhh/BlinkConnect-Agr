@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rxdart/rxdart.dart';
 
 class SalesAnalyticsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -21,8 +22,18 @@ class SalesAnalyticsService {
       case 'lb':
         return quantity * 0.453592;
       default:
+        print('Warning: Unknown unit "$unit". Defaulting to kg.');
         return quantity; // Default to kg
     }
+  }
+
+  // Map generic or legacy category names to current categories
+  List<String> _mapCategory(String category) {
+    if (category.toLowerCase() == 'crops') {
+      return ['Fruits', 'Vegetables', 'Grains', 'Seeds'];
+    }
+    // Add more mappings if needed
+    return [category];
   }
 
   // Update sales for a product
@@ -128,6 +139,15 @@ class SalesAnalyticsService {
 
   // Get leaderboard data for a category
   Stream<List<Map<String, dynamic>>> getCategoryLeaderboard(String category) {
+    final categories = _mapCategory(category);
+    // If multiple categories, merge their leaderboards
+    if (categories.length > 1) {
+      final streams =
+          categories.map((cat) => getCategoryLeaderboard(cat)).toList();
+      return Rx.combineLatestList<List<Map<String, dynamic>>>(streams).map(
+          (lists) =>
+              lists.expand((x) => x).cast<Map<String, dynamic>>().toList());
+    }
     return _firestore
         .collection('sales_analytics')
         .doc(_currentYearMonth)
@@ -159,50 +179,59 @@ class SalesAnalyticsService {
     int limit = 10,
   }) async {
     try {
-      // Get all products from the continent
-      final productsSnapshot = await _firestore
-          .collection('products')
-          .where('region', isEqualTo: region)
-          .where('category', isEqualTo: category)
-          .where('status', isEqualTo: 'available')
-          .get();
+      final categories = _mapCategory(category);
+      List<Map<String, dynamic>> allProducts = [];
+      for (final cat in categories) {
+        // Get all products from the continent
+        final productsSnapshot = await _firestore
+            .collection('products')
+            .where('region', isEqualTo: region)
+            .where('category', isEqualTo: cat)
+            .where('status', isEqualTo: 'available')
+            .get();
 
-      // Create a map to store total quantities sold for each product
-      Map<String, Map<String, dynamic>> productTotals = {};
+        // Create a map to store total quantities sold for each product
+        Map<String, Map<String, dynamic>> productTotals = {};
 
-      // Process each product
-      for (var doc in productsSnapshot.docs) {
-        final product = doc.data();
-        final productId = doc.id;
-        final quantity = _convertToKg(
-          product['quantity']?.toDouble() ?? 0,
-          product['unit'] ?? 'kg',
-        );
+        // Process each product
+        for (var doc in productsSnapshot.docs) {
+          final product = doc.data();
+          final productId = doc.id;
+          final quantity = _convertToKg(
+            product['quantity']?.toDouble() ?? 0,
+            product['unit'] ?? 'kg',
+          );
 
-        if (productTotals.containsKey(productId)) {
-          // Update existing product total
-          productTotals[productId]!['totalQuantity'] += quantity;
-        } else {
-          // Add new product
-          productTotals[productId] = {
-            'productId': productId,
-            'name': product['productName'],
-            'totalQuantity': quantity,
-            'price': product['price'],
-            'image': product['images']?.first,
-            'seller': product['farmerName'],
-            'rating': product['rating'] ?? 0,
-            'region': product['region'],
-            'unit': 'kg', // Convert all to kg
-          };
+          if (productTotals.containsKey(productId)) {
+            // Update existing product total
+            productTotals[productId]!['totalQuantity'] += quantity;
+          } else {
+            // Add new product
+            productTotals[productId] = {
+              'productId': productId,
+              'name': product['productName'],
+              'totalQuantity': quantity,
+              'price': product['price'],
+              'image': product['images']?.first,
+              'seller': product['farmerName'],
+              'rating': product['rating'] ?? 0,
+              'region': product['region'],
+              'unit': 'kg', // Convert all to kg
+            };
+          }
         }
+
+        // Convert to list and sort by total quantity
+        List<Map<String, dynamic>> sortedProducts = productTotals.values
+            .toList()
+          ..sort((a, b) => b['totalQuantity'].compareTo(a['totalQuantity']));
+
+        allProducts.addAll(sortedProducts);
       }
-
-      // Convert to list and sort by total quantity
-      List<Map<String, dynamic>> sortedProducts = productTotals.values.toList()
-        ..sort((a, b) => b['totalQuantity'].compareTo(a['totalQuantity']));
-
-      return sortedProducts.take(limit).toList();
+      // Sort and take top N overall
+      allProducts
+          .sort((a, b) => b['totalQuantity'].compareTo(a['totalQuantity']));
+      return allProducts.take(limit).toList();
     } catch (e) {
       print('Error getting top selling products: $e');
       return [];

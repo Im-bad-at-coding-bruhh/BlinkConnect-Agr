@@ -137,33 +137,7 @@ class _AuthScreenState extends State<AuthScreen>
     });
 
     try {
-      // First check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      print('Location services enabled: $serviceEnabled');
-
-      if (!serviceEnabled) {
-        print('Location services are disabled, requesting to enable...');
-        // This will show the native dialog to enable location services
-        serviceEnabled = await Geolocator.openLocationSettings();
-        print('User enabled location services: $serviceEnabled');
-
-        if (!serviceEnabled) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Location services are required for sign up'),
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-          setState(() {
-            _isLoadingLocation = false;
-          });
-          return;
-        }
-      }
-
-      // Now check and request permission
+      // Check and request permission
       print('Checking location permission...');
       LocationPermission permission = await Geolocator.checkPermission();
       print('Current permission status: $permission');
@@ -207,28 +181,52 @@ class _AuthScreenState extends State<AuthScreen>
       }
 
       print('Getting current position...');
-      // Get current position
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      print('Got position: ${position.latitude}, ${position.longitude}');
+      try {
+        // This will trigger the native Android dialog if location is off
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        print('Got position: ${position.latitude}, ${position.longitude}');
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      final region = await _locationService.getContinentFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      print('Got region: $region');
+        final region = await _locationService.getContinentFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        print('Got region: $region');
 
-      if (mounted) {
+        if (mounted) {
+          setState(() {
+            _userRegion = region;
+            _isLoadingLocation = false;
+          });
+        }
+      } on LocationServiceDisabledException catch (_) {
+        // If the user cancels or location is still off, offer to open settings
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Location services are disabled. Please enable them in settings.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        await Geolocator.openLocationSettings();
         setState(() {
-          _userRegion = region;
           _isLoadingLocation = false;
         });
+        return;
       }
     } catch (e) {
       print('Error in location process: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
+    } finally {
       if (mounted) {
         setState(() {
           _isLoadingLocation = false;
