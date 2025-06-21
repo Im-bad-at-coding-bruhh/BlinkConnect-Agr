@@ -9,6 +9,7 @@ import '../Services/location_service.dart';
 import '../Widgets/loading_animation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Custom painter for wave pattern on the left side
 class WavePattern extends CustomPainter {
@@ -89,21 +90,9 @@ class _AuthScreenState extends State<AuthScreen>
   String _userRegion = 'Unknown';
   final LocationService _locationService = LocationService();
 
-  // Helper method to validate and clean email
-  String? _validateAndCleanEmail(String email) {
-    if (email.isEmpty) return null;
-
-    // Trim whitespace
-    final cleanedEmail = email.trim();
-
-    // Basic email validation regex
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(cleanedEmail)) {
-      return 'Please enter a valid email address';
-    }
-
-    return cleanedEmail;
-  }
+  // SharedPreferences keys
+  static const String kRememberMeKey = 'remember_me';
+  static const String kRememberedEmailKey = 'remembered_email';
 
   @override
   void initState() {
@@ -125,6 +114,32 @@ class _AuthScreenState extends State<AuthScreen>
     // Request location if in sign up mode
     if (!isSignIn) {
       _initializeLocation();
+    }
+
+    // Load remembered email if present
+    _loadRememberedEmail();
+  }
+
+  Future<void> _loadRememberedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool(kRememberMeKey) ?? false;
+    final rememberedEmail = prefs.getString(kRememberedEmailKey) ?? '';
+    if (rememberMe && rememberedEmail.isNotEmpty) {
+      setState(() {
+        _rememberMe = true;
+        _emailController.text = rememberedEmail;
+      });
+    }
+  }
+
+  Future<void> _saveRememberedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setBool(kRememberMeKey, true);
+      await prefs.setString(kRememberedEmailKey, _emailController.text.trim());
+    } else {
+      await prefs.setBool(kRememberMeKey, false);
+      await prefs.remove(kRememberedEmailKey);
     }
   }
 
@@ -263,11 +278,33 @@ class _AuthScreenState extends State<AuthScreen>
     });
   }
 
+  // Helper method to validate and clean email
+  String? _validateAndCleanEmail(String email) {
+    if (email.isEmpty) return null;
+
+    // Trim whitespace
+    final cleanedEmail = email.trim();
+
+    // More permissive email validation regex (allows all valid TLDs)
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(cleanedEmail)) {
+      return null;
+    }
+
+    return cleanedEmail;
+  }
+
   Future<void> _handleSignIn() async {
     final cleanedEmail = _validateAndCleanEmail(_emailController.text);
-    if (cleanedEmail == null || _passwordController.text.isEmpty) {
+    if (cleanedEmail == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
+    if (_passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your password')),
       );
       return;
     }
@@ -290,6 +327,9 @@ class _AuthScreenState extends State<AuthScreen>
         }
         return;
       }
+
+      // Save remembered email if needed
+      await _saveRememberedEmail();
 
       print('SignIn: Successfully signed in, getting user profile');
       // Get user profile from Firestore
@@ -353,7 +393,8 @@ class _AuthScreenState extends State<AuthScreen>
         _confirmPasswordController.text.isEmpty ||
         _usernameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(
+            content: Text('Please fill in all fields with valid information')),
       );
       return;
     }
@@ -1168,46 +1209,102 @@ class _AuthScreenState extends State<AuthScreen>
                                             // Show forgot password dialog
                                             showDialog(
                                               context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: Text(
-                                                  'Reset Password',
-                                                  style: GoogleFonts.poppins(
-                                                      fontWeight:
-                                                          FontWeight.w600),
-                                                ),
-                                                content: TextField(
-                                                  controller:
-                                                      TextEditingController(),
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    labelText: 'Email Address',
-                                                    border:
-                                                        OutlineInputBorder(),
+                                              builder: (context) {
+                                                final TextEditingController
+                                                    _forgotEmailController =
+                                                    TextEditingController(
+                                                        text: _emailController
+                                                            .text);
+                                                return AlertDialog(
+                                                  title: Text(
+                                                    'Reset Password',
+                                                    style: GoogleFonts.poppins(
+                                                        fontWeight:
+                                                            FontWeight.w600),
                                                   ),
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(context),
-                                                    child: const Text('Cancel'),
+                                                  content: TextField(
+                                                    controller:
+                                                        _forgotEmailController,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      labelText:
+                                                          'Email Address',
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
                                                   ),
-                                                  ElevatedButton(
-                                                    onPressed: () async {
-                                                      // Implement password reset
-                                                      Navigator.pop(context);
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text(
-                                                              'Password reset email sent'),
-                                                        ),
-                                                      );
-                                                    },
-                                                    child: const Text('Reset'),
-                                                  ),
-                                                ],
-                                              ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context),
+                                                      child:
+                                                          const Text('Cancel'),
+                                                    ),
+                                                    ElevatedButton(
+                                                      onPressed: () async {
+                                                        final email =
+                                                            _forgotEmailController
+                                                                .text
+                                                                .trim();
+                                                        if (email.isEmpty) {
+                                                          ScaffoldMessenger.of(
+                                                                  context)
+                                                              .showSnackBar(
+                                                            const SnackBar(
+                                                                content: Text(
+                                                                    'Please enter your email address')),
+                                                          );
+                                                          return;
+                                                        }
+                                                        try {
+                                                          final authProvider =
+                                                              Provider.of<
+                                                                      AuthProvider>(
+                                                                  context,
+                                                                  listen:
+                                                                      false);
+                                                          await authProvider
+                                                              .resetPassword(
+                                                                  email);
+                                                          if (mounted) {
+                                                            Navigator.pop(
+                                                                context);
+                                                            ScaffoldMessenger
+                                                                    .of(context)
+                                                                .showSnackBar(
+                                                              const SnackBar(
+                                                                content: Text(
+                                                                    'Password reset email sent!'),
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .green,
+                                                              ),
+                                                            );
+                                                          }
+                                                        } catch (e) {
+                                                          if (mounted) {
+                                                            Navigator.pop(
+                                                                context);
+                                                            ScaffoldMessenger
+                                                                    .of(context)
+                                                                .showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                    'Failed to send reset email: \\${e.toString()}'),
+                                                                backgroundColor:
+                                                                    Colors.red,
+                                                              ),
+                                                            );
+                                                          }
+                                                        }
+                                                      },
+                                                      child:
+                                                          const Text('Reset'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
                                             );
                                           },
                                           child: Text(
@@ -1306,6 +1403,7 @@ class _AuthScreenState extends State<AuthScreen>
   }
 }
 
+// Restore the UserTypeSelectionScreen class definition here
 class UserTypeSelectionScreen extends StatefulWidget {
   const UserTypeSelectionScreen({super.key});
 

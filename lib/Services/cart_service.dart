@@ -13,7 +13,12 @@ class CartService extends ChangeNotifier {
   List<CartItem> get items => _items;
   bool get isLoading => _isLoading;
   double get total => _items.fold(
-      0, (sum, item) => sum + (item.negotiatedPrice * item.quantity));
+      0,
+      (sum, item) =>
+          sum +
+          (item.locked
+              ? item.negotiatedPrice
+              : item.negotiatedPrice * item.quantity));
 
   Future<void> loadCart() async {
     if (_auth.currentUser == null) return;
@@ -61,13 +66,15 @@ class CartService extends ChangeNotifier {
 
       final availableQuantity =
           (productData['quantity'] as num?)?.toDouble() ?? 0.0;
+      final productName = productData['productName'] ?? item.productName;
 
-      // Check if item already exists in cart
+      // Check if item already exists in cart (match both productId and negotiationId)
       final existingItemQuery = await _firestore
           .collection('users')
           .doc(_auth.currentUser!.uid)
           .collection('cart')
           .where('productId', isEqualTo: item.productId)
+          .where('negotiationId', isEqualTo: item.negotiationId)
           .get();
 
       if (existingItemQuery.docs.isNotEmpty) {
@@ -86,11 +93,13 @@ class CartService extends ChangeNotifier {
             .doc(_auth.currentUser!.uid)
             .collection('cart')
             .doc(existingItemQuery.docs.first.id)
-            .update({'quantity': newQuantity});
+            .update({'quantity': newQuantity, 'productName': productName});
 
         _items = _items.map((cartItem) {
-          if (cartItem.productId == item.productId) {
-            return cartItem.copyWith(quantity: newQuantity);
+          if (cartItem.productId == item.productId &&
+              cartItem.negotiationId == item.negotiationId) {
+            return cartItem.copyWith(
+                quantity: newQuantity, productName: productName);
           }
           return cartItem;
         }).toList();
@@ -100,14 +109,14 @@ class CartService extends ChangeNotifier {
           throw Exception('Cannot add more items than available in stock');
         }
 
-        // Add new item
+        // Add new item, always set productName
         final docRef = await _firestore
             .collection('users')
             .doc(_auth.currentUser!.uid)
             .collection('cart')
-            .add(item.toMap());
+            .add(item.copyWith(productName: productName).toMap());
 
-        _items.add(item.copyWith(id: docRef.id));
+        _items.add(item.copyWith(id: docRef.id, productName: productName));
       }
 
       notifyListeners();
@@ -123,16 +132,27 @@ class CartService extends ChangeNotifier {
     }
 
     try {
-      final itemIndex = _items.indexWhere((item) => item.id == itemId);
-      if (itemIndex == -1) {
+      // Fetch the cart item directly from Firestore
+      final cartDoc = await _firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .collection('cart')
+          .doc(itemId)
+          .get();
+
+      if (!cartDoc.exists) {
         throw Exception('Item not found in cart');
       }
 
+      final cartData = cartDoc.data();
+      if (cartData == null) {
+        throw Exception('Cart item data is null');
+      }
+
+      final productId = cartData['productId'] as String? ?? '';
       // Get the product's available quantity
-      final productDoc = await _firestore
-          .collection('products')
-          .doc(_items[itemIndex].productId)
-          .get();
+      final productDoc =
+          await _firestore.collection('products').doc(productId).get();
 
       if (!productDoc.exists) {
         throw Exception('Product not found');
@@ -163,7 +183,11 @@ class CartService extends ChangeNotifier {
           .doc(itemId)
           .update({'quantity': quantity});
 
-      _items[itemIndex] = _items[itemIndex].copyWith(quantity: quantity);
+      // Update local _items if present
+      final itemIndex = _items.indexWhere((item) => item.id == itemId);
+      if (itemIndex != -1) {
+        _items[itemIndex] = _items[itemIndex].copyWith(quantity: quantity);
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Error updating cart quantity: $e');
@@ -254,7 +278,9 @@ class CartService extends ChangeNotifier {
       double total = 0.0;
       for (var doc in cartDoc.docs) {
         final item = CartItem.fromMap(doc.id, doc.data());
-        total += item.quantity * item.negotiatedPrice;
+        total += item.locked
+            ? item.negotiatedPrice
+            : item.negotiatedPrice * item.quantity;
       }
       return total;
     } catch (e) {

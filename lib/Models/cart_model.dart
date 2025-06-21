@@ -13,6 +13,7 @@ class CartItem {
   final DateTime addedAt;
   final String status;
   final String negotiationMessage;
+  final bool locked;
 
   CartItem({
     required this.id,
@@ -27,6 +28,7 @@ class CartItem {
     required this.addedAt,
     required this.status,
     this.negotiationMessage = '',
+    this.locked = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -42,6 +44,7 @@ class CartItem {
       'addedAt': Timestamp.fromDate(addedAt),
       'status': status,
       'negotiationMessage': negotiationMessage,
+      'locked': locked,
     };
   }
 
@@ -61,6 +64,7 @@ class CartItem {
           : DateTime.now(),
       status: map['status'] ?? 'pending',
       negotiationMessage: map['negotiationMessage'] ?? '',
+      locked: map['locked'] ?? false,
     );
   }
 
@@ -77,6 +81,7 @@ class CartItem {
     DateTime? addedAt,
     String? status,
     String? negotiationMessage,
+    bool? locked,
   }) {
     return CartItem(
       id: id ?? this.id,
@@ -91,6 +96,7 @@ class CartItem {
       addedAt: addedAt ?? this.addedAt,
       status: status ?? this.status,
       negotiationMessage: negotiationMessage ?? this.negotiationMessage,
+      locked: locked ?? this.locked,
     );
   }
 }

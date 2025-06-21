@@ -310,24 +310,44 @@ class NegotiationService {
       final acceptedBid =
           Negotiation.fromMap(acceptedBidDoc.id, acceptedBidDoc.data()!);
 
+      // Find the last price in the messages (if any)
+      double finalPrice = acceptedBid.bidAmount;
+      if (acceptedBid.messages.isNotEmpty) {
+        final sortedMessages = acceptedBid.messages.values.toList()
+          ..sort((a, b) {
+            final aTime =
+                (a['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            final bTime =
+                (b['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            return bTime.compareTo(aTime);
+          });
+        final lastMsg = sortedMessages.firstWhere((m) => m['price'] != null,
+            orElse: () => <String, dynamic>{});
+        if (lastMsg.isNotEmpty && lastMsg['price'] != null) {
+          finalPrice = (lastMsg['price'] as num).toDouble();
+        }
+      }
+
       final cartService = CartService();
-      await cartService.addToCart(
-        CartItem(
-          id: '',
-          productId: acceptedBid.productId,
-          productName: acceptedBid.productName,
-          farmerName: acceptedBid.farmerName,
-          unit: acceptedBid.unit,
-          quantity: acceptedBid.quantity,
-          originalPrice: acceptedBid.originalPrice,
-          negotiatedPrice: counterAmount ?? acceptedBid.bidAmount,
-          negotiationId: acceptedBid.id,
-          addedAt: DateTime.now(),
-          status: 'pending',
-          negotiationMessage: message ??
-              'Accepted bid of \$${counterAmount ?? acceptedBid.bidAmount}',
-        ),
-      );
+      await _firestore
+          .collection('users')
+          .doc(acceptedBid.buyerId)
+          .collection('cart')
+          .add(CartItem(
+            id: '',
+            productId: acceptedBid.productId,
+            productName: acceptedBid.productName,
+            farmerName: acceptedBid.farmerName,
+            unit: acceptedBid.unit,
+            quantity: acceptedBid.quantity,
+            originalPrice: acceptedBid.originalPrice,
+            negotiatedPrice: finalPrice,
+            negotiationId: acceptedBid.id,
+            addedAt: DateTime.now(),
+            status: 'pending',
+            negotiationMessage: message ?? 'Accepted bid of \$${finalPrice}',
+            locked: true,
+          ).toMap());
     }
   }
 }

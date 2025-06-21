@@ -106,17 +106,89 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
-  Future<void> _startNegotiation() async {
+  Future<void> _showNegotiationDialog() async {
+    final priceController = TextEditingController();
+    final quantityController =
+        TextEditingController(text: _quantityController.text);
+    final unit = _product?['unit'] ?? 'kg';
+    final maxQuantity = (_product?['quantity'] as num?)?.toDouble() ?? 0.0;
+    final minPrice = 0.01;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Propose a Wholesale Deal'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: priceController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Your Total Price (wholesale)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: quantityController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Quantity ($unit)',
+                  border: const OutlineInputBorder(),
+                  helperText: 'Max: $maxQuantity $unit',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final proposedTotal = double.tryParse(priceController.text);
+                final proposedQty = double.tryParse(quantityController.text);
+                if (proposedTotal == null || proposedTotal < minPrice) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Enter a valid total price.')),
+                  );
+                  return;
+                }
+                if (proposedQty == null ||
+                    proposedQty <= 0 ||
+                    proposedQty > maxQuantity) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Enter a valid quantity (max $maxQuantity $unit).')),
+                  );
+                  return;
+                }
+                Navigator.pop(context);
+                await _startNegotiationCustom(proposedTotal, proposedQty);
+              },
+              child: const Text('Send Offer'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _startNegotiationCustom(
+      double totalPrice, double quantity) async {
     setState(() => _isLoading = true);
     try {
       final negotiationService = NegotiationService();
       await negotiationService.createBid(
         productId: widget.productId,
-        sellerId: _product?['sellerId'] ?? '',
+        sellerId: _product?['farmerId'] ?? '',
         originalPrice: (_product?['price'] as num).toDouble(),
-        bidAmount: (_product?['price'] as num).toDouble(),
-        quantity: (int.tryParse(_quantityController.text) ?? 1).toDouble(),
-        productName: _product?['name'] ?? '',
+        bidAmount: totalPrice,
+        quantity: quantity,
+        productName: _product?['productName'] ?? '',
         farmerName: _product?['farmerName'] ?? '',
         unit: _product?['unit'] ?? 'kg',
       );
@@ -804,7 +876,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             if (_product?['isNegotiable'] == true) ...[
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  onPressed: _startNegotiation,
+                                  onPressed: _showNegotiationDialog,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF6C5DD3),
                                     padding: const EdgeInsets.symmetric(
