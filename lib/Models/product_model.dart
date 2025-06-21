@@ -51,6 +51,7 @@ class Product {
   final bool isWaterQualityManaged;
   final String seafoodPreservationMethod;
   final String seafoodHarvestMethod;
+  final String niche;
 
   Product({
     required this.id,
@@ -98,6 +99,7 @@ class Product {
     required this.isWaterQualityManaged,
     required this.seafoodPreservationMethod,
     required this.seafoodHarvestMethod,
+    required this.niche,
   });
 
   // Helper method to check if product is sold out
@@ -166,6 +168,7 @@ class Product {
       'isWaterQualityManaged': isWaterQualityManaged,
       'seafoodPreservationMethod': seafoodPreservationMethod,
       'seafoodHarvestMethod': seafoodHarvestMethod,
+      'niche': niche,
     };
   }
 
@@ -223,6 +226,7 @@ class Product {
         isWaterQualityManaged: map['isWaterQualityManaged'] ?? false,
         seafoodPreservationMethod: map['seafoodPreservationMethod'] ?? 'N/A',
         seafoodHarvestMethod: map['seafoodHarvestMethod'] ?? 'N/A',
+        niche: map['niche'] ?? '',
       );
     } catch (e) {
       print('Error converting map to product: $e'); // Debug print
@@ -283,6 +287,7 @@ class Product {
     bool? isWaterQualityManaged,
     String? seafoodPreservationMethod,
     String? seafoodHarvestMethod,
+    String? niche,
   }) {
     return Product(
       id: id ?? this.id,
@@ -335,6 +340,7 @@ class Product {
       seafoodPreservationMethod:
           seafoodPreservationMethod ?? this.seafoodPreservationMethod,
       seafoodHarvestMethod: seafoodHarvestMethod ?? this.seafoodHarvestMethod,
+      niche: niche ?? this.niche,
     );
   }
 }

@@ -12,13 +12,13 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
-  final Map<String, dynamic> product;
+  final String productId;
   final bool isFarmer;
   final bool isVerified;
 
   const ProductDetailsScreen({
     super.key,
-    required this.product,
+    required this.productId,
     required this.isFarmer,
     required this.isVerified,
   });
@@ -32,13 +32,41 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       TextEditingController(text: '1');
   double _totalPrice = 0;
   int _currentImageIndex = 0;
-  bool _isLoading = false;
+  bool _isLoading = true;
+  Map<String, dynamic>? _product;
 
   @override
   void initState() {
     super.initState();
-    _totalPrice = widget.product['price'] * 1;
-    _quantityController.text = '1';
+    _fetchProduct();
+  }
+
+  Future<void> _fetchProduct() async {
+    setState(() => _isLoading = true);
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.productId)
+          .get();
+      if (doc.exists) {
+        setState(() {
+          _product = doc.data()!..['id'] = doc.id;
+          _totalPrice = (_product?['price'] ?? 0) * 1;
+          _quantityController.text = '1';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _product = null;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _product = null;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -50,28 +78,28 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   void _updateTotalPrice(String value) {
     if (value.isEmpty) {
       setState(() {
-        _totalPrice = widget.product['price'];
+        _totalPrice = _product?['price'] ?? 0;
       });
     } else {
       final quantity = double.tryParse(value);
       if (quantity != null && quantity > 0) {
         // Check if quantity exceeds available stock
-        if (quantity > widget.product['quantity']) {
+        if (quantity > (_product?['quantity'] ?? 0)) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                  'Maximum available quantity is ${widget.product['quantity']} ${widget.product['unit']}'),
+                  'Maximum available quantity is ${_product?['quantity']} ${_product?['unit']}'),
               duration: const Duration(seconds: 2),
             ),
           );
           // Reset to available quantity
-          _quantityController.text = widget.product['quantity'].toString();
+          _quantityController.text = (_product?['quantity'] as num).toString();
           setState(() {
-            _totalPrice = widget.product['price'] * widget.product['quantity'];
+            _totalPrice = (_product?['price'] as num).toDouble();
           });
         } else {
           setState(() {
-            _totalPrice = widget.product['price'] * quantity;
+            _totalPrice = (_product?['price'] as num).toDouble() * quantity;
           });
         }
       }
@@ -83,14 +111,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     try {
       final negotiationService = NegotiationService();
       await negotiationService.createBid(
-        productId: widget.product['id'] ?? '',
-        sellerId: widget.product['sellerId'] ?? '',
-        originalPrice: (widget.product['price'] as num).toDouble(),
-        bidAmount: (widget.product['price'] as num).toDouble(),
+        productId: widget.productId,
+        sellerId: _product?['sellerId'] ?? '',
+        originalPrice: (_product?['price'] as num).toDouble(),
+        bidAmount: (_product?['price'] as num).toDouble(),
         quantity: (int.tryParse(_quantityController.text) ?? 1).toDouble(),
-        productName: widget.product['name'],
-        farmerName: widget.product['farmerName'] ?? '',
-        unit: widget.product['unit'] ?? 'kg',
+        productName: _product?['name'] ?? '',
+        farmerName: _product?['farmerName'] ?? '',
+        unit: _product?['unit'] ?? 'kg',
       );
       if (mounted) {
         Navigator.pop(context);
@@ -122,7 +150,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         try {
           final productDoc = await FirebaseFirestore.instance
               .collection('products')
-              .doc(widget.product['id'])
+              .doc(widget.productId)
               .get();
 
           if (!productDoc.exists) {
@@ -132,13 +160,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           final cartService = Provider.of<CartService>(context, listen: false);
           final cartItem = cart_model.CartItem(
             id: '', // Will be set by Firestore
-            productId: widget.product['id'] ?? '',
-            productName: widget.product['name'] ?? '',
-            farmerName: widget.product['farmerName'] ?? '',
-            unit: widget.product['unit'] ?? 'kg',
+            productId: widget.productId,
+            productName: _product?['name'] ?? '',
+            farmerName: _product?['farmerName'] ?? '',
+            unit: _product?['unit'] ?? 'kg',
             quantity: quantity,
-            originalPrice: (widget.product['price'] as num).toDouble(),
-            negotiatedPrice: (widget.product['price'] as num).toDouble(),
+            originalPrice: (_product?['price'] as num).toDouble(),
+            negotiatedPrice: (_product?['price'] as num).toDouble(),
             negotiationId: '',
             addedAt: DateTime.now(),
             status: 'pending',
@@ -149,7 +177,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                    '${widget.product['name']} (${quantity.toStringAsFixed(2)}kg) added to cart'),
+                    '${_product?['name']} (${quantity.toStringAsFixed(2)}kg) added to cart'),
                 duration: const Duration(seconds: 2),
                 action: SnackBarAction(
                   label: 'View Cart',
@@ -202,6 +230,206 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
+    // Optimized: Category-specific field configuration
+    final Map<String, List<Map<String, dynamic>>> categoryFields = {
+      'Vegetables': [
+        {
+          'key': 'fertilizerType',
+          'label': 'Fertilizer Type',
+          'icon': Icons.eco_outlined
+        },
+        {
+          'key': 'pesticideType',
+          'label': 'Pesticide Type',
+          'icon': Icons.pest_control_outlined
+        },
+      ],
+      'Fruits': [
+        {
+          'key': 'fertilizerType',
+          'label': 'Fertilizer Type',
+          'icon': Icons.eco_outlined
+        },
+        {
+          'key': 'pesticideType',
+          'label': 'Pesticide Type',
+          'icon': Icons.pest_control_outlined
+        },
+        {
+          'key': 'ripeningMethod',
+          'label': 'Ripening Method',
+          'icon': Icons.trending_up_outlined
+        },
+        {
+          'key': 'preservationMethod',
+          'label': 'Preservation Method',
+          'icon': Icons.icecream_outlined
+        },
+      ],
+      'Grains': [
+        {
+          'key': 'fertilizerType',
+          'label': 'Fertilizer Type',
+          'icon': Icons.eco_outlined
+        },
+        {
+          'key': 'pesticideType',
+          'label': 'Pesticide Type',
+          'icon': Icons.pest_control_outlined
+        },
+        {
+          'key': 'dryingMethod',
+          'label': 'Post-Harvest Drying',
+          'icon': Icons.dry_cleaning_outlined
+        },
+        {
+          'key': 'storageType',
+          'label': 'Storage Type',
+          'icon': Icons.warehouse_outlined
+        },
+        {
+          'key': 'isWeedControlUsed',
+          'label': 'Weed Control Used',
+          'icon': Icons.pest_control_outlined,
+          'boolToYesNo': true
+        },
+      ],
+      'Dairy': [
+        {
+          'key': 'animalFeedType',
+          'label': 'Animal Feed Type',
+          'icon': Icons.eco_outlined
+        },
+        {
+          'key': 'milkCoolingMethod',
+          'label': 'Milk Cooling/Preservation',
+          'icon': Icons.icecream_outlined
+        },
+        {
+          'key': 'isAntibioticsUsed',
+          'label': 'Antibiotics Used',
+          'icon': Icons.pest_control_outlined,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'milkingMethod',
+          'label': 'Milking Method',
+          'icon': Icons.icecream_outlined
+        },
+      ],
+      'Meat': [
+        {
+          'key': 'animalFeedType',
+          'label': 'Animal Feed Type',
+          'icon': Icons.eco_outlined
+        },
+        {
+          'key': 'isAntibioticsUsed',
+          'label': 'Antibiotic Use',
+          'icon': Icons.pest_control_outlined,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'slaughterMethod',
+          'label': 'Slaughter Method',
+          'icon': Icons.pest_control_outlined
+        },
+        {
+          'key': 'rearingSystem',
+          'label': 'Rearing System',
+          'icon': Icons.warehouse_outlined
+        },
+      ],
+      'Seeds': [
+        {'key': 'seedType', 'label': 'Seed Type', 'icon': Icons.eco_outlined},
+        {
+          'key': 'isChemicallyTreated',
+          'label': 'Treated with chemicals',
+          'icon': Icons.pest_control_outlined,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'isCertified',
+          'label': 'Certified',
+          'icon': Icons.eco_outlined,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'seedStorageMethod',
+          'label': 'Storage Method',
+          'icon': Icons.warehouse_outlined
+        },
+      ],
+      'Poultry': [
+        {
+          'key': 'poultryFeedType',
+          'label': 'Feed Type',
+          'icon': Icons.eco_outlined
+        },
+        {
+          'key': 'poultryRearingSystem',
+          'label': 'Rearing System',
+          'icon': Icons.warehouse_outlined
+        },
+        {
+          'key': 'isPoultryAntibioticsUsed',
+          'label': 'Antibiotics Used',
+          'icon': Icons.pest_control_outlined,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'isGrowthBoostersUsed',
+          'label': 'Growth Boosters Used',
+          'icon': Icons.trending_up_outlined,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'poultrySlaughterMethod',
+          'label': 'Slaughter Method',
+          'icon': Icons.pest_control_outlined
+        },
+        {
+          'key': 'isPoultryVaccinated',
+          'label': 'Vaccinated',
+          'icon': Icons.eco_outlined,
+          'boolToYesNo': true
+        },
+      ],
+      'Seafood': [
+        {'key': 'seafoodSource', 'label': 'Source', 'icon': Icons.water},
+        {
+          'key': 'seafoodFeedingType',
+          'label': 'Feeding Type',
+          'icon': Icons.rice_bowl
+        },
+        {
+          'key': 'isSeafoodAntibioticsUsed',
+          'label': 'Antibiotics Used',
+          'icon': Icons.pest_control_outlined,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'isWaterQualityManaged',
+          'label': 'Water Quality Managed',
+          'icon': Icons.water_drop,
+          'boolToYesNo': true
+        },
+        {
+          'key': 'seafoodPreservationMethod',
+          'label': 'Preservation Method',
+          'icon': Icons.icecream_outlined
+        },
+        {
+          'key': 'seafoodHarvestMethod',
+          'label': 'Harvest Method',
+          'icon': Icons.agriculture
+        },
+      ],
+    };
+
+    final String category = _product?['category'] ?? '';
+    final List<Map<String, dynamic>> fields = categoryFields[category] ?? [];
+
     return Scaffold(
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: AppBar(
@@ -232,13 +460,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     width: double.infinity,
                     color: isDarkMode ? Colors.grey[900] : Colors.grey[200],
                     child: PageView.builder(
-                      itemCount: widget.product['images']?.length ?? 1,
+                      itemCount: _product?['images']?.length ?? 1,
                       onPageChanged: (index) {
                         setState(() => _currentImageIndex = index);
                       },
                       itemBuilder: (context, index) {
-                        final images =
-                            widget.product['images'] as List<dynamic>?;
+                        final images = _product?['images'] as List<dynamic>?;
                         if (images == null || images.isEmpty) {
                           return const Center(
                             child: Icon(Icons.image_not_supported, size: 50),
@@ -264,14 +491,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     ),
                   ),
                   // Image Indicators
-                  if (widget.product['images'] != null &&
-                      (widget.product['images'] as List<dynamic>).length > 1)
+                  if (_product?['images'] != null &&
+                      (_product?['images'] as List<dynamic>).length > 1)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
-                          (widget.product['images'] as List<dynamic>).length,
+                          (_product?['images'] as List<dynamic>).length,
                           (index) {
                             return Container(
                               width: 8,
@@ -296,7 +523,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.product['name'],
+                          _product?['name'] ?? '',
                           style: GoogleFonts.poppins(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -314,7 +541,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '\$${widget.product['price'].toStringAsFixed(2)}/kg',
+                            '\$${(_product?['price'] as num).toDouble().toStringAsFixed(2)}/kg',
                             style: GoogleFonts.poppins(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
@@ -357,194 +584,28 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              _buildDetailRow(
-                                'Seller',
-                                widget.product['seller'],
-                                Icons.person_outline,
-                              ),
-                              _buildDetailRow(
-                                'Region',
-                                widget.product['region'],
-                                Icons.location_on_outlined,
-                              ),
-                              _buildDetailRow(
-                                'Fertilizer Type',
-                                widget.product['fertilizerType'],
-                                Icons.eco_outlined,
-                              ),
-                              _buildDetailRow(
-                                'Pesticide Type',
-                                widget.product['pesticideType'],
-                                Icons.pest_control_outlined,
-                              ),
-                              if (widget.product['category'] == 'Fruits') ...[
-                                _buildDetailRow(
-                                  'Ripening Method',
-                                  widget.product['ripeningMethod'],
-                                  Icons.trending_up_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Preservation Method',
-                                  widget.product['preservationMethod'],
-                                  Icons.icecream_outlined,
-                                ),
-                              ],
-                              if (widget.product['category'] == 'Grains') ...[
-                                _buildDetailRow(
-                                  'Post-Harvest Drying',
-                                  widget.product['dryingMethod'] ?? 'N/A',
-                                  Icons.dry_cleaning_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Storage Type',
-                                  widget.product['storageType'] ?? 'N/A',
-                                  Icons.warehouse_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Weed Control Used',
-                                  (widget.product['isWeedControlUsed'] ?? false)
-                                      ? 'Yes'
-                                      : 'No',
-                                  Icons.pest_control_outlined,
-                                ),
-                              ],
-                              if (widget.product['category'] == 'Dairy') ...[
-                                _buildDetailRow(
-                                  'Animal Feed Type',
-                                  widget.product['animalFeedType'] ?? 'N/A',
-                                  Icons.eco_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Milk Cooling/Preservation',
-                                  widget.product['milkCoolingMethod'] ?? 'N/A',
-                                  Icons.icecream_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Antibiotics Used',
-                                  (widget.product['isAntibioticsUsed'] ?? false)
-                                      ? 'Yes'
-                                      : 'No',
-                                  Icons.pest_control_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Milking Method',
-                                  widget.product['milkingMethod'] ?? 'N/A',
-                                  Icons.icecream_outlined,
-                                ),
-                              ],
-                              if (widget.product['category'] == 'Meat') ...[
-                                _buildDetailRow(
-                                  'Animal Feed Type',
-                                  widget.product['animalFeedType'] ?? 'N/A',
-                                  Icons.eco_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Antibiotic Use',
-                                  (widget.product['isAntibioticsUsed'] ?? false)
-                                      ? 'Yes'
-                                      : 'No',
-                                  Icons.pest_control_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Slaughter Method',
-                                  widget.product['slaughterMethod'] ?? 'N/A',
-                                  Icons.pest_control_outlined,
-                                ),
-                                _buildDetailRow(
-                                  'Rearing System',
-                                  widget.product['rearingSystem'] ?? 'N/A',
-                                  Icons.warehouse_outlined,
-                                ),
-                              ],
-                              if (widget.product['category'] == 'Seeds') ...[
-                                if ((widget.product['seedType'] ?? 'N/A') !=
-                                        'N/A' &&
-                                    (widget.product['seedType'] ?? '')
-                                        .toString()
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                      'Seed Type',
-                                      widget.product['seedType'],
-                                      Icons.eco_outlined),
-                                if (widget.product['isChemicallyTreated'] ==
-                                    true)
-                                  _buildDetailRow('Treated with chemicals',
-                                      'Yes', Icons.pest_control_outlined),
-                                if (widget.product['isCertified'] == true)
-                                  _buildDetailRow(
-                                      'Certified', 'Yes', Icons.eco_outlined),
-                                if ((widget.product['seedStorageMethod'] ??
-                                            'N/A') !=
-                                        'N/A' &&
-                                    (widget.product['seedStorageMethod'] ?? '')
-                                        .toString()
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                      'Storage Method',
-                                      widget.product['seedStorageMethod'],
-                                      Icons.warehouse_outlined),
-                              ],
-                              if (widget.product['category'] == 'Seafood') ...[
-                                if ((widget.product['seafoodSource'] ??
-                                            'N/A') !=
-                                        'N/A' &&
-                                    (widget.product['seafoodSource'] ?? '')
-                                        .toString()
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                      'Source',
-                                      widget.product['seafoodSource'],
-                                      Icons.water),
-                                if (widget.product['seafoodSource'] ==
-                                        'Farmed' &&
-                                    (widget.product['seafoodFeedingType'] ?? '')
-                                        .toString()
-                                        .isNotEmpty &&
-                                    (widget.product['seafoodFeedingType'] ??
-                                            'N/A') !=
-                                        'N/A')
-                                  _buildDetailRow(
-                                      'Feeding Type',
-                                      widget.product['seafoodFeedingType'],
-                                      Icons.rice_bowl),
-                                if (widget
-                                        .product['isSeafoodAntibioticsUsed'] ==
-                                    true)
-                                  _buildDetailRow('Antibiotics Used', 'Yes',
-                                      Icons.pest_control_outlined),
-                                if (widget.product['isWaterQualityManaged'] ==
-                                    true)
-                                  _buildDetailRow('Water Quality Managed',
-                                      'Yes', Icons.water_drop),
-                                if ((widget.product[
-                                                'seafoodPreservationMethod'] ??
-                                            'N/A') !=
-                                        'N/A' &&
-                                    (widget.product[
-                                                'seafoodPreservationMethod'] ??
-                                            '')
-                                        .toString()
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                      'Preservation Method',
-                                      widget
-                                          .product['seafoodPreservationMethod'],
-                                      Icons.icecream_outlined),
-                                if ((widget.product['seafoodHarvestMethod'] ??
-                                            'N/A') !=
-                                        'N/A' &&
-                                    (widget.product['seafoodHarvestMethod'] ??
-                                            '')
-                                        .toString()
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                      'Harvest Method',
-                                      widget.product['seafoodHarvestMethod'],
-                                      Icons.agriculture),
-                              ],
+                              ...fields.map((field) {
+                                final value = _product?[field['key']];
+                                String displayValue;
+                                if (field['boolToYesNo'] == true) {
+                                  if (value == true)
+                                    displayValue = 'Yes';
+                                  else if (value == false)
+                                    displayValue = 'No';
+                                  else
+                                    displayValue = 'N/A';
+                                } else if (value == null ||
+                                    value.toString().isEmpty) {
+                                  displayValue = 'N/A';
+                                } else {
+                                  displayValue = value.toString();
+                                }
+                                return _buildDetailRow(field['label'],
+                                    displayValue, field['icon']);
+                              }).toList(),
                               _buildDetailRow(
                                 'Available Quantity',
-                                '${widget.product['quantity']} ${widget.product['unit']}',
+                                '${_product?['quantity']} ${_product?['unit']}',
                                 Icons.inventory_2_outlined,
                               ),
                               const SizedBox(height: 16),
@@ -570,7 +631,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                widget.product['description'] ??
+                                _product?['description'] ??
                                     'No description available',
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
@@ -647,7 +708,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                         filled: true,
                                         hintText: '1',
                                         helperText:
-                                            'Max: ${widget.product['quantity']} ${widget.product['unit']}',
+                                            'Max: ${_product?['quantity']} ${_product?['unit']}',
                                         helperStyle: GoogleFonts.poppins(
                                           fontSize: 12,
                                           color: isDarkMode
@@ -676,7 +737,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                           1.0;
                                       final newQty = currentQty + 1.0;
                                       if (newQty <=
-                                          widget.product['quantity']) {
+                                          (_product?['quantity'] as num)
+                                              .toDouble()) {
                                         _quantityController.text =
                                             newQty.toString();
                                         _updateTotalPrice(
@@ -686,7 +748,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                             .showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                                'Maximum available quantity is ${widget.product['quantity']} ${widget.product['unit']}'),
+                                                'Maximum available quantity is ${_product?['quantity']} ${_product?['unit']}'),
                                             duration:
                                                 const Duration(seconds: 2),
                                           ),
@@ -739,7 +801,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         // Action Buttons
                         Row(
                           children: [
-                            if (widget.product['isNegotiable'] == true) ...[
+                            if (_product?['isNegotiable'] == true) ...[
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: _startNegotiation,
@@ -797,7 +859,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String? value, IconData icon) {
+  Widget _buildDetailRow(String label, String value, IconData icon) {
     final isDarkMode =
         Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
     return Padding(
@@ -816,7 +878,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ),
           Expanded(
             child: Text(
-              value ?? 'N/A',
+              value,
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 color: isDarkMode ? Colors.white70 : Colors.black87,

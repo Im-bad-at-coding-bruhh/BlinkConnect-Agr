@@ -30,6 +30,7 @@ class _EditProductFormState extends State<EditProductForm> {
   late String _selectedPesticideUse;
   late String _selectedRipeningMethod;
   late String _selectedPreservationMethod;
+  late String _niche;
   bool _isLoading = false;
 
   final List<String> _units = ['kg', 'pound', 'gram'];
@@ -68,6 +69,7 @@ class _EditProductFormState extends State<EditProductForm> {
     _selectedPesticideUse = widget.product.pesticideType;
     _selectedRipeningMethod = widget.product.ripeningMethod;
     _selectedPreservationMethod = widget.product.preservationMethod;
+    _niche = widget.product.niche;
   }
 
   @override
@@ -392,6 +394,39 @@ class _EditProductFormState extends State<EditProductForm> {
                 ),
                 SizedBox(height: 16),
               ],
+              if (![
+                'Fruits',
+                'Grains',
+                'Dairy',
+                'Meat',
+                'Poultry',
+                'Seafood',
+                'Seeds'
+              ].contains(widget.product.category)) ...[
+                TextFormField(
+                  initialValue: widget.product.niche,
+                  decoration: InputDecoration(
+                    labelText: 'Niche',
+                    labelStyle: GoogleFonts.poppins(
+                      color:
+                          widget.isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _niche = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a niche';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -425,6 +460,7 @@ class _EditProductFormState extends State<EditProductForm> {
                                 ripeningMethod: _selectedRipeningMethod,
                                 preservationMethod: _selectedPreservationMethod,
                                 status: newStatus,
+                                niche: _niche,
                               );
 
                               await widget.onProductUpdated(updatedProduct);

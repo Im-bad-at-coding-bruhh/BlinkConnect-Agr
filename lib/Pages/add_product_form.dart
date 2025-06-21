@@ -149,7 +149,6 @@ class _AddProductFormState extends State<AddProductForm> {
     'Poultry',
     'Seafood',
     'Seeds',
-    'Other',
   ];
 
   final List<String> _poultryFeedTypes = [
@@ -323,60 +322,37 @@ class _AddProductFormState extends State<AddProductForm> {
           'unit': _selectedUnit,
           'isNegotiable': _isNegotiable,
         };
-        // Add category-specific fields
-        if (_selectedCategory == 'Fruits') {
-          productData['ripeningMethod'] = _selectedRipeningMethod;
-          productData['preservationMethod'] = _selectedPreservationMethod;
-        }
-        if (_selectedCategory == 'Grains') {
-          productData['dryingMethod'] = _selectedDryingMethod;
-          productData['storageType'] = _selectedStorageType;
-          productData['isWeedControlUsed'] = _isWeedControlUsed;
-        }
-        if (_selectedCategory == 'Dairy') {
-          productData['animalFeedType'] = _selectedAnimalFeedType;
-          productData['milkCoolingMethod'] = _selectedMilkCoolingMethod;
-          productData['isAntibioticsUsed'] = _isAntibioticsUsed;
-          productData['milkingMethod'] = _selectedMilkingMethod;
-        }
-        if (_selectedCategory == 'Meat') {
-          productData['animalFeedType'] = _selectedAnimalFeedType;
-          productData['isAntibioticsUsed'] = _isAntibioticsUsed;
-          productData['slaughterMethod'] = _selectedSlaughterMethod;
-          productData['rearingSystem'] = _selectedRearingSystem;
-        }
-        if (_selectedCategory == 'Seeds') {
-          productData['seedType'] = _selectedSeedType;
-          productData['isChemicallyTreated'] = _isChemicallyTreated;
-          productData['isCertified'] = _isCertified;
-          productData['seedStorageMethod'] = _selectedSeedStorageMethod;
-        }
-        if (_selectedCategory == 'Poultry') {
-          productData['poultryFeedType'] = _selectedPoultryFeedType;
-          productData['poultryRearingSystem'] = _selectedPoultryRearingSystem;
-          productData['isPoultryAntibioticsUsed'] = _isPoultryAntibioticsUsed;
-          productData['isGrowthBoostersUsed'] = _isGrowthBoostersUsed;
-          productData['poultrySlaughterMethod'] =
-              _selectedPoultrySlaughterMethod;
-          productData['isPoultryVaccinated'] = _isPoultryVaccinated;
-        }
-        if (_selectedCategory == 'Seafood') {
-          productData['seafoodSource'] = _selectedSeafoodSource;
-          if (_selectedSeafoodSource == 'Farmed') {
-            productData['seafoodFeedingType'] = _selectedSeafoodFeedingType;
-          }
-          productData['isSeafoodAntibioticsUsed'] = _isSeafoodAntibioticsUsed;
-          productData['isWaterQualityManaged'] = _isWaterQualityManaged;
-          productData['seafoodPreservationMethod'] =
-              _selectedSeafoodPreservationMethod;
-          productData['seafoodHarvestMethod'] = _selectedSeafoodHarvestMethod;
-        }
-        // Add fertilizer/pesticide for relevant categories
-        if (!['Dairy', 'Meat', 'Poultry', 'Seafood']
-            .contains(_selectedCategory)) {
-          productData['fertilizerType'] = _selectedFertilizerType;
-          productData['pesticideType'] = _selectedPesticideType;
-        }
+        // Save ALL possible fields for every product, regardless of category
+        productData['fertilizerType'] = _selectedFertilizerType;
+        productData['pesticideType'] = _selectedPesticideType;
+        productData['ripeningMethod'] = _selectedRipeningMethod;
+        productData['preservationMethod'] = _selectedPreservationMethod;
+        productData['dryingMethod'] = _selectedDryingMethod;
+        productData['storageType'] = _selectedStorageType;
+        productData['isWeedControlUsed'] = _isWeedControlUsed;
+        productData['animalFeedType'] = _selectedAnimalFeedType;
+        productData['milkCoolingMethod'] = _selectedMilkCoolingMethod;
+        productData['isAntibioticsUsed'] = _isAntibioticsUsed;
+        productData['milkingMethod'] = _selectedMilkingMethod;
+        productData['slaughterMethod'] = _selectedSlaughterMethod;
+        productData['rearingSystem'] = _selectedRearingSystem;
+        productData['seedType'] = _selectedSeedType;
+        productData['isChemicallyTreated'] = _isChemicallyTreated;
+        productData['isCertified'] = _isCertified;
+        productData['seedStorageMethod'] = _selectedSeedStorageMethod;
+        productData['poultryFeedType'] = _selectedPoultryFeedType;
+        productData['poultryRearingSystem'] = _selectedPoultryRearingSystem;
+        productData['isPoultryAntibioticsUsed'] = _isPoultryAntibioticsUsed;
+        productData['isGrowthBoostersUsed'] = _isGrowthBoostersUsed;
+        productData['poultrySlaughterMethod'] = _selectedPoultrySlaughterMethod;
+        productData['isPoultryVaccinated'] = _isPoultryVaccinated;
+        productData['seafoodSource'] = _selectedSeafoodSource;
+        productData['seafoodFeedingType'] = _selectedSeafoodFeedingType;
+        productData['isSeafoodAntibioticsUsed'] = _isSeafoodAntibioticsUsed;
+        productData['isWaterQualityManaged'] = _isWaterQualityManaged;
+        productData['seafoodPreservationMethod'] =
+            _selectedSeafoodPreservationMethod;
+        productData['seafoodHarvestMethod'] = _selectedSeafoodHarvestMethod;
         // Create product object
         final product = Product.fromMap('', productData);
         widget.onProductAdded(product);
@@ -567,7 +543,7 @@ class _AddProductFormState extends State<AddProductForm> {
                       TextFormField(
                         controller: _priceController,
                         decoration: InputDecoration(
-                          labelText: 'Price',
+                          labelText: 'Price/Kg',
                           labelStyle: GoogleFonts.poppins(
                             color: widget.isDarkMode
                                 ? Colors.white70
@@ -1591,41 +1567,41 @@ class _AddProductFormState extends State<AddProductForm> {
                               }
                             },
                           ),
+                          const SizedBox(height: 16),
+                          SwitchListTile(
+                            title: Text(
+                              'Antibiotics Used',
+                              style: GoogleFonts.poppins(
+                                color: widget.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
+                              ),
+                            ),
+                            value: _isSeafoodAntibioticsUsed,
+                            onChanged: (value) {
+                              setState(() {
+                                _isSeafoodAntibioticsUsed = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          SwitchListTile(
+                            title: Text(
+                              'Water Quality Managed',
+                              style: GoogleFonts.poppins(
+                                color: widget.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
+                              ),
+                            ),
+                            value: _isWaterQualityManaged,
+                            onChanged: (value) {
+                              setState(() {
+                                _isWaterQualityManaged = value;
+                              });
+                            },
+                          ),
                         ],
-                        const SizedBox(height: 16),
-                        SwitchListTile(
-                          title: Text(
-                            'Antibiotics Used',
-                            style: GoogleFonts.poppins(
-                              color: widget.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black87,
-                            ),
-                          ),
-                          value: _isSeafoodAntibioticsUsed,
-                          onChanged: (value) {
-                            setState(() {
-                              _isSeafoodAntibioticsUsed = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        SwitchListTile(
-                          title: Text(
-                            'Water Quality Managed',
-                            style: GoogleFonts.poppins(
-                              color: widget.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black87,
-                            ),
-                          ),
-                          value: _isWaterQualityManaged,
-                          onChanged: (value) {
-                            setState(() {
-                              _isWaterQualityManaged = value;
-                            });
-                          },
-                        ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
                           value: _selectedSeafoodPreservationMethod,

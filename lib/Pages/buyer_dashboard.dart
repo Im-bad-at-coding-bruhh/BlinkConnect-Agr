@@ -511,7 +511,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 itemCount: _topSellingCrops.length,
                 itemBuilder: (context, index) {
                   final crop = _topSellingCrops[index];
-                  return _buildCropCard(isDarkMode, crop);
+                  return _buildProductCard(crop, isDarkMode);
                 },
               ),
             ),
@@ -549,7 +549,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 itemCount: _seasonalCrops.length,
                 itemBuilder: (context, index) {
                   final crop = _seasonalCrops[index];
-                  return _buildCropCard(isDarkMode, crop);
+                  return _buildProductCard(crop, isDarkMode);
                 },
               ),
             ),
@@ -597,165 +597,100 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     );
   }
 
-  Widget _buildCropCard(bool isDarkMode, Map<String, dynamic> crop) {
-    return MouseRegion(
-      onEnter: (_) => _startHoverTimer(crop),
-      onExit: (_) => _cancelHoverTimer(),
-      child: GestureDetector(
-        onTap: () => _showProductDetails(crop),
-        child: Stack(
+  Widget _buildProductCard(Map<String, dynamic> product, bool isDarkMode) {
+    // This card is styled to match the marketplace card.
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailsScreen(
+              productId: product['productId'],
+              isFarmer: widget.isFarmer,
+              isVerified: widget.isVerified,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 200,
+        margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          color: isDarkMode ? Color(0xFF1C1C2E) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+              blurRadius: 10,
+              offset: Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 150,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                color:
-                    isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDarkMode
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.05),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Product image (base64 like in marketplace)
-                  Container(
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? Colors.black.withOpacity(0.3)
-                          : Colors.white.withOpacity(0.3),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12),
+            Expanded(
+              flex: 5,
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                child: (product['image'] != null &&
+                        product['image'].toString().isNotEmpty)
+                    ? Image.memory(
+                        base64Decode(product['image']),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey[300],
+                          child: Icon(Icons.broken_image,
+                              size: 40, color: Colors.grey[600]),
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey[300],
+                        child: Icon(Icons.inventory_2_outlined,
+                            size: 40, color: Colors.grey[600]),
                       ),
-                    ),
-                    child: crop['image'] != null &&
-                            crop['image'] is String &&
-                            crop['image'].isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(12)),
-                            child: Image.memory(
-                              base64Decode(crop['image']),
-                              height: 100,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Center(
-                            child: Icon(
-                              Icons.image_not_supported_outlined,
-                              size: 48,
-                              color:
-                                  isDarkMode ? Colors.white30 : Colors.black26,
-                            ),
-                          ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          crop['name'],
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          crop['price'] != null
-                              ? '\$24${crop['price'].toStringAsFixed(2)}'
-                              : '',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6C5DD3),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.person,
-                              size: 16,
-                              color:
-                                  isDarkMode ? Colors.white70 : Colors.black54,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              crop['seller'] ?? '',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black54,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(Icons.star, size: 14, color: Colors.amber),
-                            const SizedBox(width: 4),
-                            Text(
-                              crop['rating']?.toString() ?? '0',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black54,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
-            if (_showQuickInfo && _hoveredProduct == crop)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Quick Info',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Region: ${crop['region'] ?? 'N/A'}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        // Add more quick info fields as needed
-                      ],
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      product['name'] ?? 'No Name',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                    Text(
+                      product['seller'] ?? 'N/A',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '\$${(product['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                      style: GoogleFonts.poppins(
+                        color: Color(0xFF6C5DD3),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -857,7 +792,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ProductDetailsScreen(
-          product: product,
+          productId: product['id'],
           isFarmer: widget.isFarmer,
           isVerified: widget.isVerified,
         ),

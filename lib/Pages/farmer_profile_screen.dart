@@ -23,6 +23,8 @@ import 'edit_product_form.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import '../Models/invoice_model.dart';
+import '../Services/invoice_provider.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -62,12 +64,18 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
     super.initState();
     _selectedIndex = widget.initialIndex;
     _tabController = TabController(
-      length: 5,
+      length: 3,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ProductProvider>(context, listen: false).loadFarmerProducts();
+      final invoiceProvider =
+          Provider.of<InvoiceProvider>(context, listen: false);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        invoiceProvider.refreshInvoices(user.uid);
+      }
     });
     _fetchUserProfileInfo();
     _fetchProfilePhoto();
@@ -157,151 +165,37 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
 
           // Main content area
           Expanded(
-            child: Container(
-              color: isDarkMode ? Colors.black : Colors.white,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Profile Card
-                    _buildProfileCard(isDarkMode),
-                    const SizedBox(height: 24),
-
-                    // Account Settings
-                    Text(
-                      'Account Settings',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSettingItem(
-                      isDarkMode,
-                      Icons.person_outline,
-                      'Personal Information',
-                      'Update your personal details',
-                      onTap: () {
-                        _showPersonalInfoSheet(context, isDarkMode);
-                      },
-                    ),
-                    _buildSettingItem(
-                      isDarkMode,
-                      Icons.shopping_cart_outlined,
-                      'Cart',
-                      'View your cart',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CartScreen(
-                              isFarmer: widget.isFarmer,
-                              isVerified: widget.isVerified,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildSettingItem(
-                      isDarkMode,
-                      Icons.security_outlined,
-                      'Security Settings',
-                      'Manage your account security',
-                      onTap: () {
-                        _showSecuritySettingsDialog(context, isDarkMode);
-                      },
-                    ),
-                    _buildSettingItem(
-                      isDarkMode,
-                      isDarkMode
-                          ? Icons.light_mode_outlined
-                          : Icons.dark_mode_outlined,
-                      'Theme',
-                      isDarkMode
-                          ? 'Switch to Light Mode'
-                          : 'Switch to Dark Mode',
-                      onTap: () {
-                        final themeProvider = Provider.of<ThemeProvider>(
-                          context,
-                          listen: false,
-                        );
-                        themeProvider.toggleTheme(!isDarkMode);
-                      },
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Admin Dashboard Section (only for admins)
-                    Consumer<appAuth.AuthProvider>(
-                      builder: (context, authProvider, child) {
-                        if (authProvider.isAdmin) {
-                          return _buildSettingItem(
-                            isDarkMode,
-                            Icons.admin_panel_settings_outlined,
-                            'Admin Dashboard',
-                            'Manage communities and users',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AdminScreen(
-                                    isFarmer: widget.isFarmer,
-                                    isVerified: widget.isVerified,
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-
-                    // Products Section
-                    _buildSettingItem(
-                      isDarkMode,
-                      Icons.inventory_2_outlined,
-                      'My Products',
-                      'Manage your product listings',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => Scaffold(
-                              appBar: AppBar(
-                                backgroundColor:
-                                    isDarkMode ? Colors.black : Colors.white,
-                                elevation: 0,
-                                leading: IconButton(
-                                  icon: Icon(
-                                    Icons.arrow_back,
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : Colors.black87,
-                                  ),
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                                title: Text(
-                                  'My Products',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : Colors.black87,
-                                  ),
-                                ),
-                              ),
-                              body: _buildProductsSection(isDarkMode),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: _buildProfileCard(isDarkMode),
+                ),
+                TabBar(
+                  controller: _tabController,
+                  isScrollable: false,
+                  indicatorColor: const Color(0xFF6C5DD3),
+                  labelColor: const Color(0xFF6C5DD3),
+                  unselectedLabelColor:
+                      isDarkMode ? Colors.white70 : Colors.black54,
+                  tabs: [
+                    const Tab(text: 'Account'),
+                    const Tab(text: 'My Products'),
+                    const Tab(text: 'Sales Report'),
                   ],
                 ),
-              ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildAccountSettings(isDarkMode),
+                      _buildProductsSection(isDarkMode),
+                      _buildSalesReport(isDarkMode),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -909,27 +803,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                               ),
                             )
                           : IconButton(
-                              onPressed: () async {
-                                try {
-                                  await productProvider
-                                      .deleteProduct(product.id);
-                                  await productProvider.loadFarmerProducts();
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content:
-                                          Text('Product removed successfully'),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Failed to remove product: ${e.toString()}'),
-                                    ),
-                                  );
-                                }
+                              onPressed: () {
+                                _showDeleteConfirmationDialog(
+                                    context, isDarkMode, product);
                               },
                               icon: const Icon(
                                 Icons.delete_outline,
@@ -1500,6 +1376,303 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
               }
             },
             child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(
+      BuildContext context, bool isDarkMode, Product product) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          title: Text(
+            'Confirm Deletion',
+            style: GoogleFonts.poppins(
+              color: isDarkMode ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${product.productName}"? This action cannot be undone.',
+            style: GoogleFonts.poppins(
+              color: isDarkMode ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text(
+                'Delete',
+                style: GoogleFonts.poppins(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onPressed: () {
+                final productProvider =
+                    Provider.of<ProductProvider>(context, listen: false);
+                productProvider.deleteProduct(product.id).then((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Product deleted successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }).catchError((error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to delete product: $error'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAccountSettings(bool isDarkMode) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Account Settings
+          Text(
+            'Account Settings',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSettingItem(
+            isDarkMode,
+            Icons.person_outline,
+            'Personal Information',
+            'Update your personal details',
+            onTap: () {
+              _showPersonalInfoSheet(context, isDarkMode);
+            },
+          ),
+          _buildSettingItem(
+            isDarkMode,
+            Icons.shopping_cart_outlined,
+            'Cart',
+            'View your cart',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CartScreen(
+                    isFarmer: widget.isFarmer,
+                    isVerified: widget.isVerified,
+                  ),
+                ),
+              );
+            },
+          ),
+          _buildSettingItem(
+            isDarkMode,
+            Icons.security_outlined,
+            'Security Settings',
+            'Manage your account security',
+            onTap: () {
+              _showSecuritySettingsDialog(context, isDarkMode);
+            },
+          ),
+          _buildSettingItem(
+            isDarkMode,
+            isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            'Theme',
+            isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            onTap: () {
+              final themeProvider = Provider.of<ThemeProvider>(
+                context,
+                listen: false,
+              );
+              themeProvider.toggleTheme(!isDarkMode);
+            },
+          ),
+          const SizedBox(height: 4),
+
+          // Admin Dashboard Section (only for admins)
+          Consumer<appAuth.AuthProvider>(
+            builder: (context, authProvider, child) {
+              if (authProvider.isAdmin) {
+                return _buildSettingItem(
+                  isDarkMode,
+                  Icons.admin_panel_settings_outlined,
+                  'Admin Dashboard',
+                  'Manage communities and users',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminScreen(
+                          isFarmer: widget.isFarmer,
+                          isVerified: widget.isVerified,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSalesReport(bool isDarkMode) {
+    return Consumer<InvoiceProvider>(
+      builder: (context, invoiceProvider, child) {
+        if (invoiceProvider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final invoices = invoiceProvider.invoices;
+        if (invoices.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.receipt_long_outlined,
+                  size: 48,
+                  color: isDarkMode ? Colors.white38 : Colors.black26,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No Invoices Yet',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: invoices.length,
+          itemBuilder: (context, index) {
+            final invoice = invoices[index];
+            return _buildInvoiceItem(invoice, isDarkMode);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInvoiceItem(Invoice invoice, bool isDarkMode) {
+    final bool isPaid = invoice.status == 'Paid';
+    final bool isPending = invoice.status == 'Pending';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[900] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  invoice.customerName,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                Text(
+                  invoice.date.toString().split(' ')[0],
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '\$${invoice.amount.toStringAsFixed(2)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: isPaid
+                      ? Colors.green.withOpacity(0.2)
+                      : isPending
+                          ? Colors.orange.withOpacity(0.2)
+                          : Colors.red.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  invoice.status,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isPaid
+                        ? Colors.green
+                        : isPending
+                            ? Colors.orange
+                            : Colors.red,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

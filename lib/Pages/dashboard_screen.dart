@@ -164,148 +164,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // Navigate to my product
-  void _navigateToMyProducts() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final themeProvider = Provider.of<ThemeProvider>(context);
-        final isDarkMode = themeProvider.isDarkMode;
-        final productProvider = Provider.of<ProductProvider>(context);
-        final products = productProvider.farmerProducts;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor:
-                  isDarkMode ? const Color(0xFF1A1A2E) : Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'My Products',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (products.isEmpty)
-                      Center(
-                        child: Text(
-                          'No products added yet',
-                          style: GoogleFonts.poppins(
-                            color: isDarkMode ? Colors.white70 : Colors.black54,
-                          ),
-                        ),
-                      )
-                    else
-                      SizedBox(
-                        height: 300,
-                        child: ListView.builder(
-                          itemCount: products.length,
-                          itemBuilder: (context, index) {
-                            final product = products[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDarkMode
-                                    ? Colors.black.withOpacity(0.2)
-                                    : Colors.grey[100],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          product.productName,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDarkMode
-                                                ? Colors.white
-                                                : Colors.black87,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '\$${product.price}',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 14,
-                                            color: const Color(0xFF6C5DD3),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          product.description,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: isDarkMode
-                                                ? Colors.white70
-                                                : Colors.black54,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete,
-                                        color: Colors.red),
-                                    onPressed: () async {
-                                      try {
-                                        await productProvider
-                                            .deleteProduct(product.id);
-                                        setDialogState(
-                                            () {}); // Update dialog state
-                                        setState(
-                                            () {}); // Update main screen state
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Product deleted successfully'),
-                                          ),
-                                        );
-                                      } catch (e) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                                'Failed to delete product: $e'),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Show add product dialog
   void _showAddProductDialog() {
     showDialog(
       context: context,
@@ -344,48 +202,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Farmer',
         );
       },
-    );
-  }
-
-  Widget _buildSortButton(bool isDarkMode) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _showSortDropdown = !_showSortDropdown;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isDarkMode
-              ? Colors.black.withOpacity(0.2)
-              : Colors.white.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.sort,
-              size: 16,
-              color: isDarkMode ? Colors.white70 : Colors.black54,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'Sort by Month',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: isDarkMode ? Colors.white70 : Colors.black54,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              _showSortDropdown ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-              size: 16,
-              color: isDarkMode ? Colors.white70 : Colors.black54,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -796,14 +612,432 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: _buildActionButton(
-            isDarkMode,
-            'My Products',
-            Icons.inventory_2_outlined,
-            Colors.green,
-            onTap: _navigateToMyProducts,
+          child: _buildMyProductsSection(isDarkMode),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMyProductsSection(bool isDarkMode) {
+    final productProvider = Provider.of<ProductProvider>(context);
+    final recentProducts = productProvider.farmerProducts.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final productsToShow = recentProducts.take(3).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? Colors.black.withOpacity(0.2)
+            : Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recent Products',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (productsToShow.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Center(
+                child: Text('No products yet.',
+                    style: GoogleFonts.poppins(
+                        color: isDarkMode ? Colors.white70 : Colors.black54)),
+              ),
+            )
+          else
+            SizedBox(
+              height: 280,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: productsToShow.length,
+                itemBuilder: (context, index) {
+                  final product = productsToShow[index];
+                  return SizedBox(
+                    width: 200,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: GestureDetector(
+                        onTap: () => _showProductDetails(product),
+                        child: Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: isDarkMode
+                                    ? Colors.black.withOpacity(0.2)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDarkMode
+                                      ? Colors.white.withOpacity(0.1)
+                                      : Colors.black.withOpacity(0.05),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                          top: Radius.circular(12),
+                                        ),
+                                        image: product.images.isNotEmpty
+                                            ? DecorationImage(
+                                                image: MemoryImage(
+                                                  base64Decode(
+                                                      product.images.first),
+                                                ),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                        color: product.images.isEmpty
+                                            ? (isDarkMode
+                                                ? Colors.white10
+                                                : Colors.black12)
+                                            : null,
+                                      ),
+                                      child: product.images.isEmpty
+                                          ? Icon(
+                                              Icons
+                                                  .image_not_supported_outlined,
+                                              size: 48,
+                                              color: isDarkMode
+                                                  ? Colors.white30
+                                                  : Colors.black26,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.productName,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDarkMode
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '\$${product.price.toStringAsFixed(2)}',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF6C5DD3),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: product.isSoldOut
+                                                ? Colors.red.withOpacity(0.1)
+                                                : product.status == 'available'
+                                                    ? Colors.green
+                                                        .withOpacity(0.1)
+                                                    : Colors.orange
+                                                        .withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: product.isSoldOut
+                                                  ? Colors.red
+                                                  : product.status ==
+                                                          'available'
+                                                      ? Colors.green
+                                                      : Colors.orange,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            product.displayStatus,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w500,
+                                              color: product.isSoldOut
+                                                  ? Colors.red
+                                                  : product.status ==
+                                                          'available'
+                                                      ? Colors.green
+                                                      : Colors.orange,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (product.isSoldOut)
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        'SOLD OUT',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (product.isRestocked)
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    'RE-STOCKED',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FarmerProfileScreen(
+                      isFarmer: widget.isFarmer,
+                      isVerified: widget.isVerified,
+                      initialTabIndex: 1, // 'My Products' tab
+                    ),
+                  ),
+                );
+              },
+              child: const Text('See All'),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Product product, bool isDarkMode) {
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                    image: product.images.isNotEmpty
+                        ? DecorationImage(
+                            image: MemoryImage(
+                              base64Decode(product.images.first),
+                            ),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: product.images.isEmpty
+                        ? (isDarkMode ? Colors.white10 : Colors.black12)
+                        : null,
+                  ),
+                  child: product.images.isEmpty
+                      ? Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 48,
+                          color: isDarkMode ? Colors.white30 : Colors.black26,
+                        )
+                      : null,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.productName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${product.price.toStringAsFixed(2)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF6C5DD3),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: product.isSoldOut
+                            ? Colors.red.withOpacity(0.1)
+                            : product.status == 'available'
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: product.isSoldOut
+                              ? Colors.red
+                              : product.status == 'available'
+                                  ? Colors.green
+                                  : Colors.orange,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        product.displayStatus,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: product.isSoldOut
+                              ? Colors.red
+                              : product.status == 'available'
+                                  ? Colors.green
+                                  : Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
+        if (product.isSoldOut)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'SOLD OUT',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (product.isRestocked)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'RE-STOCKED',
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1026,7 +1260,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         builder: (context) => FarmerProfileScreen(
                           isFarmer: widget.isFarmer,
                           isVerified: widget.isVerified,
-                          initialIndex: 3,
                           initialTabIndex: 2, // Sales Report tab
                         ),
                       ),
@@ -1149,7 +1382,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
-        final products = productProvider.farmerProducts;
+        final recentProducts = productProvider.farmerProducts.toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final productsToShow = recentProducts.take(3).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1174,7 +1409,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         builder: (context) => FarmerProfileScreen(
                           isFarmer: widget.isFarmer,
                           isVerified: widget.isVerified,
-                          initialIndex: 3,
                           initialTabIndex: 1,
                         ),
                       ),
@@ -1191,270 +1425,233 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.75,
-              ),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return MouseRegion(
-                  onEnter: (_) => _startHoverTimer(product),
-                  onExit: (_) => _cancelHoverTimer(),
-                  child: GestureDetector(
-                    onTap: () => _showProductDetails(product),
-                    child: Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: isDarkMode
-                                ? Colors.black.withOpacity(0.2)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isDarkMode
-                                  ? Colors.white.withOpacity(0.1)
-                                  : Colors.black.withOpacity(0.05),
-                            ),
-                            boxShadow: isDarkMode
-                                ? [
-                                    BoxShadow(
-                                      color: const Color(0xFF6C5DD3)
-                                          .withOpacity(0.1),
-                                      blurRadius: 10,
-                                      spreadRadius: 0,
-                                    ),
-                                    BoxShadow(
-                                      color: Colors.white.withOpacity(0.05),
-                                      blurRadius: 5,
-                                      spreadRadius: 0,
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: isDarkMode
-                                        ? Colors.black.withOpacity(0.3)
-                                        : Colors.white.withOpacity(0.3),
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(12),
-                                    ),
-                                  ),
-                                  child: Container(
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      image: product.images.isNotEmpty
-                                          ? DecorationImage(
-                                              image: MemoryImage(
-                                                base64Decode(
-                                                    product.images.first),
-                                              ),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
-                                      color: product.images.isEmpty
-                                          ? (isDarkMode
-                                              ? Colors.white10
-                                              : Colors.black12)
-                                          : null,
-                                    ),
-                                    child: product.images.isEmpty
-                                        ? Icon(
-                                            Icons.image_not_supported_outlined,
-                                            size: 48,
-                                            color: isDarkMode
-                                                ? Colors.white30
-                                                : Colors.black26,
-                                          )
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      product.productName,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDarkMode
-                                            ? Colors.white
-                                            : Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '\$${product.price.toStringAsFixed(2)}',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: const Color(0xFF6C5DD3),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.person,
-                                          size: 16,
-                                          color: isDarkMode
-                                              ? Colors.white70
-                                              : Colors.black54,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          product.farmerName,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: isDarkMode
-                                                ? Colors.white70
-                                                : Colors.black54,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.location_on,
-                                          size: 16,
-                                          color: isDarkMode
-                                              ? Colors.white70
-                                              : Colors.black54,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          product.region,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: isDarkMode
-                                                ? Colors.white70
-                                                : Colors.black54,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    // Status Badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: product.isSoldOut
-                                            ? Colors.red.withOpacity(0.1)
-                                            : product.status == 'available'
-                                                ? Colors.green.withOpacity(0.1)
-                                                : Colors.orange
-                                                    .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: product.isSoldOut
-                                              ? Colors.red
-                                              : product.status == 'available'
-                                                  ? Colors.green
-                                                  : Colors.orange,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        product.displayStatus,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w500,
-                                          color: product.isSoldOut
-                                              ? Colors.red
-                                              : product.status == 'available'
-                                                  ? Colors.green
-                                                  : Colors.orange,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+            if (productsToShow.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40.0),
+                child: Center(
+                  child: Text('No products yet.',
+                      style: GoogleFonts.poppins(
+                          color: isDarkMode ? Colors.white70 : Colors.black54)),
+                ),
+              )
+            else
+              SizedBox(
+                height: 300,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: productsToShow.length,
+                  itemBuilder: (context, index) {
+                    final product = productsToShow[index];
+                    return SizedBox(
+                      width: 220,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: MouseRegion(
+                          onEnter: (_) => _startHoverTimer(product),
+                          onExit: (_) => _cancelHoverTimer(),
+                          child: GestureDetector(
+                            onTap: () => _showProductDetails(product),
+                            child: _buildMobileProductCard(product, isDarkMode),
                           ),
                         ),
-                        // Sold Out Overlay
-                        if (product.isSoldOut)
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    'SOLD OUT',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        // Re-stocked Overlay
-                        if (product.isRestocked)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'RE-STOCKED',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildMobileProductCard(Product product, bool isDarkMode) {
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+            ),
+            boxShadow: isDarkMode
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.05),
+                      blurRadius: 5,
+                      spreadRadius: 0,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.3),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                  ),
+                  child: Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: product.images.isNotEmpty
+                          ? DecorationImage(
+                              image: MemoryImage(
+                                base64Decode(product.images.first),
+                              ),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      color: product.images.isEmpty
+                          ? (isDarkMode ? Colors.white10 : Colors.black12)
+                          : null,
+                    ),
+                    child: product.images.isEmpty
+                        ? Icon(
+                            Icons.image_not_supported_outlined,
+                            size: 48,
+                            color: isDarkMode ? Colors.white30 : Colors.black26,
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.productName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${product.price.toStringAsFixed(2)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF6C5DD3),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Status Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: product.isSoldOut
+                            ? Colors.red.withOpacity(0.1)
+                            : product.status == 'available'
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: product.isSoldOut
+                              ? Colors.red
+                              : product.status == 'available'
+                                  ? Colors.green
+                                  : Colors.orange,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        product.displayStatus,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: product.isSoldOut
+                              ? Colors.red
+                              : product.status == 'available'
+                                  ? Colors.green
+                                  : Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Sold Out Overlay
+        if (product.isSoldOut)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'SOLD OUT',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        // Re-stocked Overlay
+        if (product.isRestocked)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'RE-STOCKED',
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1709,148 +1906,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildInvoicesTable(bool isDarkMode) {
-    final invoices = [
-      {
-        'name': 'Sarah Johnson',
-        'date': '01 June 2023',
-        'amount': '\$1,200.00',
-        'method': 'Visa',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Mark Wilson',
-        'date': '28 May 2023',
-        'amount': '\$3,400.00',
-        'method': 'PayPal',
-        'status': 'Pending',
-      },
-      {
-        'name': 'James Smith',
-        'date': '15 May 2023',
-        'amount': '\$2,300.45',
-        'method': 'MasterCard',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'Emily Brown',
-        'date': '10 May 2023',
-        'amount': '\$1,800.20',
-        'method': 'Visa',
-        'status': 'Paid',
-      },
-      {
-        'name': 'David Jones',
-        'date': '05 May 2023',
-        'amount': '\$950.75',
-        'method': 'Apple Pay',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Lisa Moore',
-        'date': '30 April 2023',
-        'amount': '\$2,100.50',
-        'method': 'Visa',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Robert Taylor',
-        'date': '25 April 2023',
-        'amount': '\$1,750.00',
-        'method': 'PayPal',
-        'status': 'Pending',
-      },
-      {
-        'name': 'Michael Clark',
-        'date': '20 April 2023',
-        'amount': '\$3,200.00',
-        'method': 'MasterCard',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Jennifer Adams',
-        'date': '15 April 2023',
-        'amount': '\$890.30',
-        'method': 'Visa',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'William White',
-        'date': '10 April 2023',
-        'amount': '\$1,500.00',
-        'method': 'Apple Pay',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Jessica Scott',
-        'date': '05 April 2023',
-        'amount': '\$2,400.00',
-        'method': 'Visa',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Thomas Green',
-        'date': '30 March 2023',
-        'amount': '\$1,100.25',
-        'method': 'PayPal',
-        'status': 'Pending',
-      },
-      {
-        'name': 'Daniel Hall',
-        'date': '25 March 2023',
-        'amount': '\$3,000.00',
-        'method': 'MasterCard',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Christopher Lee',
-        'date': '20 March 2023',
-        'amount': '\$1,350.75',
-        'method': 'Visa',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'Susan Baker',
-        'date': '15 March 2023',
-        'amount': '\$2,700.00',
-        'method': 'Apple Pay',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Matthew Young',
-        'date': '10 March 2023',
-        'amount': '\$950.50',
-        'method': 'Visa',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Karen Hill',
-        'date': '05 March 2023',
-        'amount': '\$1,800.00',
-        'method': 'PayPal',
-        'status': 'Pending',
-      },
-      {
-        'name': 'Joshua King',
-        'date': '28 February 2023',
-        'amount': '\$2,200.30',
-        'method': 'MasterCard',
-        'status': 'Paid',
-      },
-      {
-        'name': 'Amanda Wright',
-        'date': '20 February 2023',
-        'amount': '\$1,600.00',
-        'method': 'Visa',
-        'status': 'Unpaid',
-      },
-      {
-        'name': 'Kevin Turner',
-        'date': '15 February 2023',
-        'amount': '\$3,100.75',
-        'method': 'Apple Pay',
-        'status': 'Paid',
-      },
-    ];
+    // This is a placeholder. You should replace this with your actual data.
+    final invoices = <Map<String, String>>[];
 
     return Container(
       decoration: BoxDecoration(
@@ -2058,6 +2115,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSortButton(bool isDarkMode) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showSortDropdown = !_showSortDropdown;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.black.withOpacity(0.2)
+              : Colors.white.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.sort,
+              size: 16,
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Sort by Month',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              _showSortDropdown ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+              size: 16,
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+            ),
+          ],
+        ),
       ),
     );
   }

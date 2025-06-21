@@ -1178,28 +1178,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ProductDetailsScreen(
-          product: {
-            'id': product.id,
-            'name': product.productName,
-            'description': product.description,
-            'price': product.price,
-            'seller': product.farmerName,
-            'sellerId': product.farmerId,
-            'rating': 4.5, // You might want to add this to your Product model
-            'images': product.images, // Pass all images
-            'isNegotiable': product.isNegotiable,
-            'quantity': product.quantity,
-            'unit': product.unit,
-            'region': product.region,
-            'fertilizerType': product.fertilizerType,
-            'pesticideType': product.pesticideType,
-            'category': product.category,
-            'ripeningMethod': product.ripeningMethod,
-            'preservationMethod': product.preservationMethod,
-            'dryingMethod': product.dryingMethod,
-            'storageType': product.storageType,
-            'isWeedControlUsed': product.isWeedControlUsed,
-          },
+          productId: product.id,
           isFarmer: widget.isFarmer,
           isVerified: widget.isVerified,
         ),

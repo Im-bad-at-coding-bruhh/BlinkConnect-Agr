@@ -142,10 +142,12 @@ class InvoiceProvider with ChangeNotifier {
               final farmerName = productData['farmerName']?.toString() ?? '';
               final category = productData['category']?.toString() ?? '';
               final unit = productData['unit']?.toString() ?? 'kg';
+              final region = productData['region']?.toString() ?? '';
 
               if (productName.isNotEmpty &&
                   farmerName.isNotEmpty &&
-                  category.isNotEmpty) {
+                  category.isNotEmpty &&
+                  region.isNotEmpty) {
                 await _salesAnalytics.updateProductSales(
                   productId: invoice.productId,
                   productName: productName,
@@ -155,6 +157,7 @@ class InvoiceProvider with ChangeNotifier {
                   quantity: invoice.quantity,
                   unit: unit,
                   saleAmount: invoice.amount,
+                  region: region,
                 );
               } else {
                 debugPrint(
@@ -198,36 +201,91 @@ class InvoiceProvider with ChangeNotifier {
   Future<void> updateInvoiceStatus(
       String farmerId, String invoiceId, String newStatus) async {
     try {
-      // Update in user's document
-      await _firestore
+      debugPrint(
+          'Updating invoice status for farmer: $farmerId, invoice: $invoiceId');
+
+      // Update the invoice in the farmer's subcollection
+      final farmerInvoiceRef = _firestore
           .collection('users')
           .doc(farmerId)
           .collection('invoices')
-          .doc(invoiceId)
-          .update({'status': newStatus});
+          .doc(invoiceId);
 
-      // Get the invoice to find the customer ID
-      final invoiceDoc = await _firestore
-          .collection('users')
-          .doc(farmerId)
-          .collection('invoices')
-          .doc(invoiceId)
-          .get();
+      await farmerInvoiceRef.update({'status': newStatus});
+      debugPrint('Updated farmer invoice status');
 
-      if (invoiceDoc.exists) {
-        final invoiceData = invoiceDoc.data();
-        if (invoiceData != null) {
-          // Update in customer's document
-          await _firestore
-              .collection('users')
-              .doc(invoiceData['customerId'])
-              .collection('purchases')
-              .doc(invoiceId)
-              .update({'status': newStatus});
+      // Find the invoice to get the customer ID
+      final invoiceSnapshot = await farmerInvoiceRef.get();
+      if (!invoiceSnapshot.exists) {
+        debugPrint('Invoice not found during status update');
+        return;
+      }
+
+      final invoiceData = invoiceSnapshot.data();
+      if (invoiceData == null) {
+        debugPrint('Invoice data is null during status update');
+        return;
+      }
+      final customerId = invoiceData['customerId']?.toString() ?? '';
+      final productId = invoiceData['productId']?.toString() ?? '';
+      final quantity = (invoiceData['quantity'] as num?)?.toDouble() ?? 0.0;
+      final amount = (invoiceData['amount'] as num?)?.toDouble() ?? 0.0;
+
+      if (customerId.isNotEmpty) {
+        // Update the purchase reference in the customer's subcollection
+        final customerPurchaseRef = _firestore
+            .collection('users')
+            .doc(customerId)
+            .collection('purchases')
+            .doc(invoiceId);
+
+        await customerPurchaseRef.update({'status': newStatus});
+        debugPrint('Updated customer purchase status');
+      }
+
+      // Update sales analytics if the invoice is marked as 'Paid'
+      if (newStatus == 'Paid' && productId.isNotEmpty) {
+        try {
+          final productDoc =
+              await _firestore.collection('products').doc(productId).get();
+
+          if (productDoc.exists) {
+            final productData = productDoc.data();
+            if (productData != null) {
+              final productName = productData['productName']?.toString() ?? '';
+              final farmerName = productData['farmerName']?.toString() ?? '';
+              final category = productData['category']?.toString() ?? '';
+              final unit = productData['unit']?.toString() ?? 'kg';
+              final region = productData['region']?.toString() ?? '';
+
+              if (productName.isNotEmpty &&
+                  farmerName.isNotEmpty &&
+                  category.isNotEmpty &&
+                  region.isNotEmpty) {
+                await _salesAnalytics.updateProductSales(
+                  productId: productId,
+                  productName: productName,
+                  farmerId: farmerId,
+                  farmerName: farmerName,
+                  category: category,
+                  quantity: quantity,
+                  unit: unit,
+                  saleAmount: amount,
+                  region: region,
+                );
+              } else {
+                debugPrint(
+                    'Warning: Missing required product data for sales analytics update');
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Error updating sales analytics on status change: $e');
         }
       }
 
-      final index = _invoices.indexWhere((invoice) => invoice.id == invoiceId);
+      // Update the local list
+      final index = _invoices.indexWhere((inv) => inv.id == invoiceId);
       if (index != -1) {
         _invoices[index] = _invoices[index].copyWith(status: newStatus);
         notifyListeners();

@@ -46,15 +46,16 @@ class SalesAnalyticsService {
     required double quantity,
     required String unit,
     required double saleAmount,
+    required String region,
   }) async {
     try {
-      // Validate required parameters
       if (productId.isEmpty ||
           productName.isEmpty ||
           farmerId.isEmpty ||
           farmerName.isEmpty ||
           category.isEmpty ||
-          unit.isEmpty) {
+          unit.isEmpty ||
+          region.isEmpty) {
         print('Error updating sales analytics: Missing required parameters');
         return;
       }
@@ -68,67 +69,63 @@ class SalesAnalyticsService {
       final docRef = _firestore
           .collection('sales_analytics')
           .doc(_currentYearMonth)
+          .collection('regions')
+          .doc(region)
           .collection('categories')
           .doc(category);
 
       await _firestore.runTransaction((transaction) async {
         final doc = await transaction.get(docRef);
+        final weightInKg = _convertToKg(quantity, unit);
 
         if (!doc.exists) {
-          // Create new document if it doesn't exist
           transaction.set(docRef, {
-            'sales': [
+            'products': [
               {
-                'farmerId': farmerId,
-                'farmerName': farmerName,
+                'productId': productId,
+                'productName': productName,
                 'totalSales': saleAmount,
-                'totalWeight': _convertToKg(quantity, unit),
+                'totalWeight': weightInKg,
                 'lastUpdated': FieldValue.serverTimestamp(),
               }
             ]
           });
         } else {
-          // Update existing document
           final data = doc.data();
           if (data == null) {
             print('Error updating sales analytics: Document data is null');
             return;
           }
 
-          final sales = List<Map<String, dynamic>>.from(data['sales'] ?? []);
+          final products =
+              List<Map<String, dynamic>>.from(data['products'] ?? []);
+          final productIndex =
+              products.indexWhere((p) => p['productId'] == productId);
 
-          // Find if farmer already has sales
-          final farmerIndex =
-              sales.indexWhere((sale) => sale['farmerId'] == farmerId);
-
-          if (farmerIndex != -1) {
-            // Update existing farmer's sales
-            final currentSales = sales[farmerIndex]['totalSales'] ?? 0.0;
-            final currentWeight = sales[farmerIndex]['totalWeight'] ?? 0.0;
-
-            sales[farmerIndex]['totalSales'] = currentSales + saleAmount;
-            sales[farmerIndex]['totalWeight'] =
-                currentWeight + _convertToKg(quantity, unit);
-            sales[farmerIndex]['lastUpdated'] = FieldValue.serverTimestamp();
+          if (productIndex != -1) {
+            final currentSales = products[productIndex]['totalSales'] ?? 0.0;
+            final currentWeight = products[productIndex]['totalWeight'] ?? 0.0;
+            products[productIndex]['totalSales'] = currentSales + saleAmount;
+            products[productIndex]['totalWeight'] = currentWeight + weightInKg;
+            products[productIndex]['lastUpdated'] =
+                FieldValue.serverTimestamp();
           } else {
-            // Add new farmer's sales
-            sales.add({
-              'farmerId': farmerId,
-              'farmerName': farmerName,
+            products.add({
+              'productId': productId,
+              'productName': productName,
               'totalSales': saleAmount,
-              'totalWeight': _convertToKg(quantity, unit),
+              'totalWeight': weightInKg,
               'lastUpdated': FieldValue.serverTimestamp(),
             });
           }
 
-          // Sort sales by total weight
-          sales.sort((a, b) {
+          products.sort((a, b) {
             final weightA = (a['totalWeight'] as num?)?.toDouble() ?? 0.0;
             final weightB = (b['totalWeight'] as num?)?.toDouble() ?? 0.0;
             return weightB.compareTo(weightA);
           });
 
-          transaction.update(docRef, {'sales': sales});
+          transaction.update(docRef, {'products': products});
         }
       });
     } catch (e) {
@@ -151,6 +148,8 @@ class SalesAnalyticsService {
     return _firestore
         .collection('sales_analytics')
         .doc(_currentYearMonth)
+        .collection('regions')
+        .doc('global')
         .collection('categories')
         .doc(category)
         .snapshots()
@@ -167,6 +166,8 @@ class SalesAnalyticsService {
     return _firestore
         .collection('sales_analytics')
         .doc(_currentYearMonth)
+        .collection('regions')
+        .doc('global')
         .collection('categories')
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
@@ -180,58 +181,34 @@ class SalesAnalyticsService {
   }) async {
     try {
       final categories = _mapCategory(category);
-      List<Map<String, dynamic>> allProducts = [];
+      List<Map<String, dynamic>> topProducts = [];
+
       for (final cat in categories) {
-        // Get all products from the continent
-        final productsSnapshot = await _firestore
-            .collection('products')
-            .where('region', isEqualTo: region)
-            .where('category', isEqualTo: cat)
-            .where('status', isEqualTo: 'available')
+        final salesSnapshot = await _firestore
+            .collection('sales_analytics')
+            .doc(_currentYearMonth)
+            .collection('regions')
+            .doc(region)
+            .collection('categories')
+            .doc(cat)
             .get();
 
-        // Create a map to store total quantities sold for each product
-        Map<String, Map<String, dynamic>> productTotals = {};
-
-        // Process each product
-        for (var doc in productsSnapshot.docs) {
-          final product = doc.data();
-          final productId = doc.id;
-          final quantity = _convertToKg(
-            product['quantity']?.toDouble() ?? 0,
-            product['unit'] ?? 'kg',
-          );
-
-          if (productTotals.containsKey(productId)) {
-            // Update existing product total
-            productTotals[productId]!['totalQuantity'] += quantity;
-          } else {
-            // Add new product
-            productTotals[productId] = {
-              'productId': productId,
-              'name': product['productName'],
-              'totalQuantity': quantity,
-              'price': product['price'],
-              'image': product['images']?.first,
-              'seller': product['farmerName'],
-              'rating': product['rating'] ?? 0,
-              'region': product['region'],
-              'unit': 'kg', // Convert all to kg
-            };
-          }
+        if (salesSnapshot.exists &&
+            salesSnapshot.data()!.containsKey('products')) {
+          final products = List<Map<String, dynamic>>.from(
+              salesSnapshot.data()!['products']);
+          topProducts.addAll(products);
         }
-
-        // Convert to list and sort by total quantity
-        List<Map<String, dynamic>> sortedProducts = productTotals.values
-            .toList()
-          ..sort((a, b) => b['totalQuantity'].compareTo(a['totalQuantity']));
-
-        allProducts.addAll(sortedProducts);
       }
-      // Sort and take top N overall
-      allProducts
-          .sort((a, b) => b['totalQuantity'].compareTo(a['totalQuantity']));
-      return allProducts.take(limit).toList();
+
+      topProducts.sort((a, b) =>
+          (b['totalWeight'] as num).compareTo(a['totalWeight'] as num));
+
+      final productDetails = await _fetchProductDetails(
+        topProducts.take(limit).map((p) => p['productId'].toString()).toList(),
+      );
+
+      return productDetails;
     } catch (e) {
       print('Error getting top selling products: $e');
       return [];
@@ -241,40 +218,60 @@ class SalesAnalyticsService {
   // Get seasonal crops for a state, falling back to continent data if no state data
   Future<List<Map<String, dynamic>>> getSeasonalCrops({
     required String region,
+    int limit = 10,
   }) async {
     try {
-      // First try to get state-specific data
-      final stateDoc = await _firestore
-          .collection('sales_analytics')
-          .doc(_currentYearMonth)
-          .collection(region)
-          .doc('crops')
-          .get();
-
-      if (stateDoc.exists) {
-        final products =
-            List<Map<String, dynamic>>.from(stateDoc.data()?['products'] ?? []);
-        return products;
-      }
-
-      // If no state data, get continent-wide data
-      final continent = _getContinentFromRegion(region);
-      final continentDoc = await _firestore
-          .collection('sales_analytics')
-          .doc(_currentYearMonth)
-          .collection(continent)
-          .doc('crops')
-          .get();
-
-      if (!continentDoc.exists) return [];
-
-      final products = List<Map<String, dynamic>>.from(
-          continentDoc.data()?['products'] ?? []);
-      return products;
+      // For now, seasonal crops are the same as top-selling crops.
+      // This can be evolved later with more complex logic (e.g., analyzing multiple months).
+      return await getTopSellingProducts(
+          region: region, category: 'Crops', limit: limit);
     } catch (e) {
       print('Error getting seasonal crops: $e');
       return [];
     }
+  }
+
+  // Helper to fetch full product details from a list of product IDs
+  Future<List<Map<String, dynamic>>> _fetchProductDetails(
+      List<String> productIds) async {
+    if (productIds.isEmpty) {
+      return [];
+    }
+
+    final List<Map<String, dynamic>> productDetails = [];
+    final productChunks = [];
+    for (var i = 0; i < productIds.length; i += 10) {
+      productChunks.add(productIds.sublist(
+          i, i + 10 > productIds.length ? productIds.length : i + 10));
+    }
+
+    for (final chunk in productChunks) {
+      final productsSnapshot = await _firestore
+          .collection('products')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+
+      for (final doc in productsSnapshot.docs) {
+        final product = doc.data();
+        productDetails.add({
+          'productId': doc.id,
+          'name': product['productName'],
+          'price': product['price'],
+          'image': product['images']?.first,
+          'seller': product['farmerName'],
+          'rating': product['rating'] ?? 0,
+          'region': product['region'],
+          'description': product['description'],
+          // Ensure all other necessary fields for the product card are included
+        });
+      }
+    }
+    // Re-sort to maintain the original order from sales analytics
+    productDetails.sort((a, b) => productIds
+        .indexOf(a['productId'])
+        .compareTo(productIds.indexOf(b['productId'])));
+
+    return productDetails;
   }
 
   // Helper method to get continent from region
