@@ -5,6 +5,8 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../Services/auth_provider.dart' as app_auth;
 
 class NewsEditorScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -21,17 +23,21 @@ class NewsEditorScreen extends StatefulWidget {
 class _NewsEditorScreenState extends State<NewsEditorScreen> {
   final _titleController = TextEditingController();
   final _summaryController = TextEditingController();
-  final _contentController = TextEditingController();
+  List<Map<String, dynamic>> _contentBlocks = [];
   File? _thumbnailImage;
-  final List<Map<String, dynamic>> _contentImages = [];
   bool _isCreatingNews = false;
   final ImagePicker _picker = ImagePicker();
+  DateTime? _expiryDateTime;
 
   @override
   void dispose() {
     _titleController.dispose();
     _summaryController.dispose();
-    _contentController.dispose();
+    for (var block in _contentBlocks) {
+      if (block['type'] == 'text') {
+        block['controller'].dispose();
+      }
+    }
     super.dispose();
   }
 
@@ -66,7 +72,16 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
     }
   }
 
-  Future<void> _addContentImage() async {
+  Future<void> _addTextBlock() async {
+    setState(() {
+      _contentBlocks.add({
+        'type': 'text',
+        'controller': TextEditingController(),
+      });
+    });
+  }
+
+  Future<void> _addImageBlock() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -81,13 +96,13 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
       }
 
       setState(() {
-        _contentImages.add({
-          'path': pickedFile.path,
-          'position': _contentController.text.length,
+        _contentBlocks.add({
+          'type': 'image',
+          'file': File(pickedFile.path),
         });
       });
     } catch (e, stackTrace) {
-      print('Error in _addContentImage: $e');
+      print('Error in _addImageBlock: $e');
       print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,76 +115,31 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
     }
   }
 
-  void _removeContentImage(int index) {
-    if (index >= 0 && index < _contentImages.length) {
-      setState(() {
-        _contentImages.removeAt(index);
-      });
-    }
-  }
+  Future<void> _selectExpiryDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
 
-  void _insertImageAtCursor() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
+    if (pickedDate != null) {
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(
+          _expiryDateTime ?? DateTime.now(),
+        ),
       );
-
-      if (pickedFile == null) {
-        print('No image selected');
-        return;
-      }
-
-      // Get the current cursor position
-      final cursorPosition = _contentController.selection.baseOffset;
-      // Add double line breaks before and after the image placeholder
-      final imagePlaceholder =
-          '\n\n[IMAGE_${DateTime.now().millisecondsSinceEpoch}]\n\n';
-
-      if (cursorPosition == -1) {
-        // If no cursor position, append to the end
+      if (pickedTime != null) {
         setState(() {
-          _contentController.text = _contentController.text + imagePlaceholder;
-          _contentImages.add({
-            'path': pickedFile.path,
-            'position':
-                _contentController.text.length - imagePlaceholder.length,
-            'placeholder': imagePlaceholder,
-          });
+          _expiryDateTime = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
         });
-      } else {
-        // Insert at cursor position
-        final text = _contentController.text;
-        final newText = text.substring(0, cursorPosition) +
-            imagePlaceholder +
-            text.substring(cursorPosition);
-
-        setState(() {
-          _contentController.text = newText;
-          _contentImages.add({
-            'path': pickedFile.path,
-            'position': cursorPosition,
-            'placeholder': imagePlaceholder,
-          });
-        });
-
-        // Move cursor after the placeholder
-        _contentController.selection = TextSelection.fromPosition(
-          TextPosition(offset: cursorPosition + imagePlaceholder.length),
-        );
-      }
-    } catch (e, stackTrace) {
-      print('Error in _insertImageAtCursor: $e');
-      print('Stack trace: $stackTrace');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting image: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }
@@ -177,10 +147,10 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
   Future<void> _createNews() async {
     if (_titleController.text.trim().isEmpty ||
         _summaryController.text.trim().isEmpty ||
-        _contentController.text.trim().isEmpty) {
+        _contentBlocks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill in all required fields'),
+          content: Text('Please fill in all required fields and add content'),
           backgroundColor: Colors.red,
         ),
       );
@@ -211,74 +181,56 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
       final thumbnailBytes = await _thumbnailImage!.readAsBytes();
       final thumbnailBase64 = base64Encode(thumbnailBytes);
 
-      // Convert content images to base64 and remove placeholders
-      final List<Map<String, dynamic>> contentImagesBase64 = [];
-      String finalContent = _contentController.text;
-
-      // Debug print
-      print('Number of content images: ${_contentImages.length}');
-      for (var img in _contentImages) {
-        print('Image position: ${img['position']}, path: ${img['path']}');
-      }
-
-      // Sort images by position in descending order to maintain correct positions
-      final sortedImages = List<Map<String, dynamic>>.from(_contentImages)
-        ..sort((a, b) => (b['position'] ?? 0).compareTo(a['position'] ?? 0));
-
-      // Process each image
-      for (var image in sortedImages) {
-        try {
-          final originalPosition = image['position'] as int;
-          final placeholder = image['placeholder'] as String;
-          final file = File(image['path']);
-
-          if (!await file.exists()) {
-            print('File does not exist: ${image['path']}');
-            continue;
-          }
-
-          final bytes = await file.readAsBytes();
-          if (bytes.isEmpty) {
-            print('File is empty: ${image['path']}');
-            continue;
-          }
-
-          final base64Image = base64Encode(bytes);
-          contentImagesBase64.add({
-            'image': base64Image,
-            'position': originalPosition,
-            'placeholder': placeholder,
+      final List<Map<String, String>> contentData = [];
+      for (var block in _contentBlocks) {
+        if (block['type'] == 'text') {
+          contentData.add({
+            'type': 'text',
+            'data': block['controller'].text.trim(),
           });
-        } catch (e) {
-          print('Error processing image: $e');
-          print('Image data: $image');
+        } else if (block['type'] == 'image') {
+          final imageBytes = await (block['file'] as File).readAsBytes();
+          final imageBase64 = base64Encode(imageBytes);
+          contentData.add({
+            'type': 'image',
+            'data': imageBase64,
+          });
         }
       }
 
-      // Remove all image placeholders from the content
-      for (var image in sortedImages) {
-        final placeholder = image['placeholder'] as String;
-        finalContent = finalContent.replaceAll(placeholder, '');
+      // Get username directly from Firestore (like dashboard)
+      String? authorName;
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        authorName = userDoc.data()?['username'] as String?;
+      } catch (e) {
+        // ignore, fallback below
       }
-
-      // Debug print
-      print('Final number of processed images: ${contentImagesBase64.length}');
-      for (var img in contentImagesBase64) {
-        print(
-            'Processed image position: ${img['position']}, has image: ${img['image'] != null}');
-      }
+      authorName = (authorName != null && authorName.isNotEmpty)
+          ? authorName
+          : (user.displayName != null && user.displayName!.isNotEmpty)
+              ? user.displayName
+              : (user.email != null && user.email!.isNotEmpty)
+                  ? user.email!.split('@')[0]
+                  : 'Admin';
 
       // Create the document data
       final Map<String, dynamic> documentData = {
         'title': _titleController.text.trim(),
         'summary': _summaryController.text.trim(),
-        'content': finalContent,
+        'content': contentData,
         'thumbnailBase64': thumbnailBase64,
-        'contentImages': contentImagesBase64,
         'authorId': user.uid,
-        'authorName': user.displayName ?? 'Admin',
+        'authorName': authorName,
         'createdAt': FieldValue.serverTimestamp(),
       };
+
+      if (_expiryDateTime != null) {
+        documentData['expiresAt'] = Timestamp.fromDate(_expiryDateTime!);
+      }
 
       // Add the document to Firestore
       await FirebaseFirestore.instance
@@ -462,115 +414,137 @@ class _NewsEditorScreenState extends State<NewsEditorScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Stack(
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: widget.isDarkMode ? Colors.white24 : Colors.black12,
+                ),
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _contentBlocks.length,
+                itemBuilder: (context, index) {
+                  final block = _contentBlocks[index];
+                  Widget content;
+                  if (block['type'] == 'text') {
+                    content = TextField(
+                      controller: block['controller'],
+                      maxLines: null,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter text content...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(12),
+                      ),
+                      style: GoogleFonts.poppins(
+                        color:
+                            widget.isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    );
+                  } else if (block['type'] == 'image') {
+                    content = Image.file(block['file'] as File);
+                  } else {
+                    content = const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: content,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle,
+                              color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              if (block['type'] == 'text') {
+                                block['controller'].dispose();
+                              }
+                              _contentBlocks.removeAt(index);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                TextField(
-                  controller: _contentController,
-                  maxLines: 10,
-                  textAlignVertical: TextAlignVertical.top,
-                  decoration: InputDecoration(
-                    hintText:
-                        'Write your news article here...\n\nTip: Press Enter twice to create a new paragraph.\nTip: Place your cursor where you want to insert an image, then click the image button below.',
-                    border: OutlineInputBorder(
+                ElevatedButton.icon(
+                  onPressed: _addTextBlock,
+                  icon: const Icon(Icons.text_fields, color: Colors.white),
+                  label: Text('Add Text',
+                      style: GoogleFonts.poppins(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C5DD3),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    alignLabelWithHint: true,
-                    contentPadding: const EdgeInsets.all(16),
                   ),
-                  style: GoogleFonts.poppins(
-                    color: widget.isDarkMode ? Colors.white : Colors.black87,
-                    height: 1.6,
-                    fontSize: 16,
-                  ),
-                  keyboardType: TextInputType.multiline,
-                  textCapitalization: TextCapitalization.sentences,
                 ),
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: FloatingActionButton.small(
-                    onPressed: _insertImageAtCursor,
+                ElevatedButton.icon(
+                  onPressed: _addImageBlock,
+                  icon: const Icon(Icons.add_photo_alternate,
+                      color: Colors.white),
+                  label: Text('Add Image',
+                      style: GoogleFonts.poppins(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6C5DD3),
-                    child: const Icon(Icons.add_photo_alternate,
-                        color: Colors.white),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
 
-            // Content Images Preview
-            if (_contentImages.isNotEmpty) ...[
-              Text(
-                'Content Images Preview',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: widget.isDarkMode ? Colors.white : Colors.black87,
-                ),
+            // Expiry Date
+            Text(
+              'Auto-delete Date (Optional)',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: widget.isDarkMode ? Colors.white : Colors.black87,
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 120,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _contentImages.length,
-                  itemBuilder: (context, index) {
-                    final image = _contentImages[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              image: DecorationImage(
-                                image: FileImage(File(image['path'])),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.remove_circle,
-                                color: Colors.red,
-                              ),
-                              onPressed: () => _removeContentImage(index),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 4,
-                            left: 4,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'Position: ${image['position']}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _selectExpiryDate,
+                  icon: const Icon(Icons.calendar_today, color: Colors.white),
+                  label: Text('Select Date',
+                      style: GoogleFonts.poppins(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C5DD3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                if (_expiryDateTime != null)
+                  Expanded(
+                    child: Text(
+                      'Expires: ${_expiryDateTime!.toLocal().toString().substring(0, 16)}',
+                      style: GoogleFonts.poppins(
+                        color:
+                            widget.isDarkMode ? Colors.white70 : Colors.black54,
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

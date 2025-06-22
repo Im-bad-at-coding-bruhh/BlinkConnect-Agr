@@ -37,8 +37,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Size _screenSize;
   bool _isSmallScreen = false;
   final AuthService _authService = AuthService();
-  final AdminService _adminService = AdminService();
-  bool _isAdmin = false;
   String? _profilePhotoBase64;
   bool _profilePhotoLoading = false;
   String? _username;
@@ -54,7 +52,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = firebase_auth.FirebaseAuth.instance.currentUser;
     print('ProfileScreen: Current user UID: ${user?.uid}'); // Debug print
 
-    _checkAdminStatus();
     _fetchProfilePhoto();
     _fetchUserProfileInfo();
   }
@@ -64,22 +61,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didChangeDependencies();
     _screenSize = MediaQuery.of(context).size;
     _isSmallScreen = _screenSize.width < 600;
-  }
-
-  Future<void> _checkAdminStatus() async {
-    print('ProfileScreen: Checking admin status...'); // Debug print
-    try {
-      final isAdmin = await _adminService.isAdmin();
-      print('ProfileScreen: Admin check result: $isAdmin'); // Debug print
-      if (mounted) {
-        setState(() {
-          _isAdmin = isAdmin;
-          print('ProfileScreen: Updated _isAdmin to: $_isAdmin'); // Debug print
-        });
-      }
-    } catch (e) {
-      print('ProfileScreen: Error checking admin status: $e'); // Debug print
-    }
   }
 
   Future<void> _fetchProfilePhoto() async {
@@ -207,15 +188,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
-      body: _buildBody(isDarkMode),
+      body: _buildBody(isDarkMode, authProvider),
       bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDarkMode) : null,
     );
   }
 
-  Widget _buildBody(bool isDarkMode) {
+  Widget _buildBody(bool isDarkMode, AuthProvider authProvider) {
     return Container(
       color: isDarkMode ? Colors.black : Colors.white,
       child: Row(
@@ -233,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Profile Card
-                    _buildProfileCard(isDarkMode),
+                    _buildProfileCard(isDarkMode, authProvider),
                     const SizedBox(height: 24),
 
                     // Account Settings
@@ -298,6 +280,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         themeProvider.toggleTheme(!isDarkMode);
                       },
                     ),
+                    if (authProvider.isAdmin)
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AdminScreen(
+                                isFarmer: widget.isFarmer,
+                                isVerified: widget.isVerified,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.indigo,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Text('Admin Panel'),
+                      ),
                   ],
                 ),
               ),
@@ -480,7 +488,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileCard(bool isDarkMode) {
+  Widget _buildProfileCard(bool isDarkMode, AuthProvider authProvider) {
+    final name = _username ?? 'User';
+    final role = _role ?? 'Buyer';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -561,7 +572,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _username ?? '',
+                name,
                 style: GoogleFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
@@ -570,8 +581,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                (_role != null && _role!.isNotEmpty)
-                    ? (_role![0].toUpperCase() + _role!.substring(1))
+                (role != null && role.isNotEmpty)
+                    ? (role[0].toUpperCase() + role.substring(1))
                     : '',
                 style: GoogleFonts.poppins(
                   fontSize: 18,

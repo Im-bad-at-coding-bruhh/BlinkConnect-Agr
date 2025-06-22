@@ -40,12 +40,7 @@ class AuthProvider with ChangeNotifier {
             role: profile['user_type'] as String,
           ));
 
-          // Check admin status
-          final adminDoc = await FirebaseFirestore.instance
-              .collection('admins')
-              .doc(user.uid)
-              .get();
-          _isAdmin = adminDoc.exists;
+          // Admin status is now checked in signIn and signInWithGoogle methods
         }
       }
       notifyListeners();
@@ -58,19 +53,23 @@ class AuthProvider with ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      await _authService.signInWithEmailAndPassword(email, password);
+      final userCredential =
+          await _authService.signInWithEmailAndPassword(email, password);
 
       // Check admin status after successful sign in
-      if (_user != null) {
+      if (userCredential.user != null) {
+        print('AuthProvider: User signed in, checking admin status...');
         final adminDoc = await FirebaseFirestore.instance
             .collection('admins')
-            .doc(_user!.uid)
+            .doc(userCredential.user!.uid)
             .get();
         _isAdmin = adminDoc.exists;
+        print('AuthProvider: Admin status: $_isAdmin');
         notifyListeners();
       }
     } catch (e) {
       _error = e.toString();
+      print('AuthProvider: Error during sign in: $e');
       notifyListeners();
     } finally {
       _isLoading = false;
@@ -217,19 +216,23 @@ class AuthProvider with ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      await _authService.signInWithGoogle();
+      final userCredential = await _authService.signInWithGoogle();
 
       // Check admin status after successful Google sign in
-      if (_user != null) {
+      if (userCredential.user != null) {
+        print(
+            'AuthProvider: User signed in with Google, checking admin status...');
         final adminDoc = await FirebaseFirestore.instance
             .collection('admins')
-            .doc(_user!.uid)
+            .doc(userCredential.user!.uid)
             .get();
         _isAdmin = adminDoc.exists;
+        print('AuthProvider: Admin status: $_isAdmin');
         notifyListeners();
       }
     } catch (e) {
       _error = e.toString();
+      print('AuthProvider: Error during Google sign in: $e');
       notifyListeners();
     } finally {
       _isLoading = false;

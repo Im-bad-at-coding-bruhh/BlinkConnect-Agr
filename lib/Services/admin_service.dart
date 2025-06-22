@@ -88,7 +88,6 @@ class AdminService {
   Future<void> assignAdmin({
     required String userId,
     required String email,
-    required String name,
     required List<String> permissions,
     required String role,
   }) async {
@@ -100,7 +99,6 @@ class AdminService {
     await _firestore.collection('admins').doc(userId).set({
       'userId': userId,
       'email': email,
-      'name': name,
       'permissions': permissions,
       'role': role,
       'createdAt': FieldValue.serverTimestamp(),

@@ -632,7 +632,8 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             Expanded(
               flex: 5,
               child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
                 child: (product['image'] != null &&
                         product['image'].toString().isNotEmpty)
                     ? Image.memory(
@@ -652,43 +653,42 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       ),
               ),
             ),
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      product['name'] ?? 'No Name',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    product['name'] ?? 'No Name',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white : Colors.black87,
                     ),
-                    Text(
-                      product['seller'] ?? 'N/A',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    product['seller'] ?? 'N/A',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
                     ),
-                    Text(
-                      '\$${(product['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                      style: GoogleFonts.poppins(
-                        color: Color(0xFF6C5DD3),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${(product['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF6C5DD3),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],

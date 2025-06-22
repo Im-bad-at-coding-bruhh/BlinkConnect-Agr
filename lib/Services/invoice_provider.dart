@@ -157,7 +157,18 @@ class InvoiceProvider with ChangeNotifier {
                   quantity: invoice.quantity,
                   unit: unit,
                   saleAmount: invoice.amount,
-                  region: region,
+                  region: 'global', // For leaderboard
+                );
+                await _salesAnalytics.updateProductSales(
+                  productId: invoice.productId,
+                  productName: productName,
+                  farmerId: invoice.farmerId,
+                  farmerName: farmerName,
+                  category: category,
+                  quantity: invoice.quantity,
+                  unit: unit,
+                  saleAmount: invoice.amount,
+                  region: region, // For analytics by region
                 );
               } else {
                 debugPrint(

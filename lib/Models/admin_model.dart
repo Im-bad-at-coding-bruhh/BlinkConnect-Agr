@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Admin {
   final String userId;
   final String email;
-  final String name;
+  final String? name;
   final List<String>
       permissions; // ['manage_communities', 'manage_users', etc.]
   final String role; // 'super_admin', 'community_admin', etc.
@@ -13,7 +13,7 @@ class Admin {
   Admin({
     required this.userId,
     required this.email,
-    required this.name,
+    this.name,
     required this.permissions,
     required this.role,
     required this.createdAt,
@@ -36,7 +36,7 @@ class Admin {
     return Admin(
       userId: map['userId'] ?? '',
       email: map['email'] ?? '',
-      name: map['name'] ?? '',
+      name: map['name'],
       permissions: List<String>.from(map['permissions'] ?? []),
       role: map['role'] ?? '',
       createdAt: (map['createdAt'] as Timestamp).toDate(),

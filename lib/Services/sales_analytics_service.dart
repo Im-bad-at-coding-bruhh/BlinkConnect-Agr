@@ -49,22 +49,8 @@ class SalesAnalyticsService {
     required String region,
   }) async {
     try {
-      if (productId.isEmpty ||
-          productName.isEmpty ||
-          farmerId.isEmpty ||
-          farmerName.isEmpty ||
-          category.isEmpty ||
-          unit.isEmpty ||
-          region.isEmpty) {
-        print('Error updating sales analytics: Missing required parameters');
-        return;
-      }
-
-      if (quantity <= 0 || saleAmount <= 0) {
-        print(
-            'Error updating sales analytics: Invalid quantity or sale amount');
-        return;
-      }
+      print(
+          'updateProductSales: productId=$productId, productName=$productName, farmerId=$farmerId, farmerName=$farmerName, category=$category, quantity=$quantity, unit=$unit, saleAmount=$saleAmount, region=$region');
 
       final docRef = _firestore
           .collection('sales_analytics')
@@ -74,59 +60,66 @@ class SalesAnalyticsService {
           .collection('categories')
           .doc(category);
 
+      // Get current timestamp outside of transaction
+      final currentTime = DateTime.now();
+
       await _firestore.runTransaction((transaction) async {
         final doc = await transaction.get(docRef);
-        final weightInKg = _convertToKg(quantity, unit);
 
-        if (!doc.exists) {
-          transaction.set(docRef, {
-            'products': [
-              {
-                'productId': productId,
-                'productName': productName,
-                'totalSales': saleAmount,
-                'totalWeight': weightInKg,
-                'lastUpdated': FieldValue.serverTimestamp(),
-              }
-            ]
-          });
-        } else {
+        // Always treat products as a list of maps
+        List<Map<String, dynamic>> products = [];
+        if (doc.exists) {
           final data = doc.data();
-          if (data == null) {
-            print('Error updating sales analytics: Document data is null');
-            return;
+          print('updateProductSales: existing doc data: $data');
+          if (data != null && data['products'] is List) {
+            products = List<Map<String, dynamic>>.from(data['products']);
+          } else if (data != null && data['products'] is Map) {
+            // If products is a map (corrupt), ignore it and start fresh
+            print(
+                'updateProductSales: WARNING - products was a map, resetting to list');
           }
-
-          final products =
-              List<Map<String, dynamic>>.from(data['products'] ?? []);
-          final productIndex =
-              products.indexWhere((p) => p['productId'] == productId);
-
-          if (productIndex != -1) {
-            final currentSales = products[productIndex]['totalSales'] ?? 0.0;
-            final currentWeight = products[productIndex]['totalWeight'] ?? 0.0;
-            products[productIndex]['totalSales'] = currentSales + saleAmount;
-            products[productIndex]['totalWeight'] = currentWeight + weightInKg;
-            products[productIndex]['lastUpdated'] =
-                FieldValue.serverTimestamp();
-          } else {
-            products.add({
-              'productId': productId,
-              'productName': productName,
-              'totalSales': saleAmount,
-              'totalWeight': weightInKg,
-              'lastUpdated': FieldValue.serverTimestamp(),
-            });
-          }
-
-          products.sort((a, b) {
-            final weightA = (a['totalWeight'] as num?)?.toDouble() ?? 0.0;
-            final weightB = (b['totalWeight'] as num?)?.toDouble() ?? 0.0;
-            return weightB.compareTo(weightA);
-          });
-
-          transaction.update(docRef, {'products': products});
         }
+
+        // Convert all weights to kg for comparison
+        double weightInKg = _convertToKg(quantity, unit);
+
+        // Find product index
+        final productIndex =
+            products.indexWhere((p) => p['productId'] == productId);
+
+        if (productIndex != -1) {
+          // Update existing product
+          final currentSales =
+              (products[productIndex]['totalSales'] as num?)?.toDouble() ?? 0.0;
+          final currentWeight =
+              (products[productIndex]['totalWeight'] as num?)?.toDouble() ??
+                  0.0;
+          products[productIndex]['totalSales'] = currentSales + saleAmount;
+          products[productIndex]['totalWeight'] = currentWeight + weightInKg;
+          products[productIndex]['lastUpdated'] = currentTime;
+        } else {
+          // Add new product
+          products.add({
+            'productId': productId,
+            'productName': productName,
+            'farmerId': farmerId,
+            'farmerName': farmerName,
+            'totalSales': saleAmount,
+            'totalWeight': weightInKg,
+            'lastUpdated': currentTime,
+          });
+        }
+
+        // Sort by totalWeight descending
+        products.sort((a, b) {
+          final weightA = (a['totalWeight'] as num?)?.toDouble() ?? 0.0;
+          final weightB = (b['totalWeight'] as num?)?.toDouble() ?? 0.0;
+          return weightB.compareTo(weightA);
+        });
+
+        // Write back as a list
+        transaction.set(
+            docRef, {'products': products}, SetOptions(merge: true));
       });
     } catch (e) {
       print('Error updating sales analytics: $e');
@@ -134,8 +127,9 @@ class SalesAnalyticsService {
     }
   }
 
-  // Get leaderboard data for a category
+  // Get leaderboard data for a category (always use 'global' region)
   Stream<List<Map<String, dynamic>>> getCategoryLeaderboard(String category) {
+    final region = 'global';
     final categories = _mapCategory(category);
     // If multiple categories, merge their leaderboards
     if (categories.length > 1) {
@@ -149,14 +143,21 @@ class SalesAnalyticsService {
         .collection('sales_analytics')
         .doc(_currentYearMonth)
         .collection('regions')
-        .doc('global')
+        .doc(region)
         .collection('categories')
         .doc(category)
         .snapshots()
         .map((doc) {
       if (!doc.exists) return [];
 
-      final sales = List<Map<String, dynamic>>.from(doc.data()?['sales'] ?? []);
+      final sales = List<Map<String, dynamic>>.from(
+              doc.data()?['sales'] ?? doc.data()?['products'] ?? [])
+          .map((item) => {
+                ...item,
+                'revenue': item['revenue'] ?? item['totalSales'] ?? 0,
+                'farmerName': item['farmerName'] ?? 'Unknown Farmer',
+              })
+          .toList();
       return sales.take(5).toList(); // Return top 5 farmers
     });
   }

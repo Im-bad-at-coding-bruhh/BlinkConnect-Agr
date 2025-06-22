@@ -45,291 +45,6 @@ class _CommunityScreenState extends State<CommunityScreen>
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // Sample data for community members
-  final List<Map<String, dynamic>> _communityMembers = [
-    {
-      'name': 'John Smith',
-      'role': 'Organic Farmer',
-      'avatar': 'J',
-      'location': 'California, USA',
-      'specialties': ['Organic Vegetables', 'Sustainable Farming'],
-      'rating': 4.8,
-      'verified': true,
-    },
-    {
-      'name': 'Maria Garcia',
-      'role': 'Wholesale Buyer',
-      'avatar': 'M',
-      'location': 'Texas, USA',
-      'specialties': ['Bulk Purchases', 'Farm-to-Table'],
-      'rating': 4.7,
-      'verified': true,
-    },
-    {
-      'name': 'David Kumar',
-      'role': 'Urban Farmer',
-      'avatar': 'D',
-      'location': 'New York, USA',
-      'specialties': ['Microgreens', 'Vertical Farming'],
-      'rating': 4.9,
-      'verified': true,
-    },
-  ];
-
-  final Map<String, Map<String, List<Map<String, dynamic>>>>
-      _leaderboardDataByMonth = {
-    'April': {
-      'All': [
-        {
-          'rank': 1,
-          'name': 'John Smith',
-          'revenue': '\$12,450',
-          'status': 'verified',
-          'growth': '+15%',
-          'avatar': 'J',
-        },
-        {
-          'rank': 2,
-          'name': 'Maria Garcia',
-          'revenue': '\$11,200',
-          'status': 'verified',
-          'growth': '+8%',
-          'avatar': 'M',
-        },
-        {
-          'rank': 3,
-          'name': 'David Kumar',
-          'revenue': '\$10,850',
-          'status': 'verified',
-          'growth': '+12%',
-          'avatar': 'D',
-        },
-        {
-          'rank': 4,
-          'name': 'Sarah Johnson',
-          'revenue': '\$9,780',
-          'status': 'verified',
-          'growth': '+5%',
-          'avatar': 'S',
-        },
-        {
-          'rank': 5,
-          'name': 'Michael Wong',
-          'revenue': '\$8,900',
-          'status': 'verified',
-          'growth': '+2%',
-          'avatar': 'M',
-        },
-      ],
-      'Crops': [
-        {
-          'rank': 1,
-          'name': 'James Wilson',
-          'revenue': '\$8,750',
-          'status': 'verified',
-          'growth': '+13%',
-          'avatar': 'J',
-        },
-        {
-          'rank': 2,
-          'name': 'David Kumar',
-          'revenue': '\$7,900',
-          'status': 'verified',
-          'growth': '+7%',
-          'avatar': 'D',
-        },
-        {
-          'rank': 3,
-          'name': 'Sofia Patel',
-          'revenue': '\$7,200',
-          'status': 'verified',
-          'growth': '+11%',
-          'avatar': 'S',
-        },
-        {
-          'rank': 4,
-          'name': 'Michael Wong',
-          'revenue': '\$6,950',
-          'status': 'verified',
-          'growth': '+3%',
-          'avatar': 'M',
-        },
-        {
-          'rank': 5,
-          'name': 'Maria Garcia',
-          'revenue': '\$6,500',
-          'status': 'verified',
-          'growth': '+9%',
-          'avatar': 'M',
-        },
-      ],
-      'Vegetables': [
-        {
-          'rank': 1,
-          'name': 'Maria Garcia',
-          'revenue': '\$9,850',
-          'status': 'verified',
-          'growth': '+16%',
-          'avatar': 'M',
-        },
-        {
-          'rank': 2,
-          'name': 'John Smith',
-          'revenue': '\$8,700',
-          'status': 'verified',
-          'growth': '+9%',
-          'avatar': 'J',
-        },
-        {
-          'rank': 3,
-          'name': 'Sarah Johnson',
-          'revenue': '\$7,950',
-          'status': 'verified',
-          'growth': '+12%',
-          'avatar': 'S',
-        },
-        {
-          'rank': 4,
-          'name': 'Robert Lee',
-          'revenue': '\$7,200',
-          'status': 'pending',
-          'growth': '+8%',
-          'avatar': 'R',
-        },
-        {
-          'rank': 5,
-          'name': 'Emily Roberts',
-          'revenue': '\$6,800',
-          'status': 'pending',
-          'growth': '+7%',
-          'avatar': 'E',
-        },
-      ],
-      'Fruits': [
-        {
-          'rank': 1,
-          'name': 'David Kumar',
-          'revenue': '\$10,450',
-          'status': 'verified',
-          'growth': '+18%',
-          'avatar': 'D',
-        },
-        {
-          'rank': 2,
-          'name': 'Olivia Chen',
-          'revenue': '\$9,800',
-          'status': 'verified',
-          'growth': '+12%',
-          'avatar': 'O',
-        },
-        {
-          'rank': 3,
-          'name': 'John Smith',
-          'revenue': '\$9,250',
-          'status': 'verified',
-          'growth': '+10%',
-          'avatar': 'J',
-        },
-        {
-          'rank': 4,
-          'name': 'Emily Roberts',
-          'revenue': '\$8,750',
-          'status': 'pending',
-          'growth': '+9%',
-          'avatar': 'E',
-        },
-        {
-          'rank': 5,
-          'name': 'Maria Garcia',
-          'revenue': '\$8,200',
-          'status': 'verified',
-          'growth': '+7%',
-          'avatar': 'M',
-        },
-      ],
-    },
-    'March': {
-      'All': [
-        {
-          'rank': 1,
-          'name': 'Maria Garcia',
-          'revenue': '\$11,800',
-          'status': 'verified',
-          'growth': '+12%',
-          'avatar': 'M',
-        },
-        {
-          'rank': 2,
-          'name': 'John Smith',
-          'revenue': '\$10,950',
-          'status': 'verified',
-          'growth': '+8%',
-          'avatar': 'J',
-        },
-        {
-          'rank': 3,
-          'name': 'David Kumar',
-          'revenue': '\$9,800',
-          'status': 'verified',
-          'growth': '+10%',
-          'avatar': 'D',
-        },
-      ],
-      'Crops': [
-        {
-          'rank': 1,
-          'name': 'David Kumar',
-          'revenue': '\$8,200',
-          'status': 'verified',
-          'growth': '+11%',
-          'avatar': 'D',
-        },
-        {
-          'rank': 2,
-          'name': 'James Wilson',
-          'revenue': '\$7,850',
-          'status': 'verified',
-          'growth': '+9%',
-          'avatar': 'J',
-        },
-        {
-          'rank': 3,
-          'name': 'Sofia Patel',
-          'revenue': '\$7,100',
-          'status': 'verified',
-          'growth': '+7%',
-          'avatar': 'S',
-        },
-      ],
-    },
-  };
-
-  String _selectedCategory = 'All';
-  String _selectedMonth = 'April';
-  final List<String> _categories = [
-    'Vegetables',
-    'Fruits',
-    'Dairy',
-    'Meat',
-    'Poultry',
-    'Seafood',
-    'Seeds',
-  ];
-  final List<String> _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
   // Add new controllers for community creation
   final TextEditingController _communityNameController =
       TextEditingController();
@@ -349,6 +64,9 @@ class _CommunityScreenState extends State<CommunityScreen>
     super.initState();
     _selectedIndex = widget.initialIndex;
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -438,7 +156,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           _isSmallScreen ? _buildModernBottomBar(isDarkMode) : null,
       floatingActionButton: Consumer<app_auth.AuthProvider>(
         builder: (context, authProvider, child) {
-          if (authProvider.isAdmin) {
+          if (authProvider.isAdmin && _tabController.index == 0) {
             return FloatingActionButton(
               onPressed: _showCreateNewsDialog,
               backgroundColor: const Color(0xFF6C5DD3),
@@ -468,7 +186,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        _buildFeedTab(isDarkMode),
+                        _buildNewsFeed(isDarkMode),
                         _buildLeaderboardTab(isDarkMode),
                       ],
                     ),
@@ -577,646 +295,416 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
-  Widget _buildFeedTab(bool isDarkMode) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
+  Widget _buildNewsFeed(bool isDarkMode) {
+    return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('announcements')
           .orderBy('createdAt', descending: true)
-          .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => {
-                    'id': doc.id,
-                    ...doc.data(),
-                  })
-              .toList()),
+          .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
         if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${snapshot.error}',
-              style: GoogleFonts.poppins(
-                color: Colors.red,
-              ),
-            ),
-          );
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('No announcements yet.'));
         }
 
-        if (!snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        final announcements = snapshot.data!;
-
-        if (announcements.isEmpty) {
-          return Center(
-            child: Text(
-              'No announcements yet',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: isDarkMode ? Colors.white70 : Colors.black54,
-              ),
-            ),
-          );
-        }
+        final announcements = snapshot.data!.docs;
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
           itemCount: announcements.length,
           itemBuilder: (context, index) {
-            final announcement = announcements[index];
-            return _buildAnnouncementCard(announcement, isDarkMode);
+            final doc = announcements[index];
+            final article = doc.data() as Map<String, dynamic>;
+            article['id'] = doc.id; // Add document ID to article data
+            return _buildAnnouncementCard(article, isDarkMode);
           },
         );
       },
     );
   }
 
-  String _cleanContent(String content, List<dynamic> images) {
-    String cleanContent = content;
-    for (var image in images) {
-      if (image['placeholder'] != null) {
-        cleanContent = cleanContent.replaceAll(image['placeholder'], '');
-      }
-    }
-    return cleanContent;
+  String _formatDate(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+    return '${timestamp.toDate().month}/${timestamp.toDate().day}/${timestamp.toDate().year}';
   }
 
-  Widget _buildAnnouncementCard(
-      Map<String, dynamic> announcement, bool isDarkMode) {
+  Widget _buildAnnouncementCard(Map<String, dynamic> article, bool isDarkMode) {
+    // Helper function to extract the first text block for summary
+    String getFirstTextBlock(dynamic content) {
+      if (content is String) {
+        return content;
+      }
+      if (content is List) {
+        for (var block in content) {
+          if (block is Map &&
+              block['type'] == 'text' &&
+              block['data'] is String) {
+            final text = block['data'] as String;
+            if (text.isNotEmpty) {
+              return text;
+            }
+          }
+        }
+      }
+      return 'Tap to read more...';
+    }
+
     return FutureBuilder<bool>(
-      future: AdminService().isAdmin(),
-      builder: (context, snapshot) {
-        final bool isAdmin = snapshot.data ?? false;
-        final bool isOlderThanMonth =
-            _isOlderThanMonth(announcement['createdAt']);
-
-        // Only clean the content for the summary display
-        final cleanContent = _cleanContent(
-          announcement['content'] ?? '',
-          announcement['contentImages'] ?? [],
-        );
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 24),
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-            ),
-            boxShadow: isDarkMode
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.05),
-                      blurRadius: 5,
-                      spreadRadius: 0,
-                    ),
-                  ]
-                : null,
+      future: _isAdmin(), // Assuming _isAdmin() exists in the state
+      builder: (context, isAdminSnapshot) {
+        final bool isAdmin = isAdminSnapshot.data ?? false;
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
           child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => NewsArticleScreen(
-                    article: announcement,
-                    isDarkMode: isDarkMode,
-                    onDelete: isAdmin && isOlderThanMonth
-                        ? () => _deleteArticle(announcement['id'])
-                        : null,
-                  ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => NewsArticleScreen(
+                  article: article,
+                  isDarkMode: isDarkMode,
+                  onDelete: isAdmin
+                      ? () => _deleteAnnouncement(
+                          article['id']) // Assuming _deleteAnnouncement exists
+                      : null,
                 ),
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Thumbnail Image
-                if (announcement['thumbnailBase64'] != null)
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(16)),
-                      image: DecorationImage(
-                        image: MemoryImage(
-                          base64Decode(announcement['thumbnailBase64']),
-                        ),
+              ),
+            ),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (article['thumbnailBase64'] != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        base64Decode(article['thumbnailBase64']),
+                        height: 200,
+                        width: double.infinity,
                         fit: BoxFit.cover,
                       ),
                     ),
+                  const SizedBox(height: 12),
+                  Text(
+                    article['title'] ?? 'No Title',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
                   ),
-
-                // Header with title and date
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  const SizedBox(height: 8),
+                  Text(
+                    article['summary']?.isNotEmpty == true
+                        ? article['summary']
+                        : getFirstTextBlock(article['content']),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      Expanded(
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor:
+                            isDarkMode ? Colors.white24 : Colors.black12,
                         child: Text(
-                          announcement['title'],
+                          (article['authorName'] ?? 'A')[0].toUpperCase(),
                           style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                          ),
+                              fontSize: 12,
+                              color: isDarkMode ? Colors.white : Colors.black),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
-                        _formatDate(announcement['createdAt']),
+                        article['authorName'] ?? 'Admin',
                         style: GoogleFonts.poppins(
-                          fontSize: 14,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                           color: isDarkMode ? Colors.white70 : Colors.black54,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-
-                // Summary
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    announcement['summary'] ?? cleanContent,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      height: 1.5,
-                      color: isDarkMode ? Colors.white70 : Colors.black87,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-
-                // Footer with author and read more
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person_outline,
-                            size: 16,
-                            color: isDarkMode ? Colors.white70 : Colors.black54,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Posted by ${announcement['authorName']}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color:
-                                  isDarkMode ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
+                      const Spacer(),
                       Text(
-                        'Read More',
+                        _formatDate(article['createdAt']),
                         style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: const Color(0xFF6C5DD3),
+                          fontSize: 12,
+                          color: isDarkMode ? Colors.white54 : Colors.black45,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
       },
     );
-  }
-
-  bool _isOlderThanMonth(dynamic createdAt) {
-    if (createdAt == null) return false;
-
-    // Handle both Timestamp and DateTime objects
-    DateTime date;
-    if (createdAt is Timestamp) {
-      date = createdAt.toDate();
-    } else if (createdAt is DateTime) {
-      date = createdAt;
-    } else {
-      return false;
-    }
-
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    return difference.inDays > 30;
-  }
-
-  String _formatDate(dynamic createdAt) {
-    if (createdAt == null) return 'Unknown date';
-
-    // Handle both Timestamp and DateTime objects
-    DateTime date;
-    if (createdAt is Timestamp) {
-      date = createdAt.toDate();
-    } else if (createdAt is DateTime) {
-      date = createdAt;
-    } else {
-      return 'Invalid date';
-    }
-
-    return '${date.day}/${date.month}/${date.year}';
   }
 
   Widget _buildLeaderboardTab(bool isDarkMode) {
-    return StreamBuilder<List<String>>(
-      stream: SalesAnalyticsService().getCategoriesWithSales(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${snapshot.error}',
-              style: GoogleFonts.poppins(
-                color: Colors.red,
-              ),
-            ),
-          );
-        }
+    final List<String> categories = [
+      'Vegetables',
+      'Fruits',
+      'Dairy',
+      'Meat',
+      'Poultry',
+      'Seafood',
+      'Seeds',
+    ];
+    String selectedCategory = categories[0];
 
-        if (!snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        final categories = snapshot.data!;
-        if (categories.isEmpty) {
-          return Center(
-            child: Text(
-              'No sales data available yet',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: isDarkMode ? Colors.white70 : Colors.black54,
-              ),
-            ),
-          );
-        }
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Month Selector
-              _buildMonthSelector(isDarkMode),
-              const SizedBox(height: 16),
-
-              // Category Filter
-              Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: _categories.map((category) {
-                    final bool isSelected = _selectedCategory == category;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-                        },
-                        child: Container(
-                          height: 44,
-                          decoration: BoxDecoration(
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+        return Column(
+          children: [
+            // Category Selector
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+              child: SizedBox(
+                height: 40,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    final bool isSelected = selectedCategory == category;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = category;
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF6C5DD3)
+                              : isDarkMode
+                                  ? Colors.grey.withOpacity(0.2)
+                                  : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          category,
+                          style: GoogleFonts.poppins(
                             color: isSelected
-                                ? const Color(0xFF6C5DD3)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              category,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: isSelected
-                                    ? Colors.white
-                                    : isDarkMode
-                                        ? Colors.white70
-                                        : Colors.black87,
-                              ),
-                            ),
+                                ? Colors.white
+                                : isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black87,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                       ),
                     );
-                  }).toList(),
+                  },
                 ),
               ),
-              const SizedBox(height: 24),
+            ),
 
-              // Leaderboard Cards
-              StreamBuilder<List<Map<String, dynamic>>>(
+            // Leaderboard Stream
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
                 stream: SalesAnalyticsService()
-                    .getCategoryLeaderboard(_selectedCategory),
+                    .getCategoryLeaderboard(selectedCategory),
                 builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Error: ${snapshot.error}',
-                        style: GoogleFonts.poppins(
-                          color: Colors.red,
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('No data for $selectedCategory'));
+                  }
+
+                  final leaderboardData = snapshot.data!;
+
+                  return ListView.builder(
+                    itemCount: leaderboardData.length,
+                    itemBuilder: (context, index) {
+                      final item = leaderboardData[index];
+                      final rank = index + 1;
+                      final name = item['farmerName'] ?? 'Unknown';
+                      final revenue = item['revenue'] ?? 0;
+                      final farmerId = item['farmerId'] as String?;
+                      final avatar =
+                          name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                    );
-                  }
-
-                  if (!snapshot.hasData) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-
-                  final leaderboardItems = snapshot.data!;
-                  if (leaderboardItems.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No data available for ${_selectedCategory}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                        color:
+                            isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: isDarkMode
+                                    ? Colors.white24
+                                    : Colors.black12,
+                                child: Text(
+                                  '$rank',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: farmerId == null
+                                    ? CircleAvatar(
+                                        radius: 20,
+                                        backgroundColor: isDarkMode
+                                            ? Colors.white24
+                                            : Colors.black12,
+                                        child: Text(
+                                          avatar,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDarkMode
+                                                ? Colors.white
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                      )
+                                    : FutureBuilder<DocumentSnapshot>(
+                                        future: FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(farmerId)
+                                            .get(),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return CircleAvatar(
+                                                backgroundColor: isDarkMode
+                                                    ? Colors.white24
+                                                    : Colors.black12);
+                                          }
+                                          if (snapshot.hasData &&
+                                              snapshot.data!.exists) {
+                                            final userData = snapshot.data!
+                                                .data() as Map<String, dynamic>;
+                                            final imageBase64 =
+                                                userData['profilePhotoBase64']
+                                                    as String?;
+                                            if (imageBase64 != null &&
+                                                imageBase64.isNotEmpty) {
+                                              try {
+                                                final imageBytes =
+                                                    base64Decode(imageBase64);
+                                                return CircleAvatar(
+                                                  radius: 20,
+                                                  backgroundImage:
+                                                      MemoryImage(imageBytes),
+                                                );
+                                              } catch (e) {
+                                                // Fallback below
+                                              }
+                                            }
+                                          }
+                                          // Default fallback
+                                          return CircleAvatar(
+                                            radius: 20,
+                                            backgroundColor: isDarkMode
+                                                ? Colors.white24
+                                                : Colors.black12,
+                                            child: Text(
+                                              avatar,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDarkMode
+                                                    ? Colors.white
+                                                    : Colors.black,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment
+                                      .center, // Center the name vertically
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight:
+                                            FontWeight.w900, // Bolder font
+                                        color: isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment
+                                    .center, // Center the revenue vertically
+                                children: [
+                                  Text(
+                                    '\$${revenue.toStringAsFixed(2)}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF6C5DD3),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: leaderboardItems.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return _buildLeaderboardCard(
-                        {
-                          'rank': index + 1,
-                          'name': item['farmerName'],
-                          'revenue':
-                              '\$${item['totalSales'].toStringAsFixed(2)}',
-                          'status': 'verified',
-                          'growth':
-                              '${((item['totalWeight'] / 1000) * 100).toStringAsFixed(1)}%',
-                          'avatar': item['farmerName'][0],
-                        },
-                        isDarkMode,
                       );
-                    }).toList(),
+                    },
                   );
                 },
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildLeaderboardCard(Map<String, dynamic> item, bool isDarkMode) {
-    final bool isVerified = item['status'] == 'verified';
-    final int rank = item['rank'] as int;
-    final bool isTopThree = rank <= 3;
-
-    Color getRankColor() {
-      if (rank == 1) return const Color(0xFFFFD700); // Gold
-      if (rank == 2) return const Color(0xFFC0C0C0); // Silver
-      if (rank == 3) return const Color(0xFFCD7F32); // Bronze
-      return isDarkMode ? Colors.white70 : Colors.black87;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? Colors.black.withOpacity(0.2)
-            : Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isTopThree
-              ? getRankColor().withOpacity(0.5)
-              : isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-          width: isTopThree ? 2 : 1,
-        ),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: isTopThree
-                      ? getRankColor().withOpacity(0.1)
-                      : const Color(0xFF6C5DD3).withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.05),
-                  blurRadius: 5,
-                  spreadRadius: 0,
-                ),
-              ]
-            : null,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Rank with avatar
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isTopThree
-                            ? getRankColor().withOpacity(0.2)
-                            : isDarkMode
-                                ? Colors.white.withOpacity(0.1)
-                                : Colors.black.withOpacity(0.05),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '#$rank',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isTopThree
-                                ? getRankColor()
-                                : isDarkMode
-                                    ? Colors.white
-                                    : Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF6C5DD3).withOpacity(0.2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          item['avatar'],
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6C5DD3),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      item['name'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Status badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: isVerified
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.amber.withOpacity(0.2),
-                  ),
-                  child: Text(
-                    isVerified ? 'Verified' : 'Pending',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isVerified ? Colors.green : Colors.amber,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Sales',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item['revenue'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Growth',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item['growth'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMonthSelector(bool isDarkMode) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? Colors.black.withOpacity(0.2)
-            : Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedMonth,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6C5DD3)),
-          isExpanded: true,
-          dropdownColor: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            color: isDarkMode ? Colors.white : Colors.black87,
-          ),
-          items: _months.map((String month) {
-            return DropdownMenuItem<String>(
-              value: month,
-              child: Text(month),
-            );
-          }).toList(),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              setState(() {
-                _selectedMonth = newValue;
-              });
-            }
-          },
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1433,6 +921,32 @@ class _CommunityScreenState extends State<CommunityScreen>
           ),
         );
       }
+    }
+  }
+
+  Future<bool> _isAdmin() async {
+    return await AdminService().isAdmin();
+  }
+
+  Future<void> _deleteAnnouncement(String docId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .doc(docId)
+          .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Announcement deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting announcement: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
