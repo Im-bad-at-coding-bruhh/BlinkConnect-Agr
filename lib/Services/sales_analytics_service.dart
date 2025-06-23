@@ -342,8 +342,8 @@ class SalesAnalyticsService {
 
       // Convert to list and sort by discount percentage
       List<Map<String, dynamic>> sortedProducts = productData.values.toList()
-        ..sort((a, b) =>
-            b['discountPercentage'].compareTo(a['discountPercentage']));
+        ..sort((a, b) => (b['discountPercentage'] ?? 0)
+            .compareTo(a['discountPercentage'] ?? 0));
 
       return sortedProducts.take(limit).toList();
     } catch (e) {

@@ -194,10 +194,17 @@ class _AddProductFormState extends State<AddProductForm> {
     'Sustainable',
   ];
 
+  final TextEditingController _discountPercentageController =
+      TextEditingController();
+  final TextEditingController _minQuantityForDiscountController =
+      TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _descriptionController.text = widget.defaultDescription;
+    _discountPercentageController.text = '';
+    _minQuantityForDiscountController.text = '';
   }
 
   @override
@@ -206,6 +213,8 @@ class _AddProductFormState extends State<AddProductForm> {
     _priceController.dispose();
     _quantityController.dispose();
     _descriptionController.dispose();
+    _discountPercentageController.dispose();
+    _minQuantityForDiscountController.dispose();
     super.dispose();
   }
 
@@ -353,6 +362,15 @@ class _AddProductFormState extends State<AddProductForm> {
         productData['seafoodPreservationMethod'] =
             _selectedSeafoodPreservationMethod;
         productData['seafoodHarvestMethod'] = _selectedSeafoodHarvestMethod;
+        // Add discount fields explicitly
+        productData['discountPercentage'] =
+            _discountPercentageController.text.isNotEmpty
+                ? double.tryParse(_discountPercentageController.text)
+                : null;
+        productData['minQuantityForDiscount'] =
+            _minQuantityForDiscountController.text.isNotEmpty
+                ? double.tryParse(_minQuantityForDiscountController.text)
+                : null;
         // Create product object
         final product = Product.fromMap('', productData);
         widget.onProductAdded(product);

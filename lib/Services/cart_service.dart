@@ -278,9 +278,32 @@ class CartService extends ChangeNotifier {
       double total = 0.0;
       for (var doc in cartDoc.docs) {
         final item = CartItem.fromMap(doc.id, doc.data());
-        total += item.locked
-            ? item.negotiatedPrice
-            : item.negotiatedPrice * item.quantity;
+        if (item.locked) {
+          total += item.negotiatedPrice;
+        } else {
+          // Fetch product data for discount info
+          final productDoc =
+              await _firestore.collection('products').doc(item.productId).get();
+          final productData = productDoc.data();
+          if (productData != null) {
+            final discountPercentage =
+                (productData['discountPercentage'] as num?)?.toDouble() ?? 0;
+            final minQty =
+                (productData['minQuantityForDiscount'] as num?)?.toDouble() ??
+                    0;
+            final price = (productData['price'] as num?)?.toDouble() ?? 0;
+            if (discountPercentage > 0 &&
+                minQty > 0 &&
+                item.quantity >= minQty) {
+              final discountedPrice = price * (1 - discountPercentage / 100);
+              total += discountedPrice * item.quantity;
+            } else {
+              total += price * item.quantity;
+            }
+          } else {
+            total += item.negotiatedPrice * item.quantity;
+          }
+        }
       }
       return total;
     } catch (e) {

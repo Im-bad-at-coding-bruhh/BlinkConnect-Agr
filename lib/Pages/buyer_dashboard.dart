@@ -16,6 +16,8 @@ import '/Services/sales_analytics_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/Pages/product_details_screen.dart';
 import 'dart:convert';
+import '../Models/product_model.dart';
+import '../Services/product_provider.dart';
 
 class BuyerDashboardScreen extends StatefulWidget {
   final bool isFarmer;
@@ -47,6 +49,9 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   User? _currentUser;
   String _username = '';
   List<Map<String, dynamic>> _specialOffers = [];
+  Timer? _specialOffersTimer;
+  Timer? _topSellingTimer;
+  Timer? _seasonalCropsTimer;
 
   @override
   void initState() {
@@ -54,8 +59,21 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     _selectedIndex = widget.initialIndex;
     _currentUser = FirebaseAuth.instance.currentUser;
     _loadUsername();
-    _loadCrops();
+    _loadTopSellingCrops();
+    _loadSeasonalCrops();
     _loadSpecialOffers();
+    // Refresh special offers every 60 seconds
+    _specialOffersTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      _loadSpecialOffers();
+    });
+    // Refresh top selling crops every 60 seconds
+    _topSellingTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      _loadTopSellingCrops();
+    });
+    // Refresh seasonal crops every 24 hours
+    _seasonalCropsTimer = Timer.periodic(const Duration(hours: 24), (timer) {
+      _loadSeasonalCrops();
+    });
   }
 
   @override
@@ -63,6 +81,14 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     super.didChangeDependencies();
     _screenSize = MediaQuery.of(context).size;
     _isSmallScreen = _screenSize.width < 600;
+  }
+
+  @override
+  void dispose() {
+    _specialOffersTimer?.cancel();
+    _topSellingTimer?.cancel();
+    _seasonalCropsTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUsername() async {
@@ -84,30 +110,26 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     }
   }
 
-  Future<void> _loadCrops() async {
+  Future<void> _loadTopSellingCrops() async {
     setState(() {
       _isLoading = true;
     });
-
     try {
-      // Get user's region from their profile
+      // Fetch latest products
+      final productProvider =
+          Provider.of<ProductProvider>(context, listen: false);
+      await productProvider.loadProducts();
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(FirebaseAuth.instance.currentUser?.uid)
           .get();
-
       final userRegion = userDoc.data()?['region'] ?? 'default';
-
-      // Define all crop-related categories
       final cropCategories = [
         'Fruits',
         'Vegetables',
         'Grains',
         'Seeds',
-        // Add more if needed
       ];
-
-      // Aggregate top selling crops from all categories
       List<Map<String, dynamic>> allTopSelling = [];
       for (final category in cropCategories) {
         final topSelling = await _salesAnalytics.getTopSellingProducts(
@@ -116,23 +138,45 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
         );
         allTopSelling.addAll(topSelling);
       }
-      // Sort and take top 10 overall
-      allTopSelling.sort((a, b) =>
-          (b['totalQuantity'] as num).compareTo(a['totalQuantity'] as num));
+      allTopSelling.shuffle();
       allTopSelling = allTopSelling.take(10).toList();
-
-      // Load seasonal crops
-      final seasonal = await _salesAnalytics.getSeasonalCrops(
-        region: userRegion,
-      );
-
       setState(() {
-        _topSellingCrops = allTopSelling;
-        _seasonalCrops = seasonal;
+        _topSellingCrops =
+            allTopSelling.isNotEmpty ? allTopSelling : _topSellingCrops;
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading crops: $e');
+      print('Error loading top selling crops: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSeasonalCrops() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      // Fetch latest products
+      final productProvider =
+          Provider.of<ProductProvider>(context, listen: false);
+      await productProvider.loadProducts();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .get();
+      final userRegion = userDoc.data()?['region'] ?? 'default';
+      final seasonal = await _salesAnalytics.getSeasonalCrops(
+        region: userRegion,
+      );
+      seasonal.shuffle();
+      setState(() {
+        _seasonalCrops = seasonal.isNotEmpty ? seasonal : _seasonalCrops;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading seasonal crops: $e');
       setState(() {
         _isLoading = false;
       });
@@ -148,12 +192,15 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
           .get();
 
       final userRegion = userDoc.data()?['region'] ?? 'default';
+      print('DEBUG: User region for special offers: "$userRegion"');
 
       // Load special offers
       final offers = await _salesAnalytics.getSpecialOffers(
         region: userRegion,
       );
+      print('DEBUG: Number of special offers found: ${offers.length}');
 
+      offers.shuffle();
       setState(() {
         _specialOffers = offers;
       });
@@ -474,6 +521,17 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   Widget _buildMainContent(bool isDarkMode) {
+    // Calculate card width to match marketplace
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = screenWidth < 600;
+    final int crossAxisCount = isSmallScreen ? 2 : 3;
+    const double crossAxisSpacing = 16;
+    // 24 padding left + 24 right = 48
+    final double availableWidth = screenWidth - 48;
+    final double cardWidth =
+        (availableWidth - (crossAxisSpacing * (crossAxisCount - 1))) /
+            crossAxisCount;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
       child: Column(
@@ -504,15 +562,28 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             Container(
               height: 220,
               constraints: const BoxConstraints(maxWidth: double.infinity),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                shrinkWrap: true,
-                physics: const ClampingScrollPhysics(),
-                itemCount: _topSellingCrops.length,
-                itemBuilder: (context, index) {
-                  final crop = _topSellingCrops[index];
-                  return _buildProductCard(crop, isDarkMode);
-                },
+              child: Scrollbar(
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  shrinkWrap: true,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: _topSellingCrops.length,
+                  itemBuilder: (context, index) {
+                    final crop = _topSellingCrops[index];
+                    final card = SizedBox(
+                      width: cardWidth,
+                      child: _buildProductCard(crop, isDarkMode),
+                    );
+                    if (index == _topSellingCrops.length - 1) {
+                      return card;
+                    } else {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: card,
+                      );
+                    }
+                  },
+                ),
               ),
             ),
           const SizedBox(height: 24),
@@ -542,15 +613,28 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
             Container(
               height: 220,
               constraints: const BoxConstraints(maxWidth: double.infinity),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                shrinkWrap: true,
-                physics: const ClampingScrollPhysics(),
-                itemCount: _seasonalCrops.length,
-                itemBuilder: (context, index) {
-                  final crop = _seasonalCrops[index];
-                  return _buildProductCard(crop, isDarkMode);
-                },
+              child: Scrollbar(
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  shrinkWrap: true,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: _seasonalCrops.length,
+                  itemBuilder: (context, index) {
+                    final crop = _seasonalCrops[index];
+                    final card = SizedBox(
+                      width: cardWidth,
+                      child: _buildProductCard(crop, isDarkMode),
+                    );
+                    if (index == _seasonalCrops.length - 1) {
+                      return card;
+                    } else {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: card,
+                      );
+                    }
+                  },
+                ),
               ),
             ),
           const SizedBox(height: 24),
@@ -577,19 +661,20 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
               ),
             )
           else
-            Container(
-              height: 220,
-              constraints: const BoxConstraints(maxWidth: double.infinity),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                shrinkWrap: true,
-                physics: const ClampingScrollPhysics(),
-                itemCount: _specialOffers.length,
-                itemBuilder: (context, index) {
-                  final offer = _specialOffers[index];
-                  return _buildSpecialOfferCard(offer);
-                },
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: _isSmallScreen ? 2 : 3,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
               ),
+              itemCount: _specialOffers.length,
+              itemBuilder: (context, index) {
+                final offer = _specialOffers[index];
+                return _buildSpecialOfferCard(offer);
+              },
             ),
           const SizedBox(height: 24),
         ],
@@ -597,100 +682,203 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
     );
   }
 
-  Widget _buildProductCard(Map<String, dynamic> product, bool isDarkMode) {
-    // This card is styled to match the marketplace card.
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailsScreen(
-              productId: product['productId'],
-              isFarmer: widget.isFarmer,
-              isVerified: widget.isVerified,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        width: 200,
-        margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-        decoration: BoxDecoration(
-          color: isDarkMode ? Color(0xFF1C1C2E) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
-              blurRadius: 10,
-              offset: Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildProductCard(Map<String, dynamic> productMap, bool isDarkMode) {
+    // Ensure images is a list for the Product model
+    if (!productMap.containsKey('images') && productMap['image'] != null) {
+      productMap = Map<String, dynamic>.from(productMap);
+      productMap['images'] = [productMap['image']];
+    }
+    final product = Product.fromMap(
+      productMap['productId'] ?? productMap['id'] ?? '',
+      productMap,
+    );
+    // Fallback for farmer name if empty
+    String farmerName = product.farmerName;
+    if (farmerName.isEmpty) {
+      farmerName = productMap['seller']?.toString() ??
+          productMap['username']?.toString() ??
+          'N/A';
+    }
+    return MouseRegion(
+      onEnter: (_) => _startHoverTimer(productMap),
+      onExit: (_) => _cancelHoverTimer(),
+      child: GestureDetector(
+        onTap: () => _showProductDetails(productMap),
+        child: Stack(
           children: [
-            Expanded(
-              flex: 5,
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: (product['image'] != null &&
-                        product['image'].toString().isNotEmpty)
-                    ? Image.memory(
-                        base64Decode(product['image']),
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[300],
-                          child: Icon(Icons.broken_image,
-                              size: 40, color: Colors.grey[600]),
+            Container(
+              decoration: BoxDecoration(
+                color:
+                    isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05),
+                ),
+                boxShadow: isDarkMode
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 0,
                         ),
-                      )
-                    : Container(
-                        color: Colors.grey[300],
-                        child: Icon(Icons.inventory_2_outlined,
-                            size: 40, color: Colors.grey[600]),
-                      ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          blurRadius: 5,
+                          spreadRadius: 0,
+                        ),
+                      ]
+                    : null,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    product['name'] ?? 'No Name',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: isDarkMode ? Colors.white : Colors.black87,
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.white.withOpacity(0.3),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                      ),
+                      child: Container(
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: (product.images.isNotEmpty &&
+                                  product.images.first != null &&
+                                  product.images.first.toString().isNotEmpty)
+                              ? DecorationImage(
+                                  image: MemoryImage(
+                                      base64Decode(product.images.first)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          color: (product.images.isEmpty ||
+                                  product.images.first == null ||
+                                  product.images.first.toString().isEmpty)
+                              ? (isDarkMode ? Colors.white10 : Colors.black12)
+                              : null,
+                        ),
+                        child: (product.images.isEmpty ||
+                                product.images.first == null ||
+                                product.images.first.toString().isEmpty)
+                            ? Icon(
+                                Icons.image_not_supported_outlined,
+                                size: 48,
+                                color: isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              )
+                            : null,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    product['seller'] ?? 'N/A',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '\$${(product['price'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFF6C5DD3),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.productName,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '\$${product.price.toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6C5DD3),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person,
+                              size: 16,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                farmerName,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on,
+                              size: 16,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                product.region,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+            if ((product.discountPercentage ?? 0) > 0 &&
+                (product.minQuantityForDiscount ?? 0) > 0)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'DISCOUNTED',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -792,7 +980,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ProductDetailsScreen(
-          productId: product['id'],
+          productId: product['productId'] ?? product['id'],
           isFarmer: widget.isFarmer,
           isVerified: widget.isVerified,
         ),
@@ -803,16 +991,250 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   Widget _buildSpecialOfferCard(Map<String, dynamic> offer) {
     final isDarkMode =
         Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    return GestureDetector(
+      onTap: () => _showProductDetails(offer),
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
+              ),
+              boxShadow: isDarkMode
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.05),
+                        blurRadius: 5,
+                        spreadRadius: 0,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.white.withOpacity(0.3),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
+                    ),
+                    child: Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        image: (offer['image'] != null &&
+                                offer['image'].toString().isNotEmpty)
+                            ? DecorationImage(
+                                image:
+                                    MemoryImage(base64Decode(offer['image'])),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        color: (offer['image'] == null ||
+                                offer['image'].toString().isEmpty)
+                            ? (isDarkMode ? Colors.white10 : Colors.black12)
+                            : null,
+                      ),
+                      child: (offer['image'] == null ||
+                              offer['image'].toString().isEmpty)
+                          ? Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 48,
+                              color:
+                                  isDarkMode ? Colors.white30 : Colors.black26,
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        offer['name'] ?? 'No Name',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      if ((offer['discountPercentage'] as num?) != null &&
+                          (offer['discountPercentage'] as num) > 0)
+                        Row(
+                          children: [
+                            Text(
+                              '${(offer['discountedPrice'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF6C5DD3),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${(offer['originalPrice'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                decoration: TextDecoration.lineThrough,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        )
+                      else
+                        Text(
+                          '${(offer['originalPrice'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6C5DD3),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 16,
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            offer['seller'] ?? 'N/A',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 16,
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            offer['region'] ?? '',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if ((offer['discountPercentage'] as num?) != null &&
+              (offer['discountPercentage'] as num) > 0)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'DISCOUNTED',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Add this widget to encapsulate the marketplace card UI for reuse
+class MarketplaceProductCard extends StatelessWidget {
+  final Product product;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+  final bool showQuickInfo;
+  final VoidCallback? onHover;
+  final VoidCallback? onExit;
+  final ImageProvider? customImageProvider;
+
+  const MarketplaceProductCard({
+    Key? key,
+    required this.product,
+    required this.isDarkMode,
+    required this.onTap,
+    this.showQuickInfo = false,
+    this.onHover,
+    this.onExit,
+    this.customImageProvider,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    ImageProvider? imageProvider = customImageProvider;
+    if (imageProvider == null && product.images.isNotEmpty) {
+      final img = product.images.first;
+      try {
+        imageProvider = MemoryImage(base64Decode(img));
+      } catch (e) {
+        imageProvider = null;
+      }
+    }
     return MouseRegion(
-      onEnter: (_) => _startHoverTimer(offer),
-      onExit: (_) => _cancelHoverTimer(),
+      onEnter: (_) => onHover?.call(),
+      onExit: (_) => onExit?.call(),
       child: GestureDetector(
-        onTap: () => _showProductDetails(offer),
+        onTap: onTap,
         child: Stack(
           children: [
             Container(
-              width: 150,
-              margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 color:
                     isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
@@ -822,61 +1244,96 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                       ? Colors.white.withOpacity(0.1)
                       : Colors.black.withOpacity(0.05),
                 ),
+                boxShadow: isDarkMode
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          blurRadius: 5,
+                          spreadRadius: 0,
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Product image
-                  Container(
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? Colors.black.withOpacity(0.3)
-                          : Colors.white.withOpacity(0.3),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.white.withOpacity(0.3),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
                       ),
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        offer['image'],
-                        height: 80,
-                        fit: BoxFit.contain,
+                      child: Container(
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: imageProvider != null
+                              ? DecorationImage(
+                                  image: imageProvider!,
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          color: imageProvider == null
+                              ? (isDarkMode ? Colors.white10 : Colors.black12)
+                              : null,
+                        ),
+                        child: imageProvider == null
+                            ? Icon(
+                                Icons.image_not_supported_outlined,
+                                size: 48,
+                                color: isDarkMode
+                                    ? Colors.white30
+                                    : Colors.black26,
+                              )
+                            : null,
                       ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          offer['name'],
+                          product.productName,
                           style: GoogleFonts.poppins(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: isDarkMode ? Colors.white : Colors.black87,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
+                        Text(
+                          '\$${product.price.toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6C5DD3),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            Text(
-                              '\$${offer['discountedPrice'].toStringAsFixed(2)}',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF6C5DD3),
-                              ),
+                            Icon(
+                              Icons.person,
+                              size: 16,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '\$${offer['originalPrice'].toStringAsFixed(2)}',
+                              product.farmerName,
                               style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                decoration: TextDecoration.lineThrough,
+                                fontSize: 12,
                                 color: isDarkMode
                                     ? Colors.white70
                                     : Colors.black54,
@@ -885,58 +1342,19 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6C5DD3).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '${offer['discountPercentage'].toStringAsFixed(0)}% OFF',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF6C5DD3),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
                         Row(
                           children: [
                             Icon(
-                              Icons.person,
-                              size: 14,
+                              Icons.location_on,
+                              size: 16,
                               color:
                                   isDarkMode ? Colors.white70 : Colors.black54,
                             ),
                             const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                offer['seller'],
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  color: isDarkMode
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Icon(Icons.star, size: 14, color: Colors.amber),
-                            const SizedBox(width: 4),
                             Text(
-                              offer['rating'].toString(),
+                              product.region,
                               style: GoogleFonts.poppins(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: isDarkMode
                                     ? Colors.white70
                                     : Colors.black54,
@@ -950,7 +1368,7 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                 ],
               ),
             ),
-            if (_showQuickInfo && _hoveredProduct == offer)
+            if (showQuickInfo)
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -966,39 +1384,73 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 18,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Region: ${offer['region'] ?? 'N/A'}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
+                          'Region: ${product.region}',
+                          style: GoogleFonts.poppins(color: Colors.white),
                         ),
                         Text(
-                          'Original Price: \$${offer['originalPrice'].toStringAsFixed(2)}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
+                          'Fertilizer: ${product.fertilizerType}',
+                          style: GoogleFonts.poppins(color: Colors.white),
                         ),
                         Text(
-                          'Discount: ${offer['discountPercentage'].toStringAsFixed(0)}%',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
+                          'Pesticide: ${product.pesticideType}',
+                          style: GoogleFonts.poppins(color: Colors.white),
                         ),
                         Text(
-                          'Final Price: \$${offer['discountedPrice'].toStringAsFixed(2)}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
+                          'Available: ${product.quantity} ${product.unit}',
+                          style: GoogleFonts.poppins(color: Colors.white),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              ),
+            if (product.isRestocked)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'RE-STOCKED',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            if (product.isDiscounted)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'DISCOUNTED',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ),

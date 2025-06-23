@@ -83,12 +83,7 @@ class _CartScreenState extends State<CartScreen> {
       debugPrint('Final customer name: $customerName');
 
       // Calculate total amount
-      double totalAmount = 0;
-      for (var item in cartItems) {
-        totalAmount += item.locked
-            ? item.negotiatedPrice
-            : item.negotiatedPrice * item.quantity;
-      }
+      double totalAmount = await cartService.getCartTotal();
 
       // Navigate to test transaction screen
       if (context.mounted) {
@@ -565,6 +560,95 @@ class _CartItemRowState extends State<CartItemRow> {
     final cartService = CartService();
     final item = widget.item;
     final isDarkMode = widget.isDarkMode;
+    final categoryFields = {
+      'Vegetables': [
+        {'key': 'fertilizerType', 'label': 'Fertilizer Type'},
+        {'key': 'pesticideType', 'label': 'Pesticide Type'},
+      ],
+      'Fruits': [
+        {'key': 'fertilizerType', 'label': 'Fertilizer Type'},
+        {'key': 'pesticideType', 'label': 'Pesticide Type'},
+        {'key': 'ripeningMethod', 'label': 'Ripening Method'},
+        {'key': 'preservationMethod', 'label': 'Preservation Method'},
+      ],
+      'Grains': [
+        {'key': 'fertilizerType', 'label': 'Fertilizer Type'},
+        {'key': 'pesticideType', 'label': 'Pesticide Type'},
+        {'key': 'dryingMethod', 'label': 'Post-Harvest Drying'},
+        {'key': 'storageType', 'label': 'Storage Type'},
+        {
+          'key': 'isWeedControlUsed',
+          'label': 'Weed Control Used',
+          'boolToYesNo': true
+        },
+      ],
+      'Dairy': [
+        {'key': 'animalFeedType', 'label': 'Animal Feed Type'},
+        {'key': 'milkCoolingMethod', 'label': 'Milk Cooling/Preservation'},
+        {
+          'key': 'isAntibioticsUsed',
+          'label': 'Antibiotics Used',
+          'boolToYesNo': true
+        },
+        {'key': 'milkingMethod', 'label': 'Milking Method'},
+      ],
+      'Meat': [
+        {'key': 'animalFeedType', 'label': 'Animal Feed Type'},
+        {
+          'key': 'isAntibioticsUsed',
+          'label': 'Antibiotic Use',
+          'boolToYesNo': true
+        },
+        {'key': 'slaughterMethod', 'label': 'Slaughter Method'},
+        {'key': 'rearingSystem', 'label': 'Rearing System'},
+      ],
+      'Seeds': [
+        {'key': 'seedType', 'label': 'Seed Type'},
+        {
+          'key': 'isChemicallyTreated',
+          'label': 'Treated with chemicals',
+          'boolToYesNo': true
+        },
+        {'key': 'isCertified', 'label': 'Certified', 'boolToYesNo': true},
+        {'key': 'seedStorageMethod', 'label': 'Storage Method'},
+      ],
+      'Poultry': [
+        {'key': 'poultryFeedType', 'label': 'Feed Type'},
+        {'key': 'poultryRearingSystem', 'label': 'Rearing System'},
+        {
+          'key': 'isPoultryAntibioticsUsed',
+          'label': 'Antibiotics Used',
+          'boolToYesNo': true
+        },
+        {
+          'key': 'isGrowthBoostersUsed',
+          'label': 'Growth Boosters Used',
+          'boolToYesNo': true
+        },
+        {'key': 'poultrySlaughterMethod', 'label': 'Slaughter Method'},
+        {
+          'key': 'isPoultryVaccinated',
+          'label': 'Vaccinated',
+          'boolToYesNo': true
+        },
+      ],
+      'Seafood': [
+        {'key': 'seafoodSource', 'label': 'Source'},
+        {'key': 'seafoodFeedingType', 'label': 'Feeding Type'},
+        {
+          'key': 'isSeafoodAntibioticsUsed',
+          'label': 'Antibiotics Used',
+          'boolToYesNo': true
+        },
+        {
+          'key': 'isWaterQualityManaged',
+          'label': 'Water Quality Managed',
+          'boolToYesNo': true
+        },
+        {'key': 'seafoodPreservationMethod', 'label': 'Preservation Method'},
+        {'key': 'seafoodHarvestMethod', 'label': 'Harvest Method'},
+      ],
+    };
     return FutureBuilder<Map<String, dynamic>?>(
       future: FirebaseFirestore.instance
           .collection('products')
@@ -573,98 +657,6 @@ class _CartItemRowState extends State<CartItemRow> {
           .then((doc) => doc.data()),
       builder: (context, snapshot) {
         final product = snapshot.data;
-        final categoryFields = {
-          'Vegetables': [
-            {'key': 'fertilizerType', 'label': 'Fertilizer Type'},
-            {'key': 'pesticideType', 'label': 'Pesticide Type'},
-          ],
-          'Fruits': [
-            {'key': 'fertilizerType', 'label': 'Fertilizer Type'},
-            {'key': 'pesticideType', 'label': 'Pesticide Type'},
-            {'key': 'ripeningMethod', 'label': 'Ripening Method'},
-            {'key': 'preservationMethod', 'label': 'Preservation Method'},
-          ],
-          'Grains': [
-            {'key': 'fertilizerType', 'label': 'Fertilizer Type'},
-            {'key': 'pesticideType', 'label': 'Pesticide Type'},
-            {'key': 'dryingMethod', 'label': 'Post-Harvest Drying'},
-            {'key': 'storageType', 'label': 'Storage Type'},
-            {
-              'key': 'isWeedControlUsed',
-              'label': 'Weed Control Used',
-              'boolToYesNo': true
-            },
-          ],
-          'Dairy': [
-            {'key': 'animalFeedType', 'label': 'Animal Feed Type'},
-            {'key': 'milkCoolingMethod', 'label': 'Milk Cooling/Preservation'},
-            {
-              'key': 'isAntibioticsUsed',
-              'label': 'Antibiotics Used',
-              'boolToYesNo': true
-            },
-            {'key': 'milkingMethod', 'label': 'Milking Method'},
-          ],
-          'Meat': [
-            {'key': 'animalFeedType', 'label': 'Animal Feed Type'},
-            {
-              'key': 'isAntibioticsUsed',
-              'label': 'Antibiotic Use',
-              'boolToYesNo': true
-            },
-            {'key': 'slaughterMethod', 'label': 'Slaughter Method'},
-            {'key': 'rearingSystem', 'label': 'Rearing System'},
-          ],
-          'Seeds': [
-            {'key': 'seedType', 'label': 'Seed Type'},
-            {
-              'key': 'isChemicallyTreated',
-              'label': 'Treated with chemicals',
-              'boolToYesNo': true
-            },
-            {'key': 'isCertified', 'label': 'Certified', 'boolToYesNo': true},
-            {'key': 'seedStorageMethod', 'label': 'Storage Method'},
-          ],
-          'Poultry': [
-            {'key': 'poultryFeedType', 'label': 'Feed Type'},
-            {'key': 'poultryRearingSystem', 'label': 'Rearing System'},
-            {
-              'key': 'isPoultryAntibioticsUsed',
-              'label': 'Antibiotics Used',
-              'boolToYesNo': true
-            },
-            {
-              'key': 'isGrowthBoostersUsed',
-              'label': 'Growth Boosters Used',
-              'boolToYesNo': true
-            },
-            {'key': 'poultrySlaughterMethod', 'label': 'Slaughter Method'},
-            {
-              'key': 'isPoultryVaccinated',
-              'label': 'Vaccinated',
-              'boolToYesNo': true
-            },
-          ],
-          'Seafood': [
-            {'key': 'seafoodSource', 'label': 'Source'},
-            {'key': 'seafoodFeedingType', 'label': 'Feeding Type'},
-            {
-              'key': 'isSeafoodAntibioticsUsed',
-              'label': 'Antibiotics Used',
-              'boolToYesNo': true
-            },
-            {
-              'key': 'isWaterQualityManaged',
-              'label': 'Water Quality Managed',
-              'boolToYesNo': true
-            },
-            {
-              'key': 'seafoodPreservationMethod',
-              'label': 'Preservation Method'
-            },
-            {'key': 'seafoodHarvestMethod', 'label': 'Harvest Method'},
-          ],
-        };
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
           color: isDarkMode ? const Color(0xFF0A0A18) : Colors.white,
@@ -755,34 +747,6 @@ class _CartItemRowState extends State<CartItemRow> {
                         ),
                       ),
                     ),
-                  Row(
-                    children: [
-                      Text(
-                        'Price: ',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                      ),
-                      Text(
-                        '\$${product['price']?.toStringAsFixed(2) ?? ''} per ${product['unit'] ?? 'kg'}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: const Color(0xFF6C5DD3),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Available: ${product['quantity'] ?? ''} ${product['unit'] ?? 'kg'}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: isDarkMode ? Colors.white54 : Colors.black54,
-                    ),
-                  ),
                   if (product['category'] != null &&
                       categoryFields[product['category']] != null)
                     ...categoryFields[product['category']]!.map((field) {
@@ -818,108 +782,73 @@ class _CartItemRowState extends State<CartItemRow> {
                         ),
                       );
                     }).toList(),
-                  const SizedBox(height: 8),
-                ],
-                Row(
-                  children: [
-                    Text(
-                      'Quantity: ',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline,
-                          color: Color(0xFF6C5DD3)),
-                      onPressed: item.quantity > 1.0 &&
-                              !_loadingStock &&
-                              !item.locked
-                          ? () async {
-                              try {
-                                await cartService.updateCartItemQuantity(
-                                  item.id,
-                                  item.quantity - 1.0,
-                                );
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: $e')),
-                                  );
-                                }
-                              }
-                            }
-                          : null,
-                    ),
-                    Container(
-                      width: 50,
-                      child: TextField(
-                        controller: _controller,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
+                  Row(
+                    children: [
+                      Text(
+                        'Quantity: ',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode ? Colors.white : Colors.black87,
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
                         ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        enabled: !item.locked,
-                        onChanged: (value) async {
-                          if (item.locked) return;
-                          final newQuantity = double.tryParse(value);
-                          if (newQuantity != null &&
-                              newQuantity > _availableStock) {
-                            _controller.text = _availableStock.toString();
-                            _controller.selection = TextSelection.fromPosition(
-                                TextPosition(offset: _controller.text.length));
-                            return;
-                          }
-                          if (newQuantity != null &&
-                              newQuantity > 0 &&
-                              newQuantity <= _availableStock) {
-                            try {
-                              await CartService()
-                                  .updateCartItemQuantity(item.id, newQuantity);
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error: $e')),
-                                );
-                              }
-                            }
-                          }
-                        },
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline,
-                          color: Color(0xFF6C5DD3)),
-                      onPressed: !_loadingStock &&
-                              item.quantity < _availableStock &&
-                              !item.locked
-                          ? () async {
-                              final newQuantity = item.quantity + 1.0;
-                              if (newQuantity > _availableStock) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Cannot exceed available stock (${_availableStock.toStringAsFixed(2)} ${item.unit})'),
-                                      backgroundColor: Colors.orange,
-                                    ),
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline,
+                            color: Color(0xFF6C5DD3)),
+                        onPressed: item.quantity > 1.0 &&
+                                !_loadingStock &&
+                                !item.locked
+                            ? () async {
+                                try {
+                                  await cartService.updateCartItemQuantity(
+                                    item.id,
+                                    item.quantity - 1.0,
                                   );
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error: $e')),
+                                    );
+                                  }
                                 }
-                                return;
                               }
+                            : null,
+                      ),
+                      Container(
+                        width: 50,
+                        child: TextField(
+                          controller: _controller,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          enabled: !item.locked,
+                          onChanged: (value) async {
+                            if (item.locked) return;
+                            final newQuantity = double.tryParse(value);
+                            if (newQuantity != null &&
+                                newQuantity > _availableStock) {
+                              _controller.text = _availableStock.toString();
+                              _controller.selection =
+                                  TextSelection.fromPosition(TextPosition(
+                                      offset: _controller.text.length));
+                              return;
+                            }
+                            if (newQuantity != null &&
+                                newQuantity > 0 &&
+                                newQuantity <= _availableStock) {
                               try {
-                                await cartService.updateCartItemQuantity(
+                                await CartService().updateCartItemQuantity(
                                     item.id, newQuantity);
                               } catch (e) {
                                 if (context.mounted) {
@@ -929,32 +858,112 @@ class _CartItemRowState extends State<CartItemRow> {
                                 }
                               }
                             }
-                          : null,
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Total: ',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black,
+                          },
+                        ),
                       ),
-                    ),
-                    Text(
-                      item.locked
-                          ? '\$${item.negotiatedPrice.toStringAsFixed(2)} (wholesale)'
-                          : '\$${(item.negotiatedPrice * item.quantity).toStringAsFixed(2)}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: const Color(0xFF6C5DD3),
-                        fontWeight: FontWeight.bold,
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline,
+                            color: Color(0xFF6C5DD3)),
+                        onPressed: !_loadingStock &&
+                                item.quantity < _availableStock &&
+                                !item.locked
+                            ? () async {
+                                final newQuantity = item.quantity + 1.0;
+                                if (newQuantity > _availableStock) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            'Cannot exceed available stock (${_availableStock.toStringAsFixed(2)} ${item.unit})'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+                                try {
+                                  await cartService.updateCartItemQuantity(
+                                      item.id, newQuantity);
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error: $e')),
+                                    );
+                                  }
+                                }
+                              }
+                            : null,
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        'Total: ',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      Builder(
+                        builder: (context) {
+                          final discountPercentage =
+                              (product?['discountPercentage'] as num?)
+                                      ?.toDouble() ??
+                                  0;
+                          final minQty =
+                              (product?['minQuantityForDiscount'] as num?)
+                                      ?.toDouble() ??
+                                  0;
+                          final price =
+                              (product?['price'] as num?)?.toDouble() ?? 0;
+                          final quantity = widget.item.quantity;
+                          if (discountPercentage > 0 &&
+                              minQty > 0 &&
+                              quantity >= minQty) {
+                            final discountedPrice =
+                                price * (1 - discountPercentage / 100);
+                            return Row(
+                              children: [
+                                Text(
+                                  '\$${(price * quantity).toStringAsFixed(2)}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: isDarkMode
+                                        ? Colors.white54
+                                        : Colors.black54,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '\$${(discountedPrice * quantity).toStringAsFixed(2)}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Text(
+                              widget.item.locked
+                                  ? '\$${widget.item.negotiatedPrice.toStringAsFixed(2)} (wholesale)'
+                                  : '\$${(widget.item.negotiatedPrice * widget.item.quantity).toStringAsFixed(2)}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: const Color(0xFF6C5DD3),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

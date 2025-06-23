@@ -52,6 +52,8 @@ class Product {
   final String seafoodPreservationMethod;
   final String seafoodHarvestMethod;
   final String niche;
+  final double? discountPercentage;
+  final double? minQuantityForDiscount;
 
   Product({
     required this.id,
@@ -100,6 +102,8 @@ class Product {
     required this.seafoodPreservationMethod,
     required this.seafoodHarvestMethod,
     required this.niche,
+    required this.discountPercentage,
+    required this.minQuantityForDiscount,
   });
 
   // Helper method to check if product is sold out
@@ -107,6 +111,11 @@ class Product {
 
   // Helper method to check if product was recently restocked
   bool get isRestocked => status == 'restocked';
+
+  // Helper method to check if product is discounted
+  bool get isDiscounted =>
+      (discountPercentage != null && discountPercentage! > 0) &&
+      (minQuantityForDiscount != null && minQuantityForDiscount! > 0);
 
   // Helper method to get display status
   String get displayStatus {
@@ -120,6 +129,20 @@ class Product {
   // Helper method to check if product should be shown in marketplace
   bool get shouldShowInMarketplace =>
       (status == 'available' || status == 'restocked') && !isSoldOut;
+
+  // Helper method to get product tags
+  List<String> get tags {
+    final List<String> tags = [];
+    if (isSoldOut) {
+      tags.add('Sold Out');
+    } else if (status == 'available' || status == 'restocked') {
+      tags.add('Available');
+    }
+    if (isDiscounted) {
+      tags.add('Discounted');
+    }
+    return tags;
+  }
 
   // Convert Product to Map
   Map<String, dynamic> toMap() {
@@ -169,6 +192,8 @@ class Product {
       'seafoodPreservationMethod': seafoodPreservationMethod,
       'seafoodHarvestMethod': seafoodHarvestMethod,
       'niche': niche,
+      'discountPercentage': discountPercentage,
+      'minQuantityForDiscount': minQuantityForDiscount,
     };
   }
 
@@ -227,6 +252,8 @@ class Product {
         seafoodPreservationMethod: map['seafoodPreservationMethod'] ?? 'N/A',
         seafoodHarvestMethod: map['seafoodHarvestMethod'] ?? 'N/A',
         niche: map['niche'] ?? '',
+        discountPercentage: map['discountPercentage']?.toDouble(),
+        minQuantityForDiscount: map['minQuantityForDiscount']?.toDouble(),
       );
     } catch (e) {
       print('Error converting map to product: $e'); // Debug print
@@ -288,6 +315,8 @@ class Product {
     String? seafoodPreservationMethod,
     String? seafoodHarvestMethod,
     String? niche,
+    double? discountPercentage,
+    double? minQuantityForDiscount,
   }) {
     return Product(
       id: id ?? this.id,
@@ -341,6 +370,9 @@ class Product {
           seafoodPreservationMethod ?? this.seafoodPreservationMethod,
       seafoodHarvestMethod: seafoodHarvestMethod ?? this.seafoodHarvestMethod,
       niche: niche ?? this.niche,
+      discountPercentage: discountPercentage ?? this.discountPercentage,
+      minQuantityForDiscount:
+          minQuantityForDiscount ?? this.minQuantityForDiscount,
     );
   }
 }

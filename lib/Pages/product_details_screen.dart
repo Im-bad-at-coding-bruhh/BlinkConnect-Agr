@@ -98,9 +98,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             _totalPrice = (_product?['price'] as num).toDouble();
           });
         } else {
-          setState(() {
-            _totalPrice = (_product?['price'] as num).toDouble() * quantity;
-          });
+          // Discount logic
+          final discountPercentage =
+              (_product?['discountPercentage'] as num?)?.toDouble() ?? 0;
+          final minQty =
+              (_product?['minQuantityForDiscount'] as num?)?.toDouble() ?? 0;
+          final price = (_product?['price'] as num).toDouble();
+          if (discountPercentage > 0 && minQty > 0 && quantity >= minQty) {
+            final discountedPrice = price * (1 - discountPercentage / 100);
+            setState(() {
+              _totalPrice = discountedPrice * quantity;
+            });
+          } else {
+            setState(() {
+              _totalPrice = price * quantity;
+            });
+          }
         }
       }
     }
@@ -185,7 +198,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       await negotiationService.createBid(
         productId: widget.productId,
         sellerId: _product?['farmerId'] ?? '',
-        originalPrice: (_product?['price'] as num).toDouble(),
+        originalPrice: (_product?['price'] as num?)?.toDouble() ?? 0,
         bidAmount: totalPrice,
         quantity: quantity,
         productName: _product?['productName'] ?? '',
@@ -237,8 +250,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             farmerName: _product?['farmerName'] ?? '',
             unit: _product?['unit'] ?? 'kg',
             quantity: quantity,
-            originalPrice: (_product?['price'] as num).toDouble(),
-            negotiatedPrice: (_product?['price'] as num).toDouble(),
+            originalPrice: (_product?['price'] as num?)?.toDouble() ?? 0,
+            negotiatedPrice: (_product?['price'] as num?)?.toDouble() ?? 0,
             negotiationId: '',
             addedAt: DateTime.now(),
             status: 'pending',
@@ -595,7 +608,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _product?['name'] ?? '',
+                          (_product?['name'] ?? ''),
                           style: GoogleFonts.poppins(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -612,15 +625,73 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             color: const Color(0xFF6C5DD3).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            '\$${(_product?['price'] as num).toDouble().toStringAsFixed(2)}/kg',
-                            style: GoogleFonts.poppins(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF6C5DD3),
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${((_product?['price'] as num?) ?? 0).toDouble().toStringAsFixed(2)}/${_product?['unit'] ?? 'kg'}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF6C5DD3),
+                                  decoration: (((_product?['discountPercentage']
+                                                      as num?) ??
+                                                  0) >
+                                              0 &&
+                                          ((_product?['minQuantityForDiscount']
+                                                      as num?) ??
+                                                  0) >
+                                              0)
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                              if (((_product?['discountPercentage'] as num?) ??
+                                          0) >
+                                      0 &&
+                                  ((_product?['minQuantityForDiscount']
+                                              as num?) ??
+                                          0) >
+                                      0)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: Text(
+                                    '${(((_product?['price'] as num?) ?? 0) * (1 - (((_product?['discountPercentage'] as num?) ?? 0).toDouble() / 100))).toStringAsFixed(2)}/${_product?['unit'] ?? 'kg'}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
+                        if (((_product?['discountPercentage'] as num?) ?? 0) >
+                                0 &&
+                            ((_product?['minQuantityForDiscount'] as num?) ??
+                                    0) >
+                                0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(Icons.local_offer,
+                                    color: Colors.orange, size: 18),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Get ${((_product?['discountPercentage'] as num?) ?? 0).toStringAsFixed(0)}% off when you buy ${((_product?['minQuantityForDiscount'] as num?) ?? 0).toStringAsFixed(0)} ${_product?['unit'] ?? 'kg'} or more!',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         const SizedBox(height: 24),
 
                         // Product Details Section
@@ -677,7 +748,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               }).toList(),
                               _buildDetailRow(
                                 'Available Quantity',
-                                '${_product?['quantity']} ${_product?['unit']}',
+                                '${((_product?['quantity'] as num?) ?? 0).toString()} ${_product?['unit'] ?? ''}',
                                 Icons.inventory_2_outlined,
                               ),
                               const SizedBox(height: 16),

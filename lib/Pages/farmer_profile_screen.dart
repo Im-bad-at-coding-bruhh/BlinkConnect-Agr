@@ -25,6 +25,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../Models/invoice_model.dart';
 import '../Services/invoice_provider.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -57,7 +59,8 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
   String? _role;
   String? _profilePhotoBase64;
   bool _profilePhotoLoading = false;
-  // final AuthService _authService = AuthService();
+  bool _biometricEnabled = false;
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
   void initState() {
@@ -79,6 +82,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
     });
     _fetchUserProfileInfo();
     _fetchProfilePhoto();
+    _loadBiometricPreference();
   }
 
   @override
@@ -787,6 +791,30 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                           ),
                         ),
                       ),
+                    // Discounted Badge
+                    if (product.isDiscounted)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'DISCOUNTED',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
                     Positioned(
                       top: 8,
                       right: 8,
@@ -1089,26 +1117,51 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           'Security Settings',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.lock_outline),
-              title: const Text('Change Password'),
-              onTap: () {
-                Navigator.pop(context);
-                _showChangePasswordDialog(context, isDarkMode);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout_outlined),
-              title: const Text('Logout'),
-              onTap: () {
-                Navigator.pop(context);
-                _showLogoutConfirmation(context, isDarkMode);
-              },
-            ),
-          ],
+        content: StatefulBuilder(
+          builder: (context, setStateDialog) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile.adaptive(
+                value: _biometricEnabled,
+                onChanged: (val) async {
+                  if (val) {
+                    final canCheck = await _localAuth.canCheckBiometrics;
+                    if (!canCheck) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Biometric authentication not available on this device.'),
+                        ),
+                      );
+                      return;
+                    }
+                  }
+                  await _setBiometricPreference(val);
+                  setStateDialog(() {});
+                },
+                title: const Text('Use Biometrics for Login'),
+                subtitle:
+                    const Text('Enable fingerprint or face unlock for login'),
+                secondary: const Icon(Icons.fingerprint),
+              ),
+              ListTile(
+                leading: const Icon(Icons.lock_outline),
+                title: const Text('Change Password'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showChangePasswordDialog(context, isDarkMode);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout_outlined),
+                title: const Text('Logout'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showLogoutConfirmation(context, isDarkMode);
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1677,6 +1730,40 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _loadBiometricPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
+    });
+  }
+
+  Future<void> _setBiometricPreference(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('biometric_enabled', enabled);
+    setState(() {
+      _biometricEnabled = enabled;
+    });
+  }
+
+  Future<bool> authenticateWithBiometrics() async {
+    final bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
+    final bool isDeviceSupported = await _localAuth.isDeviceSupported();
+    if (!canCheckBiometrics || !isDeviceSupported) return false;
+    try {
+      final bool didAuthenticate = await _localAuth.authenticate(
+        localizedReason: 'Please authenticate to login',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+      return didAuthenticate;
+    } catch (e) {
+      print(e);
+      return false;
+    }
   }
 }
 
