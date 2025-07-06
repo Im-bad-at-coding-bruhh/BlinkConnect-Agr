@@ -16,7 +16,12 @@ class InvoiceProvider with ChangeNotifier {
   String? get error => _error;
 
   // Load invoices for a specific farmer
-  Future<void> loadFarmerInvoices(String farmerId) async {
+  Future<void> loadFarmerInvoices(String farmerId,
+      {bool forceRefresh = false}) async {
+    if (_invoices.isNotEmpty && !forceRefresh) {
+      debugPrint('Skipping invoice load, cache is populated.');
+      return;
+    }
     try {
       _isLoading = true;
       _error = null;
@@ -254,7 +259,18 @@ class InvoiceProvider with ChangeNotifier {
         debugPrint('Updated customer purchase status');
       }
 
-      // Update sales analytics if the invoice is marked as 'Paid'
+      // Update local invoice list
+      final index = _invoices.indexWhere((inv) => inv.id == invoiceId);
+      if (index != -1) {
+        _invoices[index] = _invoices[index]
+            .copyWith(status: newStatus, updatedAt: DateTime.now());
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('Notified listeners of invoice status update');
+
+      // Update sales analytics if the invoice is now paid
       if (newStatus == 'Paid' && productId.isNotEmpty) {
         try {
           final productDoc =
@@ -293,13 +309,6 @@ class InvoiceProvider with ChangeNotifier {
         } catch (e) {
           debugPrint('Error updating sales analytics on status change: $e');
         }
-      }
-
-      // Update the local list
-      final index = _invoices.indexWhere((inv) => inv.id == invoiceId);
-      if (index != -1) {
-        _invoices[index] = _invoices[index].copyWith(status: newStatus);
-        notifyListeners();
       }
     } catch (e) {
       _error = e.toString();
@@ -381,34 +390,15 @@ class InvoiceProvider with ChangeNotifier {
   }
 
   // Refresh invoices without clearing local state (for newly created invoices)
-  Future<void> refreshInvoices(String farmerId) async {
+  Future<void> refreshInvoices(String userId) async {
     try {
-      debugPrint('Refreshing invoices for farmer ID: $farmerId');
-
-      final QuerySnapshot snapshot = await _firestore
-          .collection('users')
-          .doc(farmerId)
-          .collection('invoices')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      debugPrint('Found ${snapshot.docs.length} invoices in refresh');
-
-      final newInvoices =
-          snapshot.docs.map((doc) => Invoice.fromFirestore(doc)).toList();
-
-      // Only update if we have new data and it's different
-      if (newInvoices.length != _invoices.length ||
-          !_areInvoiceListsEqual(_invoices, newInvoices)) {
-        _invoices = newInvoices;
-        debugPrint('Updated invoice list. New count: ${_invoices.length}');
-        notifyListeners();
-      } else {
-        debugPrint('No changes detected in invoice list');
-      }
+      debugPrint('Refreshing invoices for user: $userId');
+      await loadFarmerInvoices(userId, forceRefresh: true);
+      debugPrint('Finished refreshing invoices for user: $userId');
     } catch (e) {
       debugPrint('Error refreshing invoices: $e');
-      // Don't rethrow to avoid breaking the UI
+      _error = e.toString();
+      notifyListeners();
     }
   }
 

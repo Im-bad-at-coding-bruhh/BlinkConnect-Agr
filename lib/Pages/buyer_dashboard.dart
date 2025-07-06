@@ -45,35 +45,34 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   final SalesAnalyticsService _salesAnalytics = SalesAnalyticsService();
   List<Map<String, dynamic>> _topSellingCrops = [];
   List<Map<String, dynamic>> _seasonalCrops = [];
+  List<Map<String, dynamic>> _specialOffers = [];
   bool _isLoading = true;
   User? _currentUser;
   String _username = '';
-  List<Map<String, dynamic>> _specialOffers = [];
-  Timer? _specialOffersTimer;
-  Timer? _topSellingTimer;
-  Timer? _seasonalCropsTimer;
+
+  // Caching
+  List<Map<String, dynamic>> _cachedTopSellingCrops = [];
+  DateTime? _topSellingCacheTime;
+  List<Map<String, dynamic>> _cachedSeasonalCrops = [];
+  DateTime? _seasonalCacheTime;
+  List<Map<String, dynamic>> _cachedSpecialOffers = [];
+  DateTime? _specialOffersCacheTime;
+  String _cachedUsername = '';
+  DateTime? _usernameCacheTime;
+  final Duration _cacheDuration = Duration(hours: 24);
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _currentUser = FirebaseAuth.instance.currentUser;
-    _loadUsername();
-    _loadTopSellingCrops();
-    _loadSeasonalCrops();
-    _loadSpecialOffers();
-    // Refresh special offers every 60 seconds
-    _specialOffersTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUsername();
+      _loadTopSellingCrops();
+      _loadSeasonalCrops();
       _loadSpecialOffers();
     });
-    // Refresh top selling crops every 60 seconds
-    _topSellingTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
-      _loadTopSellingCrops();
-    });
-    // Refresh seasonal crops every 24 hours
-    _seasonalCropsTimer = Timer.periodic(const Duration(hours: 24), (timer) {
-      _loadSeasonalCrops();
-    });
+    // Removed direct calls to those methods from initState
   }
 
   @override
@@ -85,23 +84,32 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
 
   @override
   void dispose() {
-    _specialOffersTimer?.cancel();
-    _topSellingTimer?.cancel();
-    _seasonalCropsTimer?.cancel();
+    _hoverTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _loadUsername() async {
+    // Use cache if valid
+    if (_usernameCacheTime != null &&
+        DateTime.now().difference(_usernameCacheTime!) < _cacheDuration &&
+        _cachedUsername.isNotEmpty) {
+      setState(() {
+        _username = _cachedUsername;
+      });
+      return;
+    }
     if (_currentUser != null) {
       try {
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(_currentUser!.uid)
             .get();
-
         if (userDoc.exists) {
+          if (!mounted) return;
           setState(() {
             _username = userDoc.data()?['username'] ?? 'Dashboard';
+            _cachedUsername = _username;
+            _usernameCacheTime = DateTime.now();
           });
         }
       } catch (e) {
@@ -111,11 +119,19 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   Future<void> _loadTopSellingCrops() async {
+    if (_topSellingCacheTime != null &&
+        DateTime.now().difference(_topSellingCacheTime!) < _cacheDuration &&
+        _cachedTopSellingCrops.isNotEmpty) {
+      setState(() {
+        _topSellingCrops = _cachedTopSellingCrops;
+        _isLoading = false;
+      });
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
     try {
-      // Fetch latest products
       final productProvider =
           Provider.of<ProductProvider>(context, listen: false);
       await productProvider.loadProducts();
@@ -140,13 +156,17 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
       }
       allTopSelling.shuffle();
       allTopSelling = allTopSelling.take(10).toList();
+      if (!mounted) return;
       setState(() {
         _topSellingCrops =
             allTopSelling.isNotEmpty ? allTopSelling : _topSellingCrops;
+        _cachedTopSellingCrops = _topSellingCrops;
+        _topSellingCacheTime = DateTime.now();
         _isLoading = false;
       });
     } catch (e) {
       print('Error loading top selling crops: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -154,11 +174,19 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   Future<void> _loadSeasonalCrops() async {
+    if (_seasonalCacheTime != null &&
+        DateTime.now().difference(_seasonalCacheTime!) < _cacheDuration &&
+        _cachedSeasonalCrops.isNotEmpty) {
+      setState(() {
+        _seasonalCrops = _cachedSeasonalCrops;
+        _isLoading = false;
+      });
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
     try {
-      // Fetch latest products
       final productProvider =
           Provider.of<ProductProvider>(context, listen: false);
       await productProvider.loadProducts();
@@ -171,12 +199,16 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
         region: userRegion,
       );
       seasonal.shuffle();
+      if (!mounted) return;
       setState(() {
         _seasonalCrops = seasonal.isNotEmpty ? seasonal : _seasonalCrops;
+        _cachedSeasonalCrops = _seasonalCrops;
+        _seasonalCacheTime = DateTime.now();
         _isLoading = false;
       });
     } catch (e) {
       print('Error loading seasonal crops: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -184,25 +216,29 @@ class _BuyerDashboardScreenState extends State<BuyerDashboardScreen> {
   }
 
   Future<void> _loadSpecialOffers() async {
+    if (_specialOffersCacheTime != null &&
+        DateTime.now().difference(_specialOffersCacheTime!) < _cacheDuration &&
+        _cachedSpecialOffers.isNotEmpty) {
+      setState(() {
+        _specialOffers = _cachedSpecialOffers;
+      });
+      return;
+    }
     try {
-      // Get user's region from their profile
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(FirebaseAuth.instance.currentUser?.uid)
           .get();
-
       final userRegion = userDoc.data()?['region'] ?? 'default';
-      print('DEBUG: User region for special offers: "$userRegion"');
-
-      // Load special offers
       final offers = await _salesAnalytics.getSpecialOffers(
         region: userRegion,
       );
-      print('DEBUG: Number of special offers found: ${offers.length}');
-
       offers.shuffle();
+      if (!mounted) return;
       setState(() {
         _specialOffers = offers;
+        _cachedSpecialOffers = _specialOffers;
+        _specialOffersCacheTime = DateTime.now();
       });
     } catch (e) {
       print('Error loading special offers: $e');

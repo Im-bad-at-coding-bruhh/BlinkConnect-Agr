@@ -153,7 +153,7 @@ class AuthService {
       // Update Firestore profile
       Map<String, dynamic> updateData = {};
       if (name != null) updateData['name'] = name;
-      if (photoURL != null) updateData['profileImageUrl'] = photoURL;
+      if (photoURL != null) updateData['photo_url'] = photoURL;
       if (phoneNumber != null) updateData['phoneNumber'] = phoneNumber;
       if (address != null) updateData['address'] = address;
       if (bio != null) updateData['bio'] = bio;

@@ -16,29 +16,59 @@ class ProductProvider with ChangeNotifier {
   List<Product> _farmerProducts = [];
   bool _isLoading = false;
   String? _error;
+  DocumentSnapshot? _lastDocument;
+  bool _hasMoreProducts = true;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  final int _pageSize = 20;
+  final List<DocumentSnapshot> _pageStarts = [];
 
   List<Product> get products => _products;
   List<Product> get farmerProducts => _farmerProducts;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasMoreProducts => _hasMoreProducts;
+  int get currentPage => _currentPage;
+  int get totalPages => _totalPages;
 
   // Load all products
-  Future<void> loadProducts() async {
+  Future<void> loadProducts({bool forceRefresh = false, int limit = 20}) async {
+    if (_isLoading) return;
+    if (forceRefresh) {
+      _products = [];
+      _lastDocument = null;
+      _hasMoreProducts = true;
+    }
+    if (!_hasMoreProducts) return;
+
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      print('ProductProvider: Starting to load products...'); // Debug print
+      print('ProductProvider: Starting to load products...');
 
-      final snapshot = await _firestore.collection('products').get();
-      _products =
-          snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+      Query query = _firestore
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .limit(limit);
 
-      print(
-          'ProductProvider: Loaded ${_products.length} products'); // Debug print
-      print(
-          'ProductProvider: Products: ${_products.map((p) => p.productName).join(', ')}'); // Debug print
+      if (_lastDocument != null) {
+        query = query.startAfterDocument(_lastDocument!);
+      }
+
+      final snapshot = await query.get();
+
+      if (snapshot.docs.isEmpty) {
+        _hasMoreProducts = false;
+      } else {
+        _lastDocument = snapshot.docs.last;
+        final newProducts =
+            snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+        _products.addAll(newProducts);
+      }
+
+      print('ProductProvider: Loaded ${_products.length} products');
 
       _isLoading = false;
       notifyListeners();
@@ -51,7 +81,8 @@ class ProductProvider with ChangeNotifier {
   }
 
   // Load farmer's products
-  Future<void> loadFarmerProducts() async {
+  Future<void> loadFarmerProducts({bool forceRefresh = false}) async {
+    if (_farmerProducts.isNotEmpty && !forceRefresh) return;
     try {
       _isLoading = true;
       _error = null;
@@ -154,8 +185,8 @@ class ProductProvider with ChangeNotifier {
 
       // Reload both product lists to ensure everything is in sync
       await Future.wait([
-        loadProducts(),
-        loadFarmerProducts(),
+        loadProducts(forceRefresh: true),
+        loadFarmerProducts(forceRefresh: true),
       ]);
     } catch (e) {
       print('ProductProvider: Error adding product: $e'); // Debug print
@@ -221,8 +252,8 @@ class ProductProvider with ChangeNotifier {
 
       // Reload both product lists to ensure everything is in sync
       await Future.wait([
-        loadProducts(),
-        loadFarmerProducts(),
+        loadProducts(forceRefresh: true),
+        loadFarmerProducts(forceRefresh: true),
       ]);
     } catch (e) {
       print('Error deleting product: $e'); // Debug print
@@ -436,4 +467,53 @@ class ProductProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> loadPage(int pageNumber) async {
+    if (_isLoading) return;
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      Query query = _firestore
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .limit(_pageSize);
+
+      if (pageNumber > 1 && _pageStarts.length >= pageNumber - 1) {
+        final lastDoc = _pageStarts[pageNumber - 2];
+        query = query.startAfterDocument(lastDoc);
+      }
+
+      final snapshot = await query.get();
+      if (snapshot.docs.isEmpty) {
+        _products = [];
+        _totalPages = 1;
+        _currentPage = 1;
+      } else {
+        _products =
+            snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+        // Track the start doc for this page
+        if (_pageStarts.length < pageNumber) {
+          _pageStarts.add(snapshot.docs.first);
+        }
+        // Estimate total pages (not exact unless you count all docs)
+        final totalCountSnap =
+            await _firestore.collection('products').count().get();
+        final totalCount = totalCountSnap.count ?? 0;
+        _totalPages = (totalCount / _pageSize).ceil();
+        _currentPage = pageNumber;
+      }
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      print('Error loading page: $e');
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  bool get hasNextPage => _currentPage < _totalPages;
+  bool get hasPreviousPage => _currentPage > 1;
 }

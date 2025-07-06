@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'theme_provider.dart';
 import 'package:provider/provider.dart';
@@ -12,14 +11,11 @@ import '../Services/product_provider.dart';
 import '../Models/product_model.dart';
 import '../Services/auth_provider.dart' as app_auth;
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 import 'negotiation_screen.dart';
 import '../Services/invoice_provider.dart';
 import '../Models/invoice_model.dart';
-import 'product_details_screen.dart';
 import 'edit_product_form.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -40,11 +36,10 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
-  late Size _screenSize;
   bool _isSmallScreen = false;
   bool _showSortDropdown = false;
   String _selectedMonth = 'All';
-  List<String> _months = [
+  final List<String> _months = [
     'All',
     'January',
     'February',
@@ -60,46 +55,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'December',
   ];
   User? _currentUser;
-  String _username = 'Dashboard';
   Timer? _hoverTimer;
-  bool _showQuickInfo = false;
-  Product? _hoveredProduct;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _currentUser = FirebaseAuth.instance.currentUser;
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
-    try {
-      if (_currentUser != null) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_currentUser!.uid)
-            .get();
+    final productProvider =
+        Provider.of<ProductProvider>(context, listen: false);
+    final invoiceProvider =
+        Provider.of<InvoiceProvider>(context, listen: false);
 
-        if (userDoc.exists && mounted) {
-          setState(() {
-            _username = userDoc.data()?['username'] ?? 'Dashboard';
-          });
-        }
-      }
-
-      // Load products and invoices in the background
-      final productProvider =
-          Provider.of<ProductProvider>(context, listen: false);
-      final invoiceProvider =
-          Provider.of<InvoiceProvider>(context, listen: false);
-
+    // Fetch data only if not already loaded
+    if (productProvider.farmerProducts.isEmpty) {
       await productProvider.loadFarmerProducts();
-      if (_currentUser != null) {
-        await invoiceProvider.refreshInvoices(_currentUser!.uid);
-      }
-    } catch (e) {
-      print('Error loading dashboard data: $e');
+    }
+    if (_currentUser != null && invoiceProvider.invoices.isEmpty) {
+      await invoiceProvider.loadFarmerInvoices(_currentUser!.uid);
     }
   }
 
@@ -170,7 +149,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context) {
         final themeProvider = Provider.of<ThemeProvider>(context);
         final isDarkMode = themeProvider.isDarkMode;
-        final authProvider = Provider.of<app_auth.AuthProvider>(context);
+        final authProvider =
+            Provider.of<app_auth.AuthProvider>(context, listen: false);
         final productProvider = Provider.of<ProductProvider>(context);
 
         return AddProductForm(
@@ -211,12 +191,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         color: isDarkMode
-            ? Colors.black.withOpacity(0.4)
-            : Colors.white.withOpacity(0.8),
+            ? Colors.black.withValues(alpha: 0.4)
+            : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             spreadRadius: 0,
           ),
@@ -240,7 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                    ? const Color(0xFF6C5DD3).withValues(alpha: 0.2)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -248,12 +228,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (isSelected)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
+                    const Padding(
+                      padding: EdgeInsets.only(right: 6),
                       child: Icon(
                         Icons.check,
                         size: 14,
-                        color: const Color(0xFF6C5DD3),
+                        color: Color(0xFF6C5DD3),
                       ),
                     ),
                   Text(
@@ -290,13 +270,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         automaticallyImplyLeading: false,
         backgroundColor: isDarkMode ? Colors.black : Colors.white,
         elevation: 0,
-        title: Text(
-          _username == 'Dashboard' ? '' : _username,
-          style: GoogleFonts.poppins(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: isDarkMode ? Colors.white : Colors.black87,
-          ),
+        title: Consumer<app_auth.AuthProvider>(
+          builder: (context, authProvider, child) {
+            return Text(
+              authProvider.username ?? 'Dashboard',
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+            );
+          },
         ),
         actions: [
           TextButton.icon(
@@ -308,7 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               );
             },
-            icon: Icon(Icons.gavel, color: const Color(0xFF6C5DD3)),
+            icon: const Icon(Icons.gavel, color: Color(0xFF6C5DD3)),
             label: Text(
               'View Bids',
               style: GoogleFonts.poppins(
@@ -388,7 +372,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: isDarkMode ? const Color(0xFF0A0A18) : const Color(0xFFCCE0CC),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             spreadRadius: 0,
           ),
@@ -411,7 +395,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int index,
     IconData icon,
     String title, {
-    bool isAction = false,
     Function? onTap,
   }) {
     final bool isSelected = _selectedIndex == index;
@@ -434,7 +417,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             color: isSelected
-                ? const Color(0xFF6C5DD3).withOpacity(0.2)
+                ? const Color(0xFF6C5DD3).withValues(alpha: 0.2)
                 : Colors.transparent,
           ),
           child: Row(
@@ -477,7 +460,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           topRight: Radius.circular(20),
         ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
         ],
       ),
       child: SafeArea(
@@ -628,13 +612,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDarkMode
-            ? Colors.black.withOpacity(0.2)
-            : Colors.white.withOpacity(0.5),
+            ? Colors.black.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
@@ -677,13 +661,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Container(
                               decoration: BoxDecoration(
                                 color: isDarkMode
-                                    ? Colors.black.withOpacity(0.2)
+                                    ? Colors.black.withValues(alpha: 0.2)
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: isDarkMode
-                                      ? Colors.white.withOpacity(0.1)
-                                      : Colors.black.withOpacity(0.05),
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : Colors.black.withValues(alpha: 0.05),
                                 ),
                               ),
                               child: Column(
@@ -757,12 +741,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: product.isSoldOut
-                                                ? Colors.red.withOpacity(0.1)
+                                                ? Colors.red
+                                                    .withValues(alpha: 0.1)
                                                 : product.status == 'available'
                                                     ? Colors.green
-                                                        .withOpacity(0.1)
+                                                        .withValues(alpha: 0.1)
                                                     : Colors.orange
-                                                        .withOpacity(0.1),
+                                                        .withValues(alpha: 0.1),
                                             borderRadius:
                                                 BorderRadius.circular(12),
                                             border: Border.all(
@@ -799,7 +784,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Positioned.fill(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.7),
+                                    color: Colors.black.withValues(alpha: 0.7),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Center(
@@ -903,193 +888,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildProductCard(Product product, bool isDarkMode) {
-    return Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                    image: product.images.isNotEmpty
-                        ? DecorationImage(
-                            image: MemoryImage(
-                              base64Decode(product.images.first),
-                            ),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    color: product.images.isEmpty
-                        ? (isDarkMode ? Colors.white10 : Colors.black12)
-                        : null,
-                  ),
-                  child: product.images.isEmpty
-                      ? Icon(
-                          Icons.image_not_supported_outlined,
-                          size: 48,
-                          color: isDarkMode ? Colors.white30 : Colors.black26,
-                        )
-                      : null,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.productName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '\$${product.price.toStringAsFixed(2)}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF6C5DD3),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: product.isSoldOut
-                            ? Colors.red.withOpacity(0.1)
-                            : product.status == 'available'
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: product.isSoldOut
-                              ? Colors.red
-                              : product.status == 'available'
-                                  ? Colors.green
-                                  : Colors.orange,
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        product.displayStatus,
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: product.isSoldOut
-                              ? Colors.red
-                              : product.status == 'available'
-                                  ? Colors.green
-                                  : Colors.orange,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (product.isSoldOut)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'SOLD OUT',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        if (product.isRestocked)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'RE-STOCKED',
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        // Discounted Badge
-        if (product.isDiscounted)
-          Positioned(
-            top: 8,
-            left: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.orange,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'DISCOUNTED',
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget _buildActionButton(
     bool isDarkMode,
     String title,
@@ -1103,13 +901,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
           color: isDarkMode
-              ? Colors.black.withOpacity(0.2)
-              : Colors.white.withOpacity(0.5),
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.05),
           ),
         ),
         child: Column(
@@ -1118,7 +916,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.2),
+                color: accentColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(child: Icon(icon, size: 28, color: accentColor)),
@@ -1175,7 +973,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Text(
                     'Available Balance',
                     style: GoogleFonts.poppins(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,
                     ),
                   ),
@@ -1235,7 +1033,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(
           label,
           style: GoogleFonts.poppins(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 12,
           ),
         ),
@@ -1347,7 +1145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? []
             : [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -1395,10 +1193,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isPaid
-                      ? Colors.green.withOpacity(0.2)
+                      ? Colors.green.withValues(alpha: 0.2)
                       : isPending
-                          ? Colors.orange.withOpacity(0.2)
-                          : Colors.red.withOpacity(0.2),
+                          ? Colors.orange.withValues(alpha: 0.2)
+                          : Colors.red.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -1518,22 +1316,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+            color:
+                isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.5),
             ),
             boxShadow: isDarkMode
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF6C5DD3).withOpacity(0.1),
+                      color: const Color(0xFF6C5DD3).withValues(alpha: 0.1),
                       blurRadius: 10,
                       spreadRadius: 0,
                     ),
                     BoxShadow(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       blurRadius: 5,
                       spreadRadius: 0,
                     ),
@@ -1547,8 +1346,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDarkMode
-                        ? Colors.black.withOpacity(0.3)
-                        : Colors.white.withOpacity(0.3),
+                        ? Colors.black.withValues(alpha: 0.3)
+                        : Colors.white.withValues(alpha: 0.3),
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(12),
                     ),
@@ -1612,10 +1411,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: product.isSoldOut
-                            ? Colors.red.withOpacity(0.1)
+                            ? Colors.red.withValues(alpha: 0.1)
                             : product.status == 'available'
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.orange.withOpacity(0.1),
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: product.isSoldOut
@@ -1650,7 +1449,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -1730,19 +1529,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _startHoverTimer(Product product) {
     _hoverTimer?.cancel();
     _hoverTimer = Timer(const Duration(seconds: 1), () {
-      setState(() {
-        _showQuickInfo = true;
-        _hoveredProduct = product;
-      });
+      setState(() {});
     });
   }
 
   void _cancelHoverTimer() {
     _hoverTimer?.cancel();
-    setState(() {
-      _showQuickInfo = false;
-      _hoveredProduct = null;
-    });
+    setState(() {});
   }
 
   void _showProductDetails(Product product) {
@@ -1882,13 +1675,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDarkMode
-                      ? Colors.black.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.5),
+                      ? Colors.black.withValues(alpha: 0.2)
+                      : Colors.white.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isDarkMode
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.05),
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.05),
                   ),
                 ),
                 child: Row(
@@ -1946,10 +1739,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: isPaid
-                                ? Colors.green.withOpacity(0.2)
+                                ? Colors.green.withValues(alpha: 0.2)
                                 : isPending
-                                    ? Colors.orange.withOpacity(0.2)
-                                    : Colors.red.withOpacity(0.2),
+                                    ? Colors.orange.withValues(alpha: 0.2)
+                                    : Colors.red.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -1984,13 +1777,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isDarkMode
-            ? Colors.black.withOpacity(0.2)
-            : Colors.white.withOpacity(0.5),
+            ? Colors.black.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
@@ -2066,8 +1859,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             height: 1,
             color: isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.05),
           ),
 
           // Table rows
@@ -2078,8 +1871,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             separatorBuilder: (context, index) => Container(
               height: 1,
               color: isDarkMode
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.03),
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.03),
             ),
             itemBuilder: (context, index) {
               final invoice = invoices[index];
@@ -2159,10 +1952,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isPaid
-                              ? Colors.green.withOpacity(0.2)
+                              ? Colors.green.withValues(alpha: 0.2)
                               : isPending
-                                  ? Colors.orange.withOpacity(0.2)
-                                  : Colors.red.withOpacity(0.2),
+                                  ? Colors.orange.withValues(alpha: 0.2)
+                                  : Colors.red.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Center(
@@ -2202,8 +1995,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isDarkMode
-              ? Colors.black.withOpacity(0.2)
-              : Colors.white.withOpacity(0.5),
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(

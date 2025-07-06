@@ -27,6 +27,7 @@ import '../Models/invoice_model.dart';
 import '../Services/invoice_provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transparent_image/transparent_image.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
   final bool isFarmer;
@@ -55,10 +56,6 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
   Timer? _hoverTimer;
   bool _showQuickInfo = false;
   Product? _hoveredProduct;
-  String? _username;
-  String? _role;
-  String? _profilePhotoBase64;
-  bool _profilePhotoLoading = false;
   bool _biometricEnabled = false;
   final LocalAuthentication _localAuth = LocalAuthentication();
 
@@ -80,9 +77,8 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         invoiceProvider.refreshInvoices(user.uid);
       }
     });
-    _fetchUserProfileInfo();
-    _fetchProfilePhoto();
     _loadBiometricPreference();
+    _fetchUserProfileInfo();
   }
 
   @override
@@ -304,35 +300,38 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           Stack(
             alignment: Alignment.bottomRight,
             children: [
-              _profilePhotoLoading
-                  ? Container(
+              Consumer<appAuth.AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final profilePhotoUrl = authProvider.profilePhotoUrl;
+                  if (profilePhotoUrl == null) {
+                    return Container(
                       width: 120,
                       height: 120,
                       alignment: Alignment.center,
                       child: const CircularProgressIndicator(),
-                    )
-                  : Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF6C5DD3).withOpacity(0.2),
-                        image: _profilePhotoBase64 != null
-                            ? DecorationImage(
-                                image: MemoryImage(
-                                    base64Decode(_profilePhotoBase64!)),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
+                    );
+                  }
+                  // This is a temporary solution. Ideally, we should not store base64 strings in the DB.
+                  // We should upload the image to a storage and get a URL.
+                  // But for now, we will handle both URL and base64 string.
+                  final isBase64 = profilePhotoUrl.startsWith('data:image');
+                  return Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF6C5DD3).withOpacity(0.2),
+                      image: DecorationImage(
+                        image: (isBase64
+                            ? MemoryImage(
+                                base64Decode(profilePhotoUrl.split(',').last))
+                            : NetworkImage(profilePhotoUrl)) as ImageProvider,
+                        fit: BoxFit.cover,
                       ),
-                      child: _profilePhotoBase64 == null
-                          ? const Icon(
-                              Icons.person,
-                              size: 70,
-                              color: Color(0xFF6C5DD3),
-                            )
-                          : null,
                     ),
+                  );
+                },
+              ),
               Positioned(
                 bottom: 8,
                 right: 8,
@@ -362,24 +361,34 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _username ?? '',
-                style: GoogleFonts.poppins(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
+              Consumer<appAuth.AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final username = authProvider.username;
+                  return Text(
+                    username ?? '',
+                    style: GoogleFonts.poppins(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 12),
-              Text(
-                (_role != null && _role!.isNotEmpty)
-                    ? (_role![0].toUpperCase() + _role!.substring(1))
-                    : '',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: isDarkMode ? Colors.white70 : Colors.black54,
-                ),
+              Consumer<appAuth.AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final role = authProvider.userType;
+                  return Text(
+                    (role != null && role.isNotEmpty)
+                        ? (role[0].toUpperCase() + role.substring(1))
+                        : '',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -393,10 +402,8 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
       builder: (context, productProvider, child) {
         final products = productProvider.farmerProducts;
 
-        if (productProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+        if (productProvider.isLoading && products.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (products.isEmpty) {
@@ -410,83 +417,17 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                   color: isDarkMode ? Colors.white38 : Colors.black26,
                 ),
                 const SizedBox(height: 16),
-                Text(
+                const Text(
                   'No Products Yet',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   'Start by adding your first product',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddProductForm(
-                          isDarkMode: isDarkMode,
-                          defaultDescription:
-                              'Fresh and organic produce from our farm.',
-                          onProductAdded: (Product product) async {
-                            try {
-                              await productProvider.addProduct(product);
-                              await productProvider.loadFarmerProducts();
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Product added successfully'),
-                                ),
-                              );
-                            } catch (e) {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Failed to add product: ${e.toString()}'),
-                                ),
-                              );
-                            }
-                          },
-                          farmerId: Provider.of<appAuth.AuthProvider>(context,
-                                      listen: false)
-                                  .user
-                                  ?.uid ??
-                              '',
-                          username: Provider.of<appAuth.AuthProvider>(context,
-                                      listen: false)
-                                  .user
-                                  ?.displayName ??
-                              Provider.of<appAuth.AuthProvider>(context,
-                                      listen: false)
-                                  .user
-                                  ?.email
-                                  ?.split('@')[0] ??
-                              'Farmer',
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Product'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C5DD3),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  style: TextStyle(fontSize: 14),
                 ),
               ],
             ),
@@ -494,8 +435,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         }
 
         return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 16,
@@ -505,11 +445,22 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
           itemCount: products.length,
           itemBuilder: (context, index) {
             final product = products[index];
+            ImageProvider? imageProvider;
+            if (product.images.isNotEmpty) {
+              try {
+                imageProvider = MemoryImage(base64Decode(product.images.first));
+              } catch (e) {
+                print(
+                    'Error decoding base64 image for product ${product.id}: $e');
+                imageProvider = null;
+              }
+            }
+
             return MouseRegion(
               onEnter: (_) => _startHoverTimer(product),
               onExit: (_) => _cancelHoverTimer(),
               child: GestureDetector(
-                onTap: () => _showProductDetails(product),
+                onTap: () => _editProduct(product),
                 child: Stack(
                   children: [
                     Container(
@@ -523,21 +474,6 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                               ? Colors.white.withOpacity(0.1)
                               : Colors.black.withOpacity(0.05),
                         ),
-                        boxShadow: isDarkMode
-                            ? [
-                                BoxShadow(
-                                  color:
-                                      const Color(0xFF6C5DD3).withOpacity(0.1),
-                                  blurRadius: 10,
-                                  spreadRadius: 0,
-                                ),
-                                BoxShadow(
-                                  color: Colors.white.withOpacity(0.05),
-                                  blurRadius: 5,
-                                  spreadRadius: 0,
-                                ),
-                              ]
-                            : null,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,41 +481,30 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isDarkMode
-                                    ? Colors.black.withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.3),
                                 borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(12),
                                 ),
-                              ),
-                              child: Container(
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  image: product.images.isNotEmpty
-                                      ? DecorationImage(
-                                          image: MemoryImage(
-                                            base64Decode(product.images.first),
-                                          ),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : null,
-                                  color: product.images.isEmpty
-                                      ? (isDarkMode
-                                          ? Colors.white10
-                                          : Colors.black12)
-                                      : null,
-                                ),
-                                child: product.images.isEmpty
-                                    ? Icon(
-                                        Icons.image_not_supported_outlined,
-                                        size: 48,
-                                        color: isDarkMode
-                                            ? Colors.white30
-                                            : Colors.black26,
+                                image: imageProvider != null
+                                    ? DecorationImage(
+                                        image: imageProvider,
+                                        fit: BoxFit.cover,
                                       )
                                     : null,
+                                color: imageProvider == null
+                                    ? (isDarkMode
+                                        ? Colors.white10
+                                        : Colors.black12)
+                                    : null,
                               ),
+                              child: imageProvider == null
+                                  ? Icon(
+                                      Icons.image_not_supported_outlined,
+                                      size: 48,
+                                      color: isDarkMode
+                                          ? Colors.white30
+                                          : Colors.black26,
+                                    )
+                                  : null,
                             ),
                           ),
                           Padding(
@@ -589,101 +514,20 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                               children: [
                                 Text(
                                   product.productName,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : Colors.black87,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF6C5DD3),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.person,
-                                      size: 16,
-                                      color: isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      product.farmerName,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: isDarkMode
-                                            ? Colors.white70
-                                            : Colors.black54,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.location_on,
-                                      size: 16,
-                                      color: isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      product.region,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: isDarkMode
-                                            ? Colors.white70
-                                            : Colors.black54,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                // Status Badge
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: product.isSoldOut
-                                        ? Colors.red.withOpacity(0.1)
-                                        : product.status == 'available'
-                                            ? Colors.green.withOpacity(0.1)
-                                            : Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: product.isSoldOut
-                                          ? Colors.red
-                                          : product.status == 'available'
-                                              ? Colors.green
-                                              : Colors.orange,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    product.displayStatus,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color: product.isSoldOut
-                                          ? Colors.red
-                                          : product.status == 'available'
-                                              ? Colors.green
-                                              : Colors.orange,
-                                    ),
+                                  'GH₵${product.price.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: isDarkMode
+                                        ? const Color(0xFF6C5DD3)
+                                        : Colors.green,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
@@ -692,158 +536,26 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
                         ],
                       ),
                     ),
-                    if (_showQuickInfo && _hoveredProduct == product)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Quick Info',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Region: ${product.region}',
-                                  style:
-                                      GoogleFonts.poppins(color: Colors.white),
-                                ),
-                                Text(
-                                  'Fertilizer: ${product.fertilizerType}',
-                                  style:
-                                      GoogleFonts.poppins(color: Colors.white),
-                                ),
-                                Text(
-                                  'Pesticide: ${product.pesticideType}',
-                                  style:
-                                      GoogleFonts.poppins(color: Colors.white),
-                                ),
-                                Text(
-                                  'Available: ${product.quantity} ${product.unit}',
-                                  style:
-                                      GoogleFonts.poppins(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Sold Out Overlay
-                    if (product.isSoldOut)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'SOLD OUT',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Re-stocked Overlay
-                    if (product.isRestocked)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'RE-STOCKED',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Discounted Badge
-                    if (product.isDiscounted)
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'DISCOUNTED',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
+                    if (_hoveredProduct?.id == product.id && _showQuickInfo)
+                      _buildQuickInfo(product),
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: product.isSoldOut
-                          ? IconButton(
-                              onPressed: () => _showReactivateDialog(product),
-                              icon: const Icon(
-                                Icons.refresh,
-                                color: Colors.green,
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withOpacity(0.9),
-                                shape: const CircleBorder(),
-                              ),
-                            )
-                          : IconButton(
-                              onPressed: () {
-                                _showDeleteConfirmationDialog(
-                                    context, isDarkMode, product);
-                              },
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.red,
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withOpacity(0.9),
-                                shape: const CircleBorder(),
-                              ),
-                            ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _editProduct(product),
+                            tooltip: 'Edit Product',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 20),
+                            onPressed: () =>
+                                _confirmDeleteProduct(context, product.id),
+                            tooltip: 'Delete Product',
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -873,7 +585,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
     });
   }
 
-  void _showProductDetails(Product product) {
+  void _editProduct(Product product) {
     showDialog(
       context: context,
       builder: (context) {
@@ -1240,75 +952,6 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
         ],
       ),
     );
-  }
-
-  Future<void> _fetchUserProfileInfo() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        final data = doc.data();
-        setState(() {
-          _username =
-              data != null && data['username'] != null ? data['username'] : '';
-          _role = data != null && data['user_type'] != null
-              ? data['user_type']
-              : '';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _username = '';
-        _role = '';
-      });
-    }
-  }
-
-  Future<void> _fetchProfilePhoto() async {
-    setState(() {
-      _profilePhotoLoading = true;
-    });
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        final data = doc.data();
-        if (data != null && data['profilePhotoBase64'] != null) {
-          setState(() {
-            _profilePhotoBase64 = data['profilePhotoBase64'];
-          });
-        }
-      }
-    } catch (e) {}
-    setState(() {
-      _profilePhotoLoading = false;
-    });
-  }
-
-  Future<void> _pickAndUploadProfilePhoto() async {
-    final picker = ImagePicker();
-    final picked =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (picked != null) {
-      final bytes = await picked.readAsBytes();
-      final base64Str = base64Encode(bytes);
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update({'profilePhotoBase64': base64Str});
-        setState(() {
-          _profilePhotoBase64 = base64Str;
-        });
-      }
-    }
   }
 
   void _showLogoutConfirmation(BuildContext context, bool isDarkMode) {
@@ -1764,6 +1407,75 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen>
       print(e);
       return false;
     }
+  }
+
+  void _confirmDeleteProduct(BuildContext context, String productId) {
+    final productProvider =
+        Provider.of<ProductProvider>(context, listen: false);
+    final product =
+        productProvider.farmerProducts.firstWhere((p) => p.id == productId);
+    _showDeleteConfirmationDialog(context,
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode, product);
+  }
+
+  Widget _buildQuickInfo(Product product) {
+    final isDarkMode =
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    return Positioned.fill(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              product.productName,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.white,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Category: ${product.category}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Available: ${product.quantity} ${product.unit}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadProfilePhoto() async {
+    final picker = ImagePicker();
+    final picked =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      final base64Str = base64Encode(bytes);
+      // We are storing the base64 string as the photoURL.
+      // This is not ideal, but it's a temporary solution to fix the current issue.
+      // A better solution would be to upload the image to a cloud storage and store the URL.
+      Provider.of<appAuth.AuthProvider>(context, listen: false)
+          .updateProfile(photoURL: base64Str);
+    }
+  }
+
+  void _fetchUserProfileInfo() {
+    // This is a placeholder.
+    // The user info is already being loaded by the AuthProvider.
   }
 }
 

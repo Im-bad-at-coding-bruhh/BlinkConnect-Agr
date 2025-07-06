@@ -46,6 +46,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Timer? _hoverTimer;
   bool _showQuickInfo = false;
   Product? _hoveredProduct;
+  int _currentPage = 1;
 
   // Filter state variables
   double _minPrice = 0;
@@ -69,6 +70,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   final TextEditingController _maxPriceController = TextEditingController(
     text: '',
   );
+
+  final ScrollController _scrollController = ScrollController();
 
   // Product categories
   final List<String> _categories = [
@@ -100,7 +103,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final productProvider =
           Provider.of<ProductProvider>(context, listen: false);
-      productProvider.loadProducts();
+      productProvider.loadPage(_currentPage);
+    });
+
+    _scrollController.addListener(() {
+      // No infinite scroll for true pagination
     });
   }
 
@@ -109,6 +116,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     _hoverTimer?.cancel();
     _minPriceController.dispose();
     _maxPriceController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -453,218 +461,205 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     );
   }
 
+  void _goToPage(int page) {
+    if (page < 1) return;
+    setState(() {
+      _currentPage = page;
+    });
+    Provider.of<ProductProvider>(context, listen: false).loadPage(page);
+  }
+
   @override
   Widget build(BuildContext context) {
-    _screenSize = MediaQuery.of(context).size;
-    _isSmallScreen = _screenSize.width < 600;
-
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-
-    final darkModeNotifier = ValueNotifier<bool>(isDarkMode);
-
-    return ValueListenableBuilder<bool>(
-      valueListenable: darkModeNotifier,
-      builder: (context, isDark, _) {
-        return Scaffold(
-          backgroundColor: isDark ? Colors.black : Colors.white,
-          body: _buildBody(isDark),
-          bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDark) : null,
-        );
-      },
-    );
-  }
-
-  Widget _buildBody(bool isDarkMode) {
-    return Container(
-      color: isDarkMode ? Colors.black : Colors.white,
-      child: Row(
+    _screenSize = MediaQuery.of(context).size;
+    _isSmallScreen = _screenSize.width < 900;
+    return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
+      body: Column(
         children: [
-          // Side bar for larger screens
-          if (!_isSmallScreen) _buildSidebar(isDarkMode),
-
-          // Main content area
-          Expanded(
-            child: Container(
-              color: isDarkMode ? Colors.black : Colors.white,
-              child: Column(
-                children: [
-                  Expanded(child: _buildMarketplaceContent(isDarkMode)),
-                ],
-              ),
+          // Header, search, and category filter
+          Container(
+            padding: EdgeInsets.fromLTRB(
+              24,
+              MediaQuery.of(context).padding.top + 16,
+              24,
+              16,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSidebar(bool isDarkMode) {
-    return Container(
-      width: 240,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0A0A18) : const Color(0xFFCCE0CC),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          // Navigation items
-          _buildNavItem(0, Icons.dashboard_outlined, 'Dashboard'),
-          _buildNavItem(1, Icons.shopping_basket_rounded, 'Marketplace'),
-          _buildNavItem(2, Icons.people_rounded, 'Community'),
-          _buildNavItem(3, Icons.person_rounded, 'Profile'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String title) {
-    final bool isSelected = _selectedIndex == index;
-    final bool isDarkMode =
-        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
-        onTap: () => _onItemTapped(index),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isSelected
-                ? const Color(0xFF6C5DD3).withOpacity(0.2)
-                : Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isSelected
-                    ? const Color(0xFF6C5DD3)
-                    : isDarkMode
-                        ? Colors.white70
-                        : Colors.black87,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected
-                      ? const Color(0xFF6C5DD3)
-                      : isDarkMode
-                          ? Colors.white70
-                          : Colors.black87,
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05),
+                  width: 1,
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Main marketplace content
-  Widget _buildMarketplaceContent(bool isDarkMode) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            MediaQuery.of(context).padding.top + 16,
-            24,
-            16,
-          ),
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white,
-            border: Border(
-              bottom: BorderSide(
-                color: isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
-                width: 1,
-              ),
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.shopping_basket_rounded,
-                    size: 28,
-                    color: const Color(0xFF6C5DD3),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Marketplace',
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.shopping_cart_rounded,
-                      color: const Color(0xFF6C5DD3),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CartScreen(
-                            isFarmer: widget.isFarmer,
-                            isVerified: widget.isVerified,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.filter_list_rounded,
-                      color: const Color(0xFF6C5DD3),
-                    ),
-                    onPressed: _showFilterDialog,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Search bar and category filter
-                _buildSearchAndCategories(isDarkMode),
-                const SizedBox(height: 24),
-
-                // All products
-                _buildAllProductsSection(isDarkMode),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.shopping_basket_rounded,
+                      size: 28,
+                      color: const Color(0xFF6C5DD3),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Marketplace',
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.shopping_cart_rounded,
+                        color: const Color(0xFF6C5DD3),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CartScreen(
+                              isFarmer: widget.isFarmer,
+                              isVerified: widget.isVerified,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.filter_list_rounded,
+                        color: const Color(0xFF6C5DD3),
+                      ),
+                      onPressed: _showFilterDialog,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            child: _buildSearchAndCategories(isDarkMode),
+          ),
+          const SizedBox(height: 8),
+          // Main paginated product grid
+          Expanded(
+            child: Consumer<ProductProvider>(
+              builder: (context, productProvider, child) {
+                final products = _getFilteredProducts(productProvider.products);
+                if (productProvider.isLoading && products.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (products.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? Colors.black.withOpacity(0.2)
+                                : Colors.white.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.search_off_outlined,
+                            size: 60,
+                            color: isDarkMode ? Colors.white30 : Colors.black26,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'No products found',
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Try adjusting your search or category',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: isDarkMode ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    Expanded(
+                      child: GridView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: products.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: _isSmallScreen ? 2 : 4,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.75,
+                        ),
+                        itemBuilder: (context, index) {
+                          final product = products[index];
+                          return _buildProductCard(isDarkMode, product);
+                        },
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: productProvider.hasPreviousPage
+                              ? () => _goToPage(productProvider.currentPage - 1)
+                              : null,
+                          child: const Text('Previous'),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'Page ${productProvider.currentPage} of ${productProvider.totalPages}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: productProvider.hasNextPage
+                              ? () => _goToPage(productProvider.currentPage + 1)
+                              : null,
+                          child: const Text('Next'),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _isSmallScreen ? _buildBottomBar(isDarkMode) : null,
     );
   }
 
@@ -821,140 +816,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  // All product section
-  Widget _buildAllProductsSection(bool isDarkMode) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('products')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          print('StreamBuilder Error: ${snapshot.error}'); // Debug print
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        print(
-            'StreamBuilder: Received ${snapshot.data?.docs.length ?? 0} products'); // Debug print
-
-        final products = snapshot.data!.docs
-            .map((doc) {
-              try {
-                final product = Product.fromFirestore(doc);
-                print(
-                    'StreamBuilder: Loaded product: ${product.productName}'); // Debug print
-                return product;
-              } catch (e) {
-                print(
-                    'StreamBuilder: Error converting product: $e'); // Debug print
-                return null;
-              }
-            })
-            .whereType<Product>()
-            .toList();
-
-        print(
-            'StreamBuilder: Filtered ${products.length} products'); // Debug print
-
-        final List<Product> filteredProducts = _getFilteredProducts(products);
-
-        print(
-            'StreamBuilder: After filtering: ${filteredProducts.length} products'); // Debug print
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'All Products',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                Text(
-                  '${filteredProducts.length} items',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (filteredProducts.isEmpty)
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withOpacity(0.2)
-                            : Colors.white.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.search_off_outlined,
-                        size: 60,
-                        color: isDarkMode ? Colors.white30 : Colors.black26,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'No products found',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Try adjusting your search or category',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: isDarkMode ? Colors.white54 : Colors.black45,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: _isSmallScreen ? 2 : 3,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                itemCount: filteredProducts.length,
-                itemBuilder: (context, index) {
-                  final product = filteredProducts[index];
-                  return _buildProductCard(isDarkMode, product);
-                },
-              ),
-          ],
-        );
-      },
     );
   }
 
